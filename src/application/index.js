@@ -1,6 +1,7 @@
 /**
  * @import { CreateApplication } from './interface.js'
  * @import { BookCover, BookIdentifiers, CreateBookInput, UpdateBookInput } from './entities/book.js'
+ * @import { CreateShelfInput, UpdateShelfInput } from './interfaces/shelf.js'
  */
 
 const createHealthSuccessResult = (details) => {
@@ -111,6 +112,29 @@ const normalizeBookUpdates = ({ currentBook, updates }) => {
   };
 };
 
+/**
+ * @param { CreateShelfInput } shelf
+ */
+const normalizeShelf = (shelf) => {
+  return {
+    name: shelf.name,
+    description: shelf.description ?? "",
+    bookIds: [],
+  };
+};
+
+/**
+ * @param { object } params
+ * @param { ReturnType<import('./interfaces/persistence.js').Persistence['shelves']['get']> extends infer T ? Exclude<T, null> : never } params.currentShelf
+ * @param { UpdateShelfInput } params.updates
+ */
+const normalizeShelfUpdates = ({ currentShelf, updates }) => {
+  return {
+    name: updates.name ?? currentShelf.name,
+    description: updates.description ?? currentShelf.description,
+  };
+};
+
 /** @type { CreateApplication } */
 const createApplication = ({ clock, config: _config, persistence, idGenerator, logger }) => {
   return {
@@ -158,6 +182,32 @@ const createApplication = ({ clock, config: _config, persistence, idGenerator, l
     },
     getBook: ({ id }) => {
       return persistence.books.get({ id });
+    },
+    createShelf: ({ shelf }) => {
+      return persistence.shelves.create({
+        record: {
+          id: idGenerator.generate(),
+          ...normalizeShelf(shelf),
+        },
+      });
+    },
+    updateShelf: ({ id, updates }) => {
+      const currentShelf = persistence.shelves.get({ id });
+
+      if (!currentShelf) {
+        return null;
+      }
+
+      return persistence.shelves.update({
+        id,
+        updates: normalizeShelfUpdates({ currentShelf, updates }),
+      });
+    },
+    listShelves: () => {
+      return persistence.shelves.list();
+    },
+    deleteShelf: ({ id }) => {
+      return persistence.shelves.delete({ id });
     },
   };
 };

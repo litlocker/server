@@ -528,4 +528,142 @@ describe("application", () => {
       ).toBeNull();
     });
   });
+
+  describe("shelf functions", () => {
+    it("should expose shelf functions on the application", () => {
+      const application = createApplication({
+        clock: createClockSystem(),
+        config,
+        persistence: createPersistenceInMemory(),
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+
+      expect(application).toHaveProperty("createShelf");
+      expect(application).toHaveProperty("updateShelf");
+      expect(application).toHaveProperty("listShelves");
+      expect(application).toHaveProperty("deleteShelf");
+    });
+
+    it("should create and list shelves", () => {
+      const application = createApplication({
+        clock: createClockSystem(),
+        config,
+        persistence: createPersistenceInMemory(),
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+
+      const firstShelf = application.createShelf({
+        shelf: {
+          name: "Favorites",
+        },
+      });
+      const secondShelf = application.createShelf({
+        shelf: {
+          name: "To Read",
+          description: "Priority reading list",
+        },
+      });
+
+      expect(firstShelf).toEqual({
+        id: firstShelf.id,
+        name: "Favorites",
+        description: "",
+        bookIds: [],
+      });
+      expect(firstShelf.id).toEqual(expect.any(String));
+      expect(secondShelf).toEqual({
+        id: secondShelf.id,
+        name: "To Read",
+        description: "Priority reading list",
+        bookIds: [],
+      });
+      expect(application.listShelves()).toEqual([firstShelf, secondShelf]);
+    });
+
+    it("should update an existing shelf", () => {
+      const application = createApplication({
+        clock: createClockSystem(),
+        config,
+        persistence: createPersistenceInMemory(),
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+      const shelf = application.createShelf({
+        shelf: {
+          name: "Weekend Reads",
+          description: "Short books",
+        },
+      });
+
+      const updatedShelf = application.updateShelf({
+        id: shelf.id,
+        updates: {
+          name: "Weekend Reading",
+        },
+      });
+
+      expect(updatedShelf).toEqual({
+        id: shelf.id,
+        name: "Weekend Reading",
+        description: "Short books",
+        bookIds: [],
+      });
+      expect(application.listShelves()).toEqual([updatedShelf]);
+    });
+
+    it("should return null when updating a missing shelf", () => {
+      const application = createApplication({
+        clock: createClockSystem(),
+        config,
+        persistence: createPersistenceInMemory(),
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+
+      expect(
+        application.updateShelf({
+          id: "missing-shelf-id",
+          updates: {
+            name: "Archive",
+          },
+        }),
+      ).toBeNull();
+    });
+
+    it("should delete an existing shelf", () => {
+      const application = createApplication({
+        clock: createClockSystem(),
+        config,
+        persistence: createPersistenceInMemory(),
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+      const shelf = application.createShelf({
+        shelf: {
+          name: "Archive",
+        },
+      });
+
+      expect(application.deleteShelf({ id: shelf.id })).toEqual({
+        success: true,
+      });
+      expect(application.listShelves()).toEqual([]);
+    });
+
+    it("should return failure when deleting a missing shelf", () => {
+      const application = createApplication({
+        clock: createClockSystem(),
+        config,
+        persistence: createPersistenceInMemory(),
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+
+      expect(application.deleteShelf({ id: "missing-shelf-id" })).toEqual({
+        success: false,
+      });
+    });
+  });
 });
