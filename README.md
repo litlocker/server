@@ -12,7 +12,7 @@ What exists today:
 
 - Hono-based HTTP server
 - Config, logger, and server boot wiring
-- In-memory `data-store` adapter
+- In-memory `persistence` adapter
 - `/health` endpoint
 - Application-level book CRUD functions
 - `Book` entity with metadata, authors, tags, series, and cover fields
@@ -111,7 +111,7 @@ Example request body:
 
 ### `GET /books`
 
-Returns all books currently stored in the configured `data-store`.
+Returns all books currently stored.
 
 ### `PATCH /books/:id`
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createClockSystem } from "../../adapters/clock/system/index.js";
-import { createDataStoreInMemory } from "../../adapters/data-store/in-memory/index.js";
 import { createIdGeneratorSystem } from "../../adapters/id-generator/system/index.js";
+import { createPersistenceInMemory } from "../../adapters/persistence/in-memory/index.js";
 import { createApplication } from "../index.js";
 
 describe("application", () => {
@@ -60,7 +60,7 @@ describe("application", () => {
       const application = createApplication({
         clock: createClockSystem(),
         config,
-        dataStore: createDataStoreInMemory(),
+        persistence: createPersistenceInMemory(),
         idGenerator: createIdGeneratorSystem(),
         logger,
       });
@@ -72,7 +72,7 @@ describe("application", () => {
       const application = createApplication({
         clock: createClockSystem(),
         config,
-        dataStore: createDataStoreInMemory(),
+        persistence: createPersistenceInMemory(),
         idGenerator: createIdGeneratorSystem(),
         logger,
       });
@@ -90,7 +90,7 @@ describe("application", () => {
                   details: {},
                 },
               },
-              dataStore: {
+              persistence: {
                 success: true,
                 data: {
                   status: "ok",
@@ -133,7 +133,7 @@ describe("application", () => {
           }),
         },
         config,
-        dataStore: createDataStoreInMemory(),
+        persistence: createPersistenceInMemory(),
         idGenerator: createIdGeneratorSystem(),
         logger,
       });
@@ -155,7 +155,7 @@ describe("application", () => {
                   },
                 },
               },
-              dataStore: {
+              persistence: {
                 success: true,
                 data: {
                   status: "ok",
@@ -188,7 +188,7 @@ describe("application", () => {
       const application = createApplication({
         clock: createClockSystem(),
         config,
-        dataStore: createDataStoreInMemory(),
+        persistence: createPersistenceInMemory(),
         idGenerator: createIdGeneratorSystem(),
         logger,
       });
@@ -203,7 +203,7 @@ describe("application", () => {
       const application = createApplication({
         clock: createClockSystem(),
         config,
-        dataStore: createDataStoreInMemory(),
+        persistence: createPersistenceInMemory(),
         idGenerator: createIdGeneratorSystem(),
         logger,
       });
@@ -277,7 +277,7 @@ describe("application", () => {
       const application = createApplication({
         clock: createClockSystem(),
         config,
-        dataStore: createDataStoreInMemory(),
+        persistence: createPersistenceInMemory(),
         idGenerator: createIdGeneratorSystem(),
         logger,
       });
@@ -294,7 +294,7 @@ describe("application", () => {
       const application = createApplication({
         clock: createClockSystem(),
         config,
-        dataStore: createDataStoreInMemory(),
+        persistence: createPersistenceInMemory(),
         idGenerator: createIdGeneratorSystem(),
         logger,
       });
@@ -306,7 +306,7 @@ describe("application", () => {
       const application = createApplication({
         clock: createClockSystem(),
         config,
-        dataStore: createDataStoreInMemory(),
+        persistence: createPersistenceInMemory(),
         idGenerator: createIdGeneratorSystem(),
         logger,
       });
@@ -379,7 +379,7 @@ describe("application", () => {
       const application = createApplication({
         clock: createClockSystem(),
         config,
-        dataStore: createDataStoreInMemory(),
+        persistence: createPersistenceInMemory(),
         idGenerator: createIdGeneratorSystem(),
         logger,
       });
@@ -421,7 +421,7 @@ describe("application", () => {
       const application = createApplication({
         clock: createClockSystem(),
         config,
-        dataStore: createDataStoreInMemory(),
+        persistence: createPersistenceInMemory(),
         idGenerator: createIdGeneratorSystem(),
         logger,
       });
@@ -466,7 +466,7 @@ describe("application", () => {
       const application = createApplication({
         clock: createClockSystem(),
         config,
-        dataStore: createDataStoreInMemory(),
+        persistence: createPersistenceInMemory(),
         idGenerator: createIdGeneratorSystem(),
         logger,
       });
@@ -514,7 +514,7 @@ describe("application", () => {
     it("should return null when updating a missing book", () => {
       const application = createApplication({
         config,
-        dataStore: createDataStoreInMemory(),
+        persistence: createPersistenceInMemory(),
         logger,
       });
 

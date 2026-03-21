@@ -28,7 +28,7 @@ describe("http hono health route", () => {
                   details: {},
                 },
               },
-              dataStore: {
+              persistence: {
                 success: true,
                 data: {
                   status: "ok",
@@ -74,7 +74,7 @@ describe("http hono health route", () => {
               details: {},
             },
           },
-          dataStore: {
+          persistence: {
             success: true,
             data: {
               status: "ok",
@@ -109,7 +109,7 @@ describe("http hono health route", () => {
           code: "dependency_unavailable",
           message: "A dependency is unavailable",
           details: {
-            dependency: "data-store",
+            dependency: "persistence",
           },
         },
       }),
@@ -129,7 +129,7 @@ describe("http hono health route", () => {
         code: "dependency_unavailable",
         message: "A dependency is unavailable",
         details: {
-          dependency: "data-store",
+          dependency: "persistence",
         },
       },
     });

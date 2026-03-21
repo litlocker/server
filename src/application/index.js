@@ -88,7 +88,7 @@ const normalizeBook = (book) => {
 
 /**
  * @param { object } params
- * @param { ReturnType<import('./interfaces/data-store.js').DataStore['getBook']> extends infer T ? Exclude<T, null> : never } params.currentBook
+ * @param { ReturnType<import('./interfaces/persistence.js').Persistence['books']['get']> extends infer T ? Exclude<T, null> : never } params.currentBook
  * @param { UpdateBookInput } params.updates
  */
 const normalizeBookUpdates = ({ currentBook, updates }) => {
@@ -112,12 +112,12 @@ const normalizeBookUpdates = ({ currentBook, updates }) => {
 };
 
 /** @type { CreateApplication } */
-const createApplication = ({ clock, config: _config, dataStore, idGenerator, logger }) => {
+const createApplication = ({ clock, config: _config, persistence, idGenerator, logger }) => {
   return {
     health: () => {
       const checks = {
         clock: clock.checkHealth(),
-        dataStore: dataStore.checkHealth(),
+        persistence: persistence.checkHealth(),
         idGenerator: idGenerator.checkHealth(),
         logger: logger.checkHealth(),
       };
@@ -134,30 +134,30 @@ const createApplication = ({ clock, config: _config, dataStore, idGenerator, log
       });
     },
     createBook: ({ book }) => {
-      return dataStore.createBook({
-        book: {
+      return persistence.books.create({
+        record: {
           id: idGenerator.generate(),
           ...normalizeBook(book),
         },
       });
     },
     updateBook: ({ id, updates }) => {
-      const currentBook = dataStore.getBook({ id });
+      const currentBook = persistence.books.get({ id });
 
       if (!currentBook) {
         return null;
       }
 
-      return dataStore.updateBook({
+      return persistence.books.update({
         id,
         updates: normalizeBookUpdates({ currentBook, updates }),
       });
     },
     listBooks: () => {
-      return dataStore.listBooks();
+      return persistence.books.list();
     },
     getBook: ({ id }) => {
-      return dataStore.getBook({ id });
+      return persistence.books.get({ id });
     },
   };
 };

@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { createApplication } from "../../../application/index.js";
 import { createClockSystem } from "../../clock/system/index.js";
-import { createDataStoreInMemory } from "../../data-store/in-memory/index.js";
 import { createIdGeneratorSystem } from "../../id-generator/system/index.js";
 import { createLoggerPino } from "../../logger/pino/index.js";
+import { createPersistenceInMemory } from "../../persistence/in-memory/index.js";
 import { createHonoApp } from "../../server/http-hono/app.js";
 
 describe("http hono book routes integration", () => {
@@ -47,9 +47,9 @@ describe("http hono book routes integration", () => {
   const createTestApp = () => {
     const clock = createClockSystem();
     const logger = createLoggerPino({ config: config.logger });
-    const dataStore = createDataStoreInMemory();
+    const persistence = createPersistenceInMemory();
     const idGenerator = createIdGeneratorSystem();
-    const application = createApplication({ clock, config, dataStore, idGenerator, logger });
+    const application = createApplication({ clock, config, persistence, idGenerator, logger });
 
     return createHonoApp({
       application,

@@ -1,9 +1,9 @@
 import { Book, CreateBookInput, UpdateBookInput } from "./entities/book.d.ts";
 import { Clock } from "./interfaces/clock.d.ts";
 import { Config } from "./interfaces/config.d.ts";
-import { DataStore } from "./interfaces/data-store.d.ts";
 import { IdGenerator } from "./interfaces/id-generator.d.ts";
 import { Logger } from "./interfaces/logger.d.ts";
+import { Persistence } from "./interfaces/persistence.d.ts";
 import { Result, HealthStatus } from "./interfaces/result.d.ts";
 
 type Health = () => Result<HealthStatus>;
@@ -24,7 +24,7 @@ interface Deps {
   clock: Clock;
   config: Config;
   logger: Logger;
-  dataStore: DataStore;
+  persistence: Persistence;
   idGenerator: IdGenerator;
 }
 
