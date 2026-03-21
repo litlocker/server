@@ -121,11 +121,21 @@ Updates an existing book by id.
 
 Returns a single book by id or `404` if it does not exist.
 
-- add request validation for book routes
-- add `PATCH /books/:id`
-- add route-level API tests
-- introduce shelves and filtering
-- start implementation fo the import pipeline
+## Near-Term Implementation Goals
+
+- [ ] Finish foundation work so the application has stable shared contracts for time, ids, persistence, storage, metadata lookup, and background work.
+- [ ] Introduce a real persistence layer so books survive process restarts and the in-memory adapter becomes a development-only implementation.
+- [ ] Add shelves as a first-class library organization feature, starting with manual shelves and book membership management.
+- [ ] Add library filtering and search so readers can browse by title, author, tag, series, and shelf membership.
+- [ ] Build the first import workflow so books can enter the system through upload and move through a visible import lifecycle.
+- [ ] Add metadata enrichment and review so imported books can be matched, corrected, and finalized before entering the main library.
+- [ ] Add cover extraction and storage workflows so books have stable cover metadata and image references.
+- [ ] Introduce reading-progress APIs and the book-file access flow needed to support real reading clients.
+- [ ] Build the first reader-facing backend capabilities for EPUB, PDF, and comic reading flows.
+- [ ] Add single-admin authentication and route protection so the server is usable as a private self-hosted application.
+- [ ] Harden the server for self-hosting with better error handling, upload limits, structured logging, graceful shutdown, and Docker support.
+- [ ] Expand the library model with shelves, tags, search, and import workflows into a coherent end-to-end v1 library experience.
+- [ ] Prepare the server for ecosystem features such as OPDS and device sync once the core library, import, and progress flows are stable.
 
 ## License
 
