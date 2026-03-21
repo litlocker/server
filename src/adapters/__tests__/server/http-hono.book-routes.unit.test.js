@@ -71,6 +71,36 @@ describe("http hono book routes", () => {
     });
   });
 
+  it("should reject an invalid book payload through POST /books", async () => {
+    const application = {
+      hello: vi.fn(),
+      createBook: vi.fn(),
+      updateBook: vi.fn(),
+      listBooks: vi.fn(),
+      getBook: vi.fn(),
+    };
+    const app = createHonoApp({ application, config, logger });
+
+    const response = await app.request(
+      new Request("http://localhost/books", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          authors: ["Ursula K. Le Guin"],
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      message: "Invalid book payload",
+      errors: ["/ must have required property 'title'"],
+    });
+    expect(application.createBook).not.toHaveBeenCalled();
+  });
+
   it("should list books through GET /books", async () => {
     const books = [
       {

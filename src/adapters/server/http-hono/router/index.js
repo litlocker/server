@@ -3,6 +3,7 @@
  */
 
 import { Hono } from "hono";
+import { validateCreateBookPayload } from "./validate-book-payload.js";
 
 /**
  * @param { object } params
@@ -21,6 +22,18 @@ const createRouters = ({ application }) => {
 
   booksRouter.post("/", async (c) => {
     const book = await c.req.json();
+    const validationResult = validateCreateBookPayload(book);
+
+    if (!validationResult.success) {
+      return c.json(
+        {
+          message: "Invalid book payload",
+          errors: validationResult.errors,
+        },
+        400,
+      );
+    }
+
     const result = application.createBook({ book });
 
     return c.json({ book: result }, 201);
