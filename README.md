@@ -13,18 +13,22 @@ What exists today:
 - Hono-based HTTP server
 - Config, logger, and server boot wiring
 - In-memory `data-store` adapter
+- `/health` endpoint
 - Application-level book CRUD functions
 - `Book` entity with metadata, authors, tags, series, and cover fields
+- Book route validation
 - Basic book routes:
   - `POST /books`
   - `GET /books`
+  - `PATCH /books/:id`
   - `GET /books/:id`
+- Unit and integration coverage for the current book API flow
 
 What is not done yet:
 
-- Request validation
 - Persistent storage
 - Shelves
+- Search and filtering
 - Import pipeline
 - Reader and progress sync
 - Auth
@@ -109,15 +113,13 @@ Example request body:
 
 Returns all books currently stored in the configured `data-store`.
 
+### `PATCH /books/:id`
+
+Updates an existing book by id.
+
 ### `GET /books/:id`
 
 Returns a single book by id or `404` if it does not exist.
-
-### `GET /hello/:name`
-
-Temporary bootstrap/example route.
-
-## Near-Term Priorities
 
 - add request validation for book routes
 - add `PATCH /books/:id`

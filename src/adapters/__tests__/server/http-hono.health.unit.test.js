@@ -16,7 +16,6 @@ describe("http hono health route", () => {
   it("should return the application health status through GET /health", async () => {
     const application = {
       health: vi.fn().mockReturnValue({ status: "ok" }),
-      hello: vi.fn(),
       createBook: vi.fn(),
       updateBook: vi.fn(),
       listBooks: vi.fn(),

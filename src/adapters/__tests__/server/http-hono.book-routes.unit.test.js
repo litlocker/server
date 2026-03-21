@@ -40,7 +40,6 @@ describe("http hono book routes", () => {
       status: "draft",
     };
     const application = {
-      hello: vi.fn(),
       createBook: vi.fn().mockReturnValue(createdBook),
       updateBook: vi.fn(),
       listBooks: vi.fn(),
@@ -73,7 +72,6 @@ describe("http hono book routes", () => {
 
   it("should reject an invalid book payload through POST /books", async () => {
     const application = {
-      hello: vi.fn(),
       createBook: vi.fn(),
       updateBook: vi.fn(),
       listBooks: vi.fn(),
@@ -130,7 +128,6 @@ describe("http hono book routes", () => {
       },
     ];
     const application = {
-      hello: vi.fn(),
       createBook: vi.fn(),
       updateBook: vi.fn(),
       listBooks: vi.fn().mockReturnValue(books),
@@ -174,7 +171,6 @@ describe("http hono book routes", () => {
       status: "draft",
     };
     const application = {
-      hello: vi.fn(),
       createBook: vi.fn(),
       updateBook: vi.fn().mockReturnValue(updatedBook),
       listBooks: vi.fn(),
@@ -210,7 +206,6 @@ describe("http hono book routes", () => {
 
   it("should reject an invalid book payload through PATCH /books/:id", async () => {
     const application = {
-      hello: vi.fn(),
       createBook: vi.fn(),
       updateBook: vi.fn(),
       listBooks: vi.fn(),
@@ -238,7 +233,6 @@ describe("http hono book routes", () => {
 
   it("should return 404 when PATCH /books/:id cannot find a book", async () => {
     const application = {
-      hello: vi.fn(),
       createBook: vi.fn(),
       updateBook: vi.fn().mockReturnValue(null),
       listBooks: vi.fn(),
@@ -297,7 +291,6 @@ describe("http hono book routes", () => {
       status: "draft",
     };
     const application = {
-      hello: vi.fn(),
       createBook: vi.fn(),
       updateBook: vi.fn(),
       listBooks: vi.fn(),
@@ -316,7 +309,6 @@ describe("http hono book routes", () => {
 
   it("should return 404 when GET /books/:id cannot find a book", async () => {
     const application = {
-      hello: vi.fn(),
       createBook: vi.fn(),
       updateBook: vi.fn(),
       listBooks: vi.fn(),

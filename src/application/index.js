@@ -100,9 +100,6 @@ const createApplication = ({ config: _config, dataStore, logger: _logger }) => {
         status: "ok",
       };
     },
-    hello: ({ name }) => {
-      return `Hello, ${name}!`;
-    },
     createBook: ({ book }) => {
       return dataStore.createBook({ book: normalizeBook(book) });
     },

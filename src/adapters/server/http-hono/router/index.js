@@ -11,20 +11,12 @@ import { validateCreateBookPayload, validateUpdateBookPayload } from "./validate
  */
 const createRouters = ({ application }) => {
   const healthRouter = new Hono();
-  const helloRouter = new Hono();
   const booksRouter = new Hono();
 
   healthRouter.get("/", (c) => {
     const result = application.health();
 
     return c.json(result);
-  });
-
-  helloRouter.get("/:name", (c) => {
-    const { name } = c.req.param();
-    const result = application.hello({ name });
-
-    return c.json({ message: result });
   });
 
   booksRouter.post("/", async (c) => {
@@ -89,7 +81,6 @@ const createRouters = ({ application }) => {
 
   return {
     healthRouter,
-    helloRouter,
     booksRouter,
   };
 };
