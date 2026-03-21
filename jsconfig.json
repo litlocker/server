@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "moduleResolution": "NodeNext",
+    "module": "NodeNext",
+    "target": "ESNext",
+    "allowJs": true,
+    "checkJs": true,
+    "strict": true,
+    "noEmit": true,
+    "alwaysStrict": true,
+    "rootDir": ".",
+    "skipLibCheck": true,
+    "maxNodeModuleJsDepth": 0,
+    "noImplicitAny": true,
+    "types": ["node"]
+  },
+  "include": ["**/*"],
+  "exclude": ["node_modules"]
+}

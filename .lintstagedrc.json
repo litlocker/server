@@ -1,0 +1,3 @@
+{
+  "*": ["pnpm run fmt:fix", "pnpm run lint:fix"]
+}

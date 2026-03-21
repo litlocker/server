@@ -1,0 +1,16 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "arrowParens": "always",
+  "bracketSpacing": true,
+  "printWidth": 100,
+  "quoteProps": "consistent",
+  "semi": true,
+  "singleQuote": false,
+  "trailingComma": "all",
+  "sortImports": {
+    "ignoreCase": true,
+    "newlinesBetween": false,
+    "order": "asc"
+  },
+  "ignorePatterns": []
+}
