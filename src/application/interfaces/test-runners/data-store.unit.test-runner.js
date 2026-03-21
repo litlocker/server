@@ -23,11 +23,13 @@ const runDataStoreUnitTests = (createDataStore) => {
         const dataStore = createDataStore();
         const firstBook = dataStore.createBook({
           book: {
+            id: "book-1",
             title: "The Left Hand of Darkness",
           },
         });
         const secondBook = dataStore.createBook({
           book: {
+            id: "book-2",
             title: "A Wizard of Earthsea",
           },
         });
@@ -46,6 +48,7 @@ const runDataStoreUnitTests = (createDataStore) => {
         const dataStore = createDataStore();
         const book = dataStore.createBook({
           book: {
+            id: "book-1",
             title: "The Dispossessed",
           },
         });
@@ -63,6 +66,7 @@ const runDataStoreUnitTests = (createDataStore) => {
         const dataStore = createDataStore();
         const book = dataStore.createBook({
           book: {
+            id: "book-1",
             title: "The Tombs of Atuan",
             description: "Original description",
           },

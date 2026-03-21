@@ -91,7 +91,13 @@ const normalizeBookUpdates = ({ currentBook, updates }) => {
 };
 
 /** @type { CreateApplication } */
-const createApplication = ({ clock: _clock, config: _config, dataStore, logger: _logger }) => {
+const createApplication = ({
+  clock: _clock,
+  config: _config,
+  dataStore,
+  idGenerator,
+  logger: _logger,
+}) => {
   return {
     health: () => {
       // TODO: rewrite to actually check health of all dependencies
@@ -104,7 +110,12 @@ const createApplication = ({ clock: _clock, config: _config, dataStore, logger: 
       };
     },
     createBook: ({ book }) => {
-      return dataStore.createBook({ book: normalizeBook(book) });
+      return dataStore.createBook({
+        book: {
+          id: idGenerator.generate(),
+          ...normalizeBook(book),
+        },
+      });
     },
     updateBook: ({ id, updates }) => {
       const currentBook = dataStore.getBook({ id });

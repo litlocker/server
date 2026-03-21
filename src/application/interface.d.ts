@@ -2,6 +2,7 @@ import { Book, CreateBookInput, UpdateBookInput } from "./entities/book.d.ts";
 import { Clock } from "./interfaces/clock.d.ts";
 import { Config } from "./interfaces/config.d.ts";
 import { DataStore } from "./interfaces/data-store.d.ts";
+import { IdGenerator } from "./interfaces/id-generator.d.ts";
 import { Logger } from "./interfaces/logger.d.ts";
 import { SuccessResult } from "./interfaces/result.d.ts";
 
@@ -28,6 +29,7 @@ interface Deps {
   config: Config;
   logger: Logger;
   dataStore: DataStore;
+  idGenerator: IdGenerator;
 }
 
 type CreateApplication = (deps: Deps) => Application;

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createClockSystem } from "../../adapters/clock/system/index.js";
 import { createDataStoreInMemory } from "../../adapters/data-store/in-memory/index.js";
+import { createIdGeneratorSystem } from "../../adapters/id-generator/system/index.js";
 import { createApplication } from "../index.js";
 
 describe("application", () => {
@@ -30,6 +31,7 @@ describe("application", () => {
         clock: createClockSystem(),
         config,
         dataStore: createDataStoreInMemory(),
+        idGenerator: createIdGeneratorSystem(),
         logger,
       });
 
@@ -41,6 +43,7 @@ describe("application", () => {
         clock: createClockSystem(),
         config,
         dataStore: createDataStoreInMemory(),
+        idGenerator: createIdGeneratorSystem(),
         logger,
       });
 
@@ -59,6 +62,7 @@ describe("application", () => {
         clock: createClockSystem(),
         config,
         dataStore: createDataStoreInMemory(),
+        idGenerator: createIdGeneratorSystem(),
         logger,
       });
 
@@ -73,6 +77,7 @@ describe("application", () => {
         clock: createClockSystem(),
         config,
         dataStore: createDataStoreInMemory(),
+        idGenerator: createIdGeneratorSystem(),
         logger,
       });
 
@@ -146,6 +151,7 @@ describe("application", () => {
         clock: createClockSystem(),
         config,
         dataStore: createDataStoreInMemory(),
+        idGenerator: createIdGeneratorSystem(),
         logger,
       });
       const book = application.createBook({
@@ -162,6 +168,7 @@ describe("application", () => {
         clock: createClockSystem(),
         config,
         dataStore: createDataStoreInMemory(),
+        idGenerator: createIdGeneratorSystem(),
         logger,
       });
 
@@ -173,6 +180,7 @@ describe("application", () => {
         clock: createClockSystem(),
         config,
         dataStore: createDataStoreInMemory(),
+        idGenerator: createIdGeneratorSystem(),
         logger,
       });
       const book = application.createBook({
@@ -245,6 +253,7 @@ describe("application", () => {
         clock: createClockSystem(),
         config,
         dataStore: createDataStoreInMemory(),
+        idGenerator: createIdGeneratorSystem(),
         logger,
       });
 
@@ -286,6 +295,7 @@ describe("application", () => {
         clock: createClockSystem(),
         config,
         dataStore: createDataStoreInMemory(),
+        idGenerator: createIdGeneratorSystem(),
         logger,
       });
 
@@ -327,8 +337,10 @@ describe("application", () => {
 
     it("should store simple tags and cover metadata on books", () => {
       const application = createApplication({
+        clock: createClockSystem(),
         config,
         dataStore: createDataStoreInMemory(),
+        idGenerator: createIdGeneratorSystem(),
         logger,
       });
 

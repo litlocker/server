@@ -8,14 +8,9 @@ const createDataStoreInMemory = () => {
 
   return {
     createBook: ({ book }) => {
-      const nextBook = {
-        id: crypto.randomUUID(),
-        ...book,
-      };
+      books.set(book.id, book);
 
-      books.set(nextBook.id, nextBook);
-
-      return nextBook;
+      return book;
     },
     updateBook: ({ id, updates }) => {
       const currentBook = books.get(id);

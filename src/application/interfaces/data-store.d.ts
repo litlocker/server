@@ -1,6 +1,6 @@
 import { Book, CreateBookInput, UpdateBookInput } from "../entities/book.d.ts";
 
-type CreateBookRecord = ({ book }: { book: CreateBookInput }) => Book;
+type CreateBookRecord = ({ book }: { book: Book }) => Book;
 type UpdateBookRecord = ({
   id,
   updates,
