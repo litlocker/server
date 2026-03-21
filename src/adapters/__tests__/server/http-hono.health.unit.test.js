@@ -17,7 +17,41 @@ describe("http hono health route", () => {
     const application = {
       health: vi.fn().mockReturnValue({
         success: true,
-        data: { status: "ok" },
+        data: {
+          status: "ok",
+          details: {
+            checks: {
+              clock: {
+                success: true,
+                data: {
+                  status: "ok",
+                  details: {},
+                },
+              },
+              dataStore: {
+                success: true,
+                data: {
+                  status: "ok",
+                  details: {},
+                },
+              },
+              idGenerator: {
+                success: true,
+                data: {
+                  status: "ok",
+                  details: {},
+                },
+              },
+              logger: {
+                success: true,
+                data: {
+                  status: "ok",
+                  details: {},
+                },
+              },
+            },
+          },
+        },
       }),
       createBook: vi.fn(),
       updateBook: vi.fn(),
@@ -31,6 +65,38 @@ describe("http hono health route", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
       status: "ok",
+      details: {
+        checks: {
+          clock: {
+            success: true,
+            data: {
+              status: "ok",
+              details: {},
+            },
+          },
+          dataStore: {
+            success: true,
+            data: {
+              status: "ok",
+              details: {},
+            },
+          },
+          idGenerator: {
+            success: true,
+            data: {
+              status: "ok",
+              details: {},
+            },
+          },
+          logger: {
+            success: true,
+            data: {
+              status: "ok",
+              details: {},
+            },
+          },
+        },
+      },
     });
     expect(application.health).toHaveBeenCalledOnce();
   });
