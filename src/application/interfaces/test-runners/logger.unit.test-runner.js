@@ -21,6 +21,13 @@ const runLoggerUnitTests = (createLogger) => {
         expect(logger).toHaveProperty("info");
         expect(logger).toHaveProperty("warn");
         expect(logger).toHaveProperty("error");
+        expect(logger).toHaveProperty("checkHealth");
+      });
+
+      it("should expose health status", () => {
+        const result = logger.checkHealth();
+
+        expect(result).toHaveProperty("success");
       });
     });
   });

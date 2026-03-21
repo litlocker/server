@@ -16,6 +16,7 @@ const runPersistenceUnitTests = (createPersistence) => {
         expect(persistence).toHaveProperty("users");
         expect(persistence).toHaveProperty("importJobs");
         expect(persistence).toHaveProperty("readingProgress");
+        expect(persistence).toHaveProperty("checkHealth");
       });
 
       it("should expose the expected functions on each group", () => {
@@ -25,25 +26,30 @@ const runPersistenceUnitTests = (createPersistence) => {
         expect(persistence.books).toHaveProperty("update");
         expect(persistence.books).toHaveProperty("list");
         expect(persistence.books).toHaveProperty("get");
+        expect(persistence.books).toHaveProperty("checkHealth");
 
         expect(persistence.shelves).toHaveProperty("create");
         expect(persistence.shelves).toHaveProperty("update");
         expect(persistence.shelves).toHaveProperty("list");
         expect(persistence.shelves).toHaveProperty("get");
         expect(persistence.shelves).toHaveProperty("delete");
+        expect(persistence.shelves).toHaveProperty("checkHealth");
 
         expect(persistence.users).toHaveProperty("create");
         expect(persistence.users).toHaveProperty("update");
         expect(persistence.users).toHaveProperty("list");
         expect(persistence.users).toHaveProperty("get");
+        expect(persistence.users).toHaveProperty("checkHealth");
 
         expect(persistence.importJobs).toHaveProperty("create");
         expect(persistence.importJobs).toHaveProperty("update");
         expect(persistence.importJobs).toHaveProperty("list");
         expect(persistence.importJobs).toHaveProperty("get");
+        expect(persistence.importJobs).toHaveProperty("checkHealth");
 
         expect(persistence.readingProgress).toHaveProperty("save");
         expect(persistence.readingProgress).toHaveProperty("get");
+        expect(persistence.readingProgress).toHaveProperty("checkHealth");
       });
     });
 
@@ -124,6 +130,17 @@ const runPersistenceUnitTests = (createPersistence) => {
             userId: user.id,
           }),
         ).toEqual(readingProgress);
+      });
+
+      it("should expose health status", () => {
+        const persistence = createPersistence();
+
+        expect(persistence.checkHealth()).toHaveProperty("success");
+        expect(persistence.books.checkHealth()).toHaveProperty("success");
+        expect(persistence.shelves.checkHealth()).toHaveProperty("success");
+        expect(persistence.users.checkHealth()).toHaveProperty("success");
+        expect(persistence.importJobs.checkHealth()).toHaveProperty("success");
+        expect(persistence.readingProgress.checkHealth()).toHaveProperty("success");
       });
     });
   });

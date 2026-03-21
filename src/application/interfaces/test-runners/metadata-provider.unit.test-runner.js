@@ -13,6 +13,7 @@ const runMetadataProviderUnitTests = (createMetadataProvider) => {
 
         expect(metadataProvider).toHaveProperty("extractMetadata");
         expect(metadataProvider).toHaveProperty("lookupMetadata");
+        expect(metadataProvider).toHaveProperty("checkHealth");
       });
     });
 
@@ -79,6 +80,14 @@ const runMetadataProviderUnitTests = (createMetadataProvider) => {
             source: "external",
           },
         ]);
+      });
+
+      it("should expose health status", () => {
+        const metadataProvider = createMetadataProvider();
+
+        const result = metadataProvider.checkHealth();
+
+        expect(result).toHaveProperty("success");
       });
     });
   });

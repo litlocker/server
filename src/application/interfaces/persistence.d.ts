@@ -1,6 +1,7 @@
 import { Book } from "../entities/book.d.ts";
 import { ImportJob } from "./import-job.d.ts";
 import { ReadingProgress } from "./reading-progress.d.ts";
+import { CheckHealth } from "./result.d.ts";
 import { Shelf } from "./shelf.d.ts";
 import { User } from "./user.d.ts";
 
@@ -9,6 +10,7 @@ interface BooksPersistence {
   update: ({ id, updates }: { id: string; updates: Partial<Book> }) => Book | null;
   list: () => Book[];
   get: ({ id }: { id: string }) => Book | null;
+  checkHealth: CheckHealth;
 }
 
 interface ShelvesPersistence {
@@ -17,6 +19,7 @@ interface ShelvesPersistence {
   list: () => Shelf[];
   get: ({ id }: { id: string }) => Shelf | null;
   delete: ({ id }: { id: string }) => { success: boolean };
+  checkHealth: CheckHealth;
 }
 
 interface UsersPersistence {
@@ -24,6 +27,7 @@ interface UsersPersistence {
   update: ({ id, updates }: { id: string; updates: Partial<User> }) => User | null;
   list: () => User[];
   get: ({ id }: { id: string }) => User | null;
+  checkHealth: CheckHealth;
 }
 
 interface ImportJobsPersistence {
@@ -31,11 +35,13 @@ interface ImportJobsPersistence {
   update: ({ id, updates }: { id: string; updates: Partial<ImportJob> }) => ImportJob | null;
   list: () => ImportJob[];
   get: ({ id }: { id: string }) => ImportJob | null;
+  checkHealth: CheckHealth;
 }
 
 interface ReadingProgressPersistence {
   save: ({ record }: { record: ReadingProgress }) => ReadingProgress;
   get: ({ bookId, userId }: { bookId: string; userId: string }) => ReadingProgress | null;
+  checkHealth: CheckHealth;
 }
 
 interface Persistence {
@@ -44,6 +50,7 @@ interface Persistence {
   users: UsersPersistence;
   importJobs: ImportJobsPersistence;
   readingProgress: ReadingProgressPersistence;
+  checkHealth: CheckHealth;
 }
 
 type CreatePersistence = () => Persistence;

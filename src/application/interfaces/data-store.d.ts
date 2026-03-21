@@ -1,4 +1,5 @@
 import { Book, CreateBookInput, UpdateBookInput } from "../entities/book.d.ts";
+import { CheckHealth } from "./result.d.ts";
 
 type CreateBookRecord = ({ book }: { book: Book }) => Book;
 type UpdateBookRecord = ({
@@ -16,6 +17,7 @@ interface DataStore {
   updateBook: UpdateBookRecord;
   listBooks: ListBookRecords;
   getBook: GetBookRecord;
+  checkHealth: CheckHealth;
 }
 
 type CreateDataStore = () => DataStore;

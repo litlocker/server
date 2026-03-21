@@ -1,4 +1,5 @@
 import { Config } from "./config.d.ts";
+import { CheckHealth } from "./result.d.ts";
 
 type LogFn = (message: string, ...args: any[]) => void;
 
@@ -7,6 +8,7 @@ interface Logger {
   info: LogFn;
   warn: LogFn;
   error: LogFn;
+  checkHealth: CheckHealth;
 }
 
 interface Deps {

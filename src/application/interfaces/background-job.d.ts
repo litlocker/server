@@ -1,3 +1,5 @@
+import { CheckHealth } from "./result.d.ts";
+
 type BackgroundJobType =
   | "extract-embedded-metadata"
   | "lookup-external-metadata"
@@ -31,6 +33,7 @@ interface BackgroundJobRunner {
   get: GetBackgroundJob;
   list: ListBackgroundJobs;
   run: RunBackgroundJob;
+  checkHealth: CheckHealth;
 }
 
 type CreateBackgroundJobRunner = () => BackgroundJobRunner;

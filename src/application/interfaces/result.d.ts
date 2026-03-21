@@ -4,6 +4,11 @@ interface ApplicationError {
   details: Record<string, unknown>;
 }
 
+interface HealthStatus {
+  status: "ok" | "error";
+  details: Record<string, unknown>;
+}
+
 interface SuccessResult<TData> {
   success: true;
   data: TData;
@@ -15,5 +20,6 @@ interface FailureResult {
 }
 
 type Result<TData> = SuccessResult<TData> | FailureResult;
+type CheckHealth = () => Result<HealthStatus>;
 
-export type { ApplicationError, SuccessResult, FailureResult, Result };
+export type { ApplicationError, HealthStatus, SuccessResult, FailureResult, Result, CheckHealth };

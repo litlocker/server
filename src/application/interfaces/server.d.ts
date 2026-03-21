@@ -1,5 +1,6 @@
 import { Config } from "./config.d.ts";
 import { Logger } from "./logger.d.ts";
+import { CheckHealth } from "./result.d.ts";
 
 interface Result {
   success: boolean;
@@ -11,6 +12,7 @@ type ServerStopFn = ({ reason }: { reason: Record<string, unknown> }) => Promise
 interface Server {
   start: ServerStartFn;
   stop: ServerStopFn;
+  checkHealth: CheckHealth;
 }
 
 interface Deps {

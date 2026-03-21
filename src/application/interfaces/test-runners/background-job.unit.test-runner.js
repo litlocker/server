@@ -15,6 +15,7 @@ const runBackgroundJobUnitTests = (createBackgroundJobRunner) => {
         expect(backgroundJobRunner).toHaveProperty("get");
         expect(backgroundJobRunner).toHaveProperty("list");
         expect(backgroundJobRunner).toHaveProperty("run");
+        expect(backgroundJobRunner).toHaveProperty("checkHealth");
       });
     });
 
@@ -57,6 +58,14 @@ const runBackgroundJobUnitTests = (createBackgroundJobRunner) => {
         const backgroundJobRunner = createBackgroundJobRunner();
 
         expect(backgroundJobRunner.get({ id: "missing-background-job-id" })).toBeNull();
+      });
+
+      it("should expose health status", () => {
+        const backgroundJobRunner = createBackgroundJobRunner();
+
+        const result = backgroundJobRunner.checkHealth();
+
+        expect(result).toHaveProperty("success");
       });
     });
   });

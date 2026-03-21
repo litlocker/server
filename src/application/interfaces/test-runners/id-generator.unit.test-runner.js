@@ -12,6 +12,7 @@ const runIdGeneratorUnitTests = (createIdGenerator) => {
         const idGenerator = createIdGenerator();
 
         expect(idGenerator).toHaveProperty("generate");
+        expect(idGenerator).toHaveProperty("checkHealth");
       });
     });
 
@@ -22,6 +23,14 @@ const runIdGeneratorUnitTests = (createIdGenerator) => {
 
         expect(id).toEqual(expect.any(String));
         expect(id.length).toBeGreaterThan(0);
+      });
+
+      it("should expose health status", () => {
+        const idGenerator = createIdGenerator();
+
+        const result = idGenerator.checkHealth();
+
+        expect(result).toHaveProperty("success");
       });
     });
   });

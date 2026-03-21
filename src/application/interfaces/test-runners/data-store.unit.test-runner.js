@@ -15,6 +15,7 @@ const runDataStoreUnitTests = (createDataStore) => {
         expect(dataStore).toHaveProperty("updateBook");
         expect(dataStore).toHaveProperty("listBooks");
         expect(dataStore).toHaveProperty("getBook");
+        expect(dataStore).toHaveProperty("checkHealth");
       });
     });
 
@@ -100,6 +101,14 @@ const runDataStoreUnitTests = (createDataStore) => {
             },
           }),
         ).toBeNull();
+      });
+
+      it("should expose health status", () => {
+        const dataStore = createDataStore();
+
+        const result = dataStore.checkHealth();
+
+        expect(result).toHaveProperty("success");
       });
     });
   });

@@ -66,6 +66,7 @@ const runServerUnitTests = (createServer) => {
       it("should have all functions", () => {
         expect(server).toHaveProperty("start");
         expect(server).toHaveProperty("stop");
+        expect(server).toHaveProperty("checkHealth");
       });
     });
 
@@ -138,6 +139,20 @@ const runServerUnitTests = (createServer) => {
 
             expect(result).toEqual({ success: true });
           });
+        });
+      });
+
+      describe("checkHealth", () => {
+        it("should expose health status", () => {
+          const server = createServer({
+            application,
+            config: config.server,
+            logger,
+          });
+
+          const result = server.checkHealth();
+
+          expect(result).toHaveProperty("success");
         });
       });
     });

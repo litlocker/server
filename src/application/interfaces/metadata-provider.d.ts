@@ -1,3 +1,5 @@
+import { CheckHealth } from "./result.d.ts";
+
 interface MetadataRecord {
   title: string;
   subtitle: string;
@@ -41,6 +43,7 @@ type LookupMetadata = ({ input }: { input: LookupMetadataInput }) => MetadataRec
 interface MetadataProvider {
   extractMetadata: ExtractMetadata;
   lookupMetadata: LookupMetadata;
+  checkHealth: CheckHealth;
 }
 
 type CreateMetadataProvider = () => MetadataProvider;

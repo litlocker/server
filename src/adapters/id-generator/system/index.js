@@ -6,6 +6,13 @@
 const createIdGeneratorSystem = () => {
   return {
     generate: () => crypto.randomUUID(),
+    checkHealth: () => ({
+      success: true,
+      data: {
+        status: "ok",
+        details: {},
+      },
+    }),
   };
 };
 

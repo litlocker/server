@@ -35,6 +35,13 @@ const createDataStoreInMemory = () => {
     getBook: ({ id }) => {
       return books.get(id) ?? null;
     },
+    checkHealth: () => ({
+      success: true,
+      data: {
+        status: "ok",
+        details: {},
+      },
+    }),
   };
 };
 

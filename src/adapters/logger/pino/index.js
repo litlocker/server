@@ -24,6 +24,13 @@ const createLoggerPino = ({ config }) => {
     info: (message, ...args) => logger.info({ ...defaultMetadata, ...args }, message),
     warn: (message, ...args) => logger.warn({ ...defaultMetadata, ...args }, message),
     error: (message, ...args) => logger.error({ ...defaultMetadata, ...args }, message),
+    checkHealth: () => ({
+      success: true,
+      data: {
+        status: "ok",
+        details: {},
+      },
+    }),
   };
 };
 

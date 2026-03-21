@@ -6,6 +6,13 @@
 const createClockSystem = () => {
   return {
     now: () => new Date(),
+    checkHealth: () => ({
+      success: true,
+      data: {
+        status: "ok",
+        details: {},
+      },
+    }),
   };
 };
 

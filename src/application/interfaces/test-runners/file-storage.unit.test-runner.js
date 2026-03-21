@@ -16,6 +16,7 @@ const runFileStorageUnitTests = (createFileStorage) => {
         expect(fileStorage).toHaveProperty("deleteFile");
         expect(fileStorage).toHaveProperty("moveFile");
         expect(fileStorage).toHaveProperty("fileExists");
+        expect(fileStorage).toHaveProperty("checkHealth");
       });
     });
 
@@ -57,6 +58,14 @@ const runFileStorageUnitTests = (createFileStorage) => {
           success: true,
         });
         expect(fileStorage.fileExists({ file: { path: movedFile.path } })).toBe(false);
+      });
+
+      it("should expose health status", () => {
+        const fileStorage = createFileStorage();
+
+        const result = fileStorage.checkHealth();
+
+        expect(result).toHaveProperty("success");
       });
     });
   });

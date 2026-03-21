@@ -42,6 +42,13 @@ const createServerHttpHono = ({ application, config, logger }) => {
       logger.info("Server has been stopped", { reasonForStop: reason });
       return { success: true };
     },
+    checkHealth: () => ({
+      success: true,
+      data: {
+        status: "ok",
+        details: {},
+      },
+    }),
   };
 };
 

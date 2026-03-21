@@ -1,3 +1,5 @@
+import { CheckHealth } from "./result.d.ts";
+
 interface FileStorageEntry {
   path: string;
   name: string;
@@ -41,6 +43,7 @@ interface FileStorage {
   deleteFile: DeleteFile;
   moveFile: MoveFile;
   fileExists: FileExists;
+  checkHealth: CheckHealth;
 }
 
 type CreateFileStorage = () => FileStorage;

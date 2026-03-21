@@ -12,6 +12,7 @@ const runClockUnitTests = (createClock) => {
         const clock = createClock();
 
         expect(clock).toHaveProperty("now");
+        expect(clock).toHaveProperty("checkHealth");
       });
     });
 
@@ -20,6 +21,14 @@ const runClockUnitTests = (createClock) => {
         const clock = createClock();
 
         expect(clock.now()).toBeInstanceOf(Date);
+      });
+
+      it("should expose health status", () => {
+        const clock = createClock();
+
+        const result = clock.checkHealth();
+
+        expect(result).toHaveProperty("success");
       });
     });
   });
