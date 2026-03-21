@@ -10,6 +10,7 @@ import { Hono } from "hono";
  */
 const createRouters = ({ application }) => {
   const helloRouter = new Hono();
+  const booksRouter = new Hono();
 
   helloRouter.get("/:name", (c) => {
     const { name } = c.req.param();
@@ -18,8 +19,33 @@ const createRouters = ({ application }) => {
     return c.json({ message: result });
   });
 
+  booksRouter.post("/", async (c) => {
+    const book = await c.req.json();
+    const result = application.createBook({ book });
+
+    return c.json({ book: result }, 201);
+  });
+
+  booksRouter.get("/", (c) => {
+    const result = application.listBooks();
+
+    return c.json({ books: result });
+  });
+
+  booksRouter.get("/:id", (c) => {
+    const { id } = c.req.param();
+    const result = application.getBook({ id });
+
+    if (!result) {
+      return c.json({ message: "Book not found" }, 404);
+    }
+
+    return c.json({ book: result });
+  });
+
   return {
     helloRouter,
+    booksRouter,
   };
 };
 

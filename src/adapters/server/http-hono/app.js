@@ -22,7 +22,7 @@ import { createRouters } from "./router/index.js";
 const createHonoApp = ({ application, config, logger }) => {
   const app = new Hono();
 
-  const { helloRouter } = createRouters({ application });
+  const { helloRouter, booksRouter } = createRouters({ application });
 
   app
     .use(cors({ origin: "*" }))
@@ -33,6 +33,7 @@ const createHonoApp = ({ application, config, logger }) => {
     .use(timeout(config.http.timeoutMs));
 
   app.route("/hello", helloRouter);
+  app.route("/books", booksRouter);
 
   return app;
 };
