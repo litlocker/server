@@ -1,17 +1,15 @@
-type BookRecord = {
-  id: string;
-} & Record<string, unknown>;
+import { Book, CreateBookInput, UpdateBookInput } from "../entities/book.d.ts";
 
-type CreateBookRecord = ({ book }: { book: Record<string, unknown> }) => BookRecord;
+type CreateBookRecord = ({ book }: { book: CreateBookInput }) => Book;
 type UpdateBookRecord = ({
   id,
   updates,
 }: {
   id: string;
-  updates: Record<string, unknown>;
-}) => BookRecord | null;
-type ListBookRecords = () => BookRecord[];
-type GetBookRecord = ({ id }: { id: string }) => BookRecord | null;
+  updates: Partial<Book> | UpdateBookInput;
+}) => Book | null;
+type ListBookRecords = () => Book[];
+type GetBookRecord = ({ id }: { id: string }) => Book | null;
 
 interface DataStore {
   createBook: CreateBookRecord;
@@ -22,4 +20,4 @@ interface DataStore {
 
 type CreateDataStore = () => DataStore;
 
-export type { BookRecord, DataStore, CreateDataStore };
+export type { DataStore, CreateDataStore };
