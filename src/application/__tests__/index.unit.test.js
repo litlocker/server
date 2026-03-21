@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createClockSystem } from "../../adapters/clock/system/index.js";
 import { createDataStoreInMemory } from "../../adapters/data-store/in-memory/index.js";
 import { createApplication } from "../index.js";
 
@@ -26,6 +27,7 @@ describe("application", () => {
   describe("foundation functions", () => {
     it("should expose the health function on the application", () => {
       const application = createApplication({
+        clock: createClockSystem(),
         config,
         dataStore: createDataStoreInMemory(),
         logger,
@@ -36,6 +38,7 @@ describe("application", () => {
 
     it("should return an ok health status", () => {
       const application = createApplication({
+        clock: createClockSystem(),
         config,
         dataStore: createDataStoreInMemory(),
         logger,
@@ -53,6 +56,7 @@ describe("application", () => {
   describe("book functions", () => {
     it("should expose book functions on the application", () => {
       const application = createApplication({
+        clock: createClockSystem(),
         config,
         dataStore: createDataStoreInMemory(),
         logger,
@@ -66,6 +70,7 @@ describe("application", () => {
 
     it("should create and list books", () => {
       const application = createApplication({
+        clock: createClockSystem(),
         config,
         dataStore: createDataStoreInMemory(),
         logger,
@@ -138,6 +143,7 @@ describe("application", () => {
 
     it("should fetch a book by id", () => {
       const application = createApplication({
+        clock: createClockSystem(),
         config,
         dataStore: createDataStoreInMemory(),
         logger,
@@ -153,6 +159,7 @@ describe("application", () => {
 
     it("should return null when the book does not exist", () => {
       const application = createApplication({
+        clock: createClockSystem(),
         config,
         dataStore: createDataStoreInMemory(),
         logger,
@@ -163,6 +170,7 @@ describe("application", () => {
 
     it("should update an existing book", () => {
       const application = createApplication({
+        clock: createClockSystem(),
         config,
         dataStore: createDataStoreInMemory(),
         logger,
@@ -234,6 +242,7 @@ describe("application", () => {
 
     it("should default optional book fields to empty strings", () => {
       const application = createApplication({
+        clock: createClockSystem(),
         config,
         dataStore: createDataStoreInMemory(),
         logger,
@@ -274,6 +283,7 @@ describe("application", () => {
 
     it("should store simple author and series metadata on books", () => {
       const application = createApplication({
+        clock: createClockSystem(),
         config,
         dataStore: createDataStoreInMemory(),
         logger,

@@ -4,6 +4,7 @@
  */
 
 import { describe, it, expect, vi, afterAll } from "vitest";
+import { createClockSystem } from "../../../adapters/clock/system/index.js";
 import { createDataStoreInMemory } from "../../../adapters/data-store/in-memory/index.js";
 import { createLoggerPino } from "../../../adapters/logger/pino/index.js";
 import { createApplication } from "../../index.js";
@@ -25,9 +26,10 @@ const runServerUnitTests = (createServer) => {
         },
       },
     };
+    const clock = createClockSystem();
     const logger = createLoggerPino({ config: config.logger });
     const dataStore = createDataStoreInMemory();
-    const application = createApplication({ config, dataStore, logger });
+    const application = createApplication({ clock, config, dataStore, logger });
 
     describe("interface", () => {
       const server = createServer({ application, config: config.server, logger });

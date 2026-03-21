@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createApplication } from "../../../application/index.js";
+import { createClockSystem } from "../../clock/system/index.js";
 import { createDataStoreInMemory } from "../../data-store/in-memory/index.js";
 import { createLoggerPino } from "../../logger/pino/index.js";
 import { createHonoApp } from "../../server/http-hono/app.js";
@@ -20,9 +21,10 @@ describe("http hono book routes integration", () => {
   };
 
   const createTestApp = () => {
+    const clock = createClockSystem();
     const logger = createLoggerPino({ config: config.logger });
     const dataStore = createDataStoreInMemory();
-    const application = createApplication({ config, dataStore, logger });
+    const application = createApplication({ clock, config, dataStore, logger });
 
     return createHonoApp({
       application,

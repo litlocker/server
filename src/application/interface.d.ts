@@ -1,4 +1,5 @@
 import { Book, CreateBookInput, UpdateBookInput } from "./entities/book.d.ts";
+import { Clock } from "./interfaces/clock.d.ts";
 import { Config } from "./interfaces/config.d.ts";
 import { DataStore } from "./interfaces/data-store.d.ts";
 import { Logger } from "./interfaces/logger.d.ts";
@@ -23,6 +24,7 @@ interface Application {
 }
 
 interface Deps {
+  clock: Clock;
   config: Config;
   logger: Logger;
   dataStore: DataStore;
