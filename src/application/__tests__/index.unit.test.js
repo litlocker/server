@@ -42,7 +42,10 @@ describe("application", () => {
       });
 
       expect(application.health()).toEqual({
-        status: "ok",
+        success: true,
+        data: {
+          status: "ok",
+        },
       });
     });
   });

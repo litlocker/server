@@ -15,7 +15,10 @@ describe("http hono health route", () => {
 
   it("should return the application health status through GET /health", async () => {
     const application = {
-      health: vi.fn().mockReturnValue({ status: "ok" }),
+      health: vi.fn().mockReturnValue({
+        success: true,
+        data: { status: "ok" },
+      }),
       createBook: vi.fn(),
       updateBook: vi.fn(),
       listBooks: vi.fn(),
@@ -28,6 +31,41 @@ describe("http hono health route", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
       status: "ok",
+    });
+    expect(application.health).toHaveBeenCalledOnce();
+  });
+
+  it("should return 503 when the application health check fails", async () => {
+    const application = {
+      health: vi.fn().mockReturnValue({
+        success: false,
+        error: {
+          code: "dependency_unavailable",
+          message: "A dependency is unavailable",
+          details: {
+            dependency: "data-store",
+          },
+        },
+      }),
+      createBook: vi.fn(),
+      updateBook: vi.fn(),
+      listBooks: vi.fn(),
+      getBook: vi.fn(),
+    };
+    const app = createHonoApp({ application, config, logger });
+
+    const response = await app.request("http://localhost/health");
+
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual({
+      message: "A dependency is unavailable",
+      error: {
+        code: "dependency_unavailable",
+        message: "A dependency is unavailable",
+        details: {
+          dependency: "data-store",
+        },
+      },
     });
     expect(application.health).toHaveBeenCalledOnce();
   });

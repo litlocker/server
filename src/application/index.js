@@ -97,7 +97,10 @@ const createApplication = ({ config: _config, dataStore, logger: _logger }) => {
       // TODO: rewrite to actually check health of all dependencies
       // after implementing real adapters
       return {
-        status: "ok",
+        success: true,
+        data: {
+          status: "ok",
+        },
       };
     },
     createBook: ({ book }) => {

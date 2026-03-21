@@ -16,7 +16,17 @@ const createRouters = ({ application }) => {
   healthRouter.get("/", (c) => {
     const result = application.health();
 
-    return c.json(result);
+    if (!result.success) {
+      return c.json(
+        {
+          message: result.error.message,
+          error: result.error,
+        },
+        503,
+      );
+    }
+
+    return c.json(result.data);
   });
 
   booksRouter.post("/", async (c) => {
