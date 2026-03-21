@@ -87,6 +87,7 @@ const runPersistenceUnitTests = (createPersistence) => {
         const shelf = persistence.shelves.create({
           record: {
             id: "shelf-1",
+            kind: "manual",
             name: "Favorites",
             description: "",
             bookIds: [book.id],

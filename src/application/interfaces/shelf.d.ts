@@ -1,5 +1,8 @@
+type ShelfKind = "manual";
+
 interface Shelf {
   id: string;
+  kind: ShelfKind;
   name: string;
   description: string;
   bookIds: string[];
@@ -22,6 +25,7 @@ type GetShelf = ({ id }: { id: string }) => Shelf | null;
 type DeleteShelf = ({ id }: { id: string }) => { success: boolean };
 
 export type {
+  ShelfKind,
   Shelf,
   CreateShelfInput,
   UpdateShelfInput,

@@ -568,6 +568,7 @@ describe("application", () => {
 
       expect(firstShelf).toEqual({
         id: firstShelf.id,
+        kind: "manual",
         name: "Favorites",
         description: "",
         bookIds: [],
@@ -575,6 +576,7 @@ describe("application", () => {
       expect(firstShelf.id).toEqual(expect.any(String));
       expect(secondShelf).toEqual({
         id: secondShelf.id,
+        kind: "manual",
         name: "To Read",
         description: "Priority reading list",
         bookIds: [],
@@ -606,6 +608,7 @@ describe("application", () => {
 
       expect(updatedShelf).toEqual({
         id: shelf.id,
+        kind: "manual",
         name: "Weekend Reading",
         description: "Short books",
         bookIds: [],

@@ -117,6 +117,7 @@ const normalizeBookUpdates = ({ currentBook, updates }) => {
  */
 const normalizeShelf = (shelf) => {
   return {
+    kind: "manual",
     name: shelf.name,
     description: shelf.description ?? "",
     bookIds: [],
@@ -130,6 +131,7 @@ const normalizeShelf = (shelf) => {
  */
 const normalizeShelfUpdates = ({ currentShelf, updates }) => {
   return {
+    kind: currentShelf.kind,
     name: updates.name ?? currentShelf.name,
     description: updates.description ?? currentShelf.description,
   };
