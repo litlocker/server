@@ -3,7 +3,7 @@
  */
 
 import { Hono } from "hono";
-import { validateCreateBookPayload } from "./validate-book-payload.js";
+import { validateCreateBookPayload, validateUpdateBookPayload } from "./validate-book-payload.js";
 
 /**
  * @param { object } params
@@ -43,6 +43,30 @@ const createRouters = ({ application }) => {
     const result = application.listBooks();
 
     return c.json({ books: result });
+  });
+
+  booksRouter.patch("/:id", async (c) => {
+    const { id } = c.req.param();
+    const updates = await c.req.json();
+    const validationResult = validateUpdateBookPayload(updates);
+
+    if (!validationResult.success) {
+      return c.json(
+        {
+          message: "Invalid book payload",
+          errors: validationResult.errors,
+        },
+        400,
+      );
+    }
+
+    const result = application.updateBook({ id, updates });
+
+    if (!result) {
+      return c.json({ message: "Book not found" }, 404);
+    }
+
+    return c.json({ book: result });
   });
 
   booksRouter.get("/:id", (c) => {

@@ -147,6 +147,129 @@ describe("http hono book routes", () => {
     expect(application.listBooks).toHaveBeenCalledOnce();
   });
 
+  it("should update a book through PATCH /books/:id", async () => {
+    const updatedBook = {
+      id: "book-1",
+      title: "The Tombs of Atuan",
+      subtitle: "",
+      description: "Updated description",
+      language: "",
+      authors: [],
+      tags: ["fantasy"],
+      seriesName: "",
+      seriesNumber: "",
+      cover: {
+        sourcePath: "",
+        thumbnailPath: "",
+        mimeType: "",
+        dominantColor: "",
+      },
+      identifiers: {
+        isbn10: "",
+        isbn13: "",
+        asin: "",
+        goodreadsId: "",
+        googleBooksId: "",
+      },
+      status: "draft",
+    };
+    const application = {
+      hello: vi.fn(),
+      createBook: vi.fn(),
+      updateBook: vi.fn().mockReturnValue(updatedBook),
+      listBooks: vi.fn(),
+      getBook: vi.fn(),
+    };
+    const app = createHonoApp({ application, config, logger });
+
+    const response = await app.request(
+      new Request("http://localhost/books/book-1", {
+        method: "PATCH",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          description: "Updated description",
+          tags: ["fantasy"],
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      book: updatedBook,
+    });
+    expect(application.updateBook).toHaveBeenCalledWith({
+      id: "book-1",
+      updates: {
+        description: "Updated description",
+        tags: ["fantasy"],
+      },
+    });
+  });
+
+  it("should reject an invalid book payload through PATCH /books/:id", async () => {
+    const application = {
+      hello: vi.fn(),
+      createBook: vi.fn(),
+      updateBook: vi.fn(),
+      listBooks: vi.fn(),
+      getBook: vi.fn(),
+    };
+    const app = createHonoApp({ application, config, logger });
+
+    const response = await app.request(
+      new Request("http://localhost/books/book-1", {
+        method: "PATCH",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({}),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      message: "Invalid book payload",
+      errors: ["/ must NOT have fewer than 1 properties"],
+    });
+    expect(application.updateBook).not.toHaveBeenCalled();
+  });
+
+  it("should return 404 when PATCH /books/:id cannot find a book", async () => {
+    const application = {
+      hello: vi.fn(),
+      createBook: vi.fn(),
+      updateBook: vi.fn().mockReturnValue(null),
+      listBooks: vi.fn(),
+      getBook: vi.fn(),
+    };
+    const app = createHonoApp({ application, config, logger });
+
+    const response = await app.request(
+      new Request("http://localhost/books/missing-book-id", {
+        method: "PATCH",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          description: "Updated description",
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toEqual({
+      message: "Book not found",
+    });
+    expect(application.updateBook).toHaveBeenCalledWith({
+      id: "missing-book-id",
+      updates: {
+        description: "Updated description",
+      },
+    });
+  });
+
   it("should fetch a book through GET /books/:id", async () => {
     const book = {
       id: "book-1",
