@@ -3,6 +3,27 @@
  * @import { BookCover, BookIdentifiers, CreateBookInput, UpdateBookInput } from './entities/book.js'
  */
 
+const createHealthSuccessResult = (details) => {
+  return {
+    success: true,
+    data: {
+      status: "ok",
+      details,
+    },
+  };
+};
+
+const createHealthFailureResult = (details) => {
+  return {
+    success: false,
+    error: {
+      code: "dependency_unavailable",
+      message: "One or more application dependencies are unavailable",
+      details,
+    },
+  };
+};
+
 /**
  * @param { Partial<BookIdentifiers> | undefined } identifiers
  * @returns { BookIdentifiers }
@@ -91,23 +112,26 @@ const normalizeBookUpdates = ({ currentBook, updates }) => {
 };
 
 /** @type { CreateApplication } */
-const createApplication = ({
-  clock: _clock,
-  config: _config,
-  dataStore,
-  idGenerator,
-  logger: _logger,
-}) => {
+const createApplication = ({ clock, config: _config, dataStore, idGenerator, logger }) => {
   return {
     health: () => {
-      // TODO: rewrite to actually check health of all dependencies
-      // after implementing real adapters
-      return {
-        success: true,
-        data: {
-          status: "ok",
-        },
+      const checks = {
+        clock: clock.checkHealth(),
+        dataStore: dataStore.checkHealth(),
+        idGenerator: idGenerator.checkHealth(),
+        logger: logger.checkHealth(),
       };
+      const hasFailures = Object.values(checks).some((result) => !result.success);
+
+      if (hasFailures) {
+        return createHealthFailureResult({
+          checks,
+        });
+      }
+
+      return createHealthSuccessResult({
+        checks,
+      });
     },
     createBook: ({ book }) => {
       return dataStore.createBook({

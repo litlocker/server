@@ -46,6 +46,13 @@ describe("application", () => {
     info: () => {},
     warn: () => {},
     error: () => {},
+    checkHealth: () => ({
+      success: true,
+      data: {
+        status: "ok",
+        details: {},
+      },
+    }),
   };
 
   describe("foundation functions", () => {
@@ -61,7 +68,7 @@ describe("application", () => {
       expect(application).toHaveProperty("health");
     });
 
-    it("should return an ok health status", () => {
+    it("should return an aggregated ok health status", () => {
       const application = createApplication({
         clock: createClockSystem(),
         config,
@@ -74,6 +81,103 @@ describe("application", () => {
         success: true,
         data: {
           status: "ok",
+          details: {
+            checks: {
+              clock: {
+                success: true,
+                data: {
+                  status: "ok",
+                  details: {},
+                },
+              },
+              dataStore: {
+                success: true,
+                data: {
+                  status: "ok",
+                  details: {},
+                },
+              },
+              idGenerator: {
+                success: true,
+                data: {
+                  status: "ok",
+                  details: {},
+                },
+              },
+              logger: {
+                success: true,
+                data: {
+                  status: "ok",
+                  details: {},
+                },
+              },
+            },
+          },
+        },
+      });
+    });
+
+    it("should return failure when a dependency health check fails", () => {
+      const application = createApplication({
+        clock: {
+          now: () => new Date(),
+          checkHealth: () => ({
+            success: false,
+            error: {
+              code: "clock_unavailable",
+              message: "Clock is unavailable",
+              details: {
+                dependency: "clock",
+              },
+            },
+          }),
+        },
+        config,
+        dataStore: createDataStoreInMemory(),
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+
+      expect(application.health()).toEqual({
+        success: false,
+        error: {
+          code: "dependency_unavailable",
+          message: "One or more application dependencies are unavailable",
+          details: {
+            checks: {
+              clock: {
+                success: false,
+                error: {
+                  code: "clock_unavailable",
+                  message: "Clock is unavailable",
+                  details: {
+                    dependency: "clock",
+                  },
+                },
+              },
+              dataStore: {
+                success: true,
+                data: {
+                  status: "ok",
+                  details: {},
+                },
+              },
+              idGenerator: {
+                success: true,
+                data: {
+                  status: "ok",
+                  details: {},
+                },
+              },
+              logger: {
+                success: true,
+                data: {
+                  status: "ok",
+                  details: {},
+                },
+              },
+            },
+          },
         },
       });
     });

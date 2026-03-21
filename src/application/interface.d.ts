@@ -4,13 +4,9 @@ import { Config } from "./interfaces/config.d.ts";
 import { DataStore } from "./interfaces/data-store.d.ts";
 import { IdGenerator } from "./interfaces/id-generator.d.ts";
 import { Logger } from "./interfaces/logger.d.ts";
-import { SuccessResult } from "./interfaces/result.d.ts";
+import { Result, HealthStatus } from "./interfaces/result.d.ts";
 
-interface HealthStatus {
-  status: "ok";
-}
-
-type Health = () => SuccessResult<HealthStatus>;
+type Health = () => Result<HealthStatus>;
 type CreateBook = ({ book }: { book: CreateBookInput }) => Book;
 type UpdateBook = ({ id, updates }: { id: string; updates: UpdateBookInput }) => Book | null;
 type ListBooks = () => Book[];
