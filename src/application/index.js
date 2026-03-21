@@ -1,6 +1,6 @@
 /**
  * @import { CreateApplication } from './interface.js'
- * @import { BookIdentifiers, CreateBookInput, UpdateBookInput } from './entities/book.js'
+ * @import { BookCover, BookIdentifiers, CreateBookInput, UpdateBookInput } from './entities/book.js'
  */
 
 /**
@@ -22,7 +22,28 @@ const normalizeBookIdentifiers = (identifiers) => {
  * @returns { string[] }
  */
 const normalizeBookAuthors = (authors) => {
-  return authors ?? [];
+  return authors ? [...authors] : [];
+};
+
+/**
+ * @param { string[] | undefined } tags
+ * @returns { string[] }
+ */
+const normalizeBookTags = (tags) => {
+  return tags ? [...tags] : [];
+};
+
+/**
+ * @param { Partial<BookCover> | undefined } cover
+ * @returns { BookCover }
+ */
+const normalizeBookCover = (cover) => {
+  return {
+    sourcePath: cover?.sourcePath ?? "",
+    thumbnailPath: cover?.thumbnailPath ?? "",
+    mimeType: cover?.mimeType ?? "",
+    dominantColor: cover?.dominantColor ?? "",
+  };
 };
 
 /**
@@ -35,8 +56,10 @@ const normalizeBook = (book) => {
     description: book.description ?? "",
     language: book.language ?? "",
     authors: normalizeBookAuthors(book.authors),
+    tags: normalizeBookTags(book.tags),
     seriesName: book.seriesName ?? "",
     seriesNumber: book.seriesNumber ?? "",
+    cover: normalizeBookCover(book.cover),
     identifiers: normalizeBookIdentifiers(book.identifiers),
     status: book.status ?? "draft",
   };
@@ -54,8 +77,12 @@ const normalizeBookUpdates = ({ currentBook, updates }) => {
     description: updates.description ?? currentBook.description ?? "",
     language: updates.language ?? currentBook.language ?? "",
     authors: updates.authors ?? currentBook.authors,
+    tags: updates.tags ?? currentBook.tags,
     seriesName: updates.seriesName ?? currentBook.seriesName ?? "",
     seriesNumber: updates.seriesNumber ?? currentBook.seriesNumber ?? "",
+    cover: updates.cover
+      ? normalizeBookCover({ ...currentBook.cover, ...updates.cover })
+      : currentBook.cover,
     identifiers: updates.identifiers
       ? normalizeBookIdentifiers({ ...currentBook.identifiers, ...updates.identifiers })
       : currentBook.identifiers,

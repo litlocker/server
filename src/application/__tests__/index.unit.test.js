@@ -62,8 +62,15 @@ describe("application", () => {
         description: "",
         language: "",
         authors: [],
+        tags: [],
         seriesName: "",
         seriesNumber: "",
+        cover: {
+          sourcePath: "",
+          thumbnailPath: "",
+          mimeType: "",
+          dominantColor: "",
+        },
         identifiers: {
           isbn10: "",
           isbn13: "",
@@ -81,8 +88,15 @@ describe("application", () => {
         description: "",
         language: "",
         authors: [],
+        tags: [],
         seriesName: "",
         seriesNumber: "",
+        cover: {
+          sourcePath: "",
+          thumbnailPath: "",
+          mimeType: "",
+          dominantColor: "",
+        },
         identifiers: {
           isbn10: "",
           isbn13: "",
@@ -133,8 +147,13 @@ describe("application", () => {
           description: "Original description",
           language: "en",
           authors: ["Ursula K. Le Guin"],
+          tags: ["fantasy"],
           seriesName: "Earthsea Cycle",
           seriesNumber: "2",
+          cover: {
+            sourcePath: "/covers/tombs-of-atuan.jpg",
+            mimeType: "image/jpeg",
+          },
           identifiers: {
             isbn13: "9780689845360",
           },
@@ -147,6 +166,11 @@ describe("application", () => {
         updates: {
           description: "Updated description",
           authors: ["Ursula K. Le Guin", "Another Contributor"],
+          tags: ["fantasy", "classic"],
+          cover: {
+            thumbnailPath: "/covers/thumbnails/tombs-of-atuan.jpg",
+            dominantColor: "#445566",
+          },
           identifiers: {
             googleBooksId: "google-books-id",
           },
@@ -160,8 +184,15 @@ describe("application", () => {
         description: "Updated description",
         language: "en",
         authors: ["Ursula K. Le Guin", "Another Contributor"],
+        tags: ["fantasy", "classic"],
         seriesName: "Earthsea Cycle",
         seriesNumber: "2",
+        cover: {
+          sourcePath: "/covers/tombs-of-atuan.jpg",
+          thumbnailPath: "/covers/thumbnails/tombs-of-atuan.jpg",
+          mimeType: "image/jpeg",
+          dominantColor: "#445566",
+        },
         identifiers: {
           isbn10: "",
           isbn13: "9780689845360",
@@ -194,8 +225,15 @@ describe("application", () => {
         description: "",
         language: "",
         authors: [],
+        tags: [],
         seriesName: "",
         seriesNumber: "",
+        cover: {
+          sourcePath: "",
+          thumbnailPath: "",
+          mimeType: "",
+          dominantColor: "",
+        },
         identifiers: {
           isbn10: "",
           isbn13: "",
@@ -230,8 +268,62 @@ describe("application", () => {
         description: "",
         language: "",
         authors: ["Ursula K. Le Guin"],
+        tags: [],
         seriesName: "Earthsea Cycle",
         seriesNumber: "3",
+        cover: {
+          sourcePath: "",
+          thumbnailPath: "",
+          mimeType: "",
+          dominantColor: "",
+        },
+        identifiers: {
+          isbn10: "",
+          isbn13: "",
+          asin: "",
+          goodreadsId: "",
+          googleBooksId: "",
+        },
+        status: "draft",
+      });
+    });
+
+    it("should store simple tags and cover metadata on books", () => {
+      const application = createApplication({
+        config,
+        dataStore: createDataStoreInMemory(),
+        logger,
+      });
+
+      const book = application.createBook({
+        book: {
+          title: "The Wind-Up Bird Chronicle",
+          tags: ["fiction", "japanese-literature"],
+          cover: {
+            sourcePath: "/covers/wind-up-bird.png",
+            thumbnailPath: "/covers/thumbnails/wind-up-bird.png",
+            mimeType: "image/png",
+            dominantColor: "#223344",
+          },
+        },
+      });
+
+      expect(book).toEqual({
+        id: book.id,
+        title: "The Wind-Up Bird Chronicle",
+        subtitle: "",
+        description: "",
+        language: "",
+        authors: [],
+        tags: ["fiction", "japanese-literature"],
+        seriesName: "",
+        seriesNumber: "",
+        cover: {
+          sourcePath: "/covers/wind-up-bird.png",
+          thumbnailPath: "/covers/thumbnails/wind-up-bird.png",
+          mimeType: "image/png",
+          dominantColor: "#223344",
+        },
         identifiers: {
           isbn10: "",
           isbn13: "",

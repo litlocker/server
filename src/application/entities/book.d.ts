@@ -8,6 +8,13 @@ interface BookIdentifiers {
   googleBooksId: string;
 }
 
+interface BookCover {
+  sourcePath: string;
+  thumbnailPath: string;
+  mimeType: string;
+  dominantColor: string;
+}
+
 interface Book {
   id: string;
   title: string;
@@ -15,8 +22,10 @@ interface Book {
   description: string;
   language: string;
   authors: string[];
+  tags: string[];
   seriesName: string;
   seriesNumber: string;
+  cover: BookCover;
   identifiers: BookIdentifiers;
   status: BookStatus;
 }
@@ -27,8 +36,10 @@ interface CreateBookInput {
   description?: string;
   language?: string;
   authors?: string[];
+  tags?: string[];
   seriesName?: string;
   seriesNumber?: string;
+  cover?: Partial<BookCover>;
   identifiers?: Partial<BookIdentifiers>;
   status?: BookStatus;
 }
@@ -39,10 +50,12 @@ interface UpdateBookInput {
   description?: string;
   language?: string;
   authors?: string[];
+  tags?: string[];
   seriesName?: string;
   seriesNumber?: string;
+  cover?: Partial<BookCover>;
   identifiers?: Partial<BookIdentifiers>;
   status?: BookStatus;
 }
 
-export type { BookStatus, BookIdentifiers, Book, CreateBookInput, UpdateBookInput };
+export type { BookStatus, BookIdentifiers, BookCover, Book, CreateBookInput, UpdateBookInput };
