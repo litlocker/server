@@ -14,6 +14,9 @@ interface Book {
   subtitle: string;
   description: string;
   language: string;
+  authors: string[];
+  seriesName: string;
+  seriesNumber: string;
   identifiers: BookIdentifiers;
   status: BookStatus;
 }
@@ -23,6 +26,9 @@ interface CreateBookInput {
   subtitle?: string;
   description?: string;
   language?: string;
+  authors?: string[];
+  seriesName?: string;
+  seriesNumber?: string;
   identifiers?: Partial<BookIdentifiers>;
   status?: BookStatus;
 }
@@ -32,6 +38,9 @@ interface UpdateBookInput {
   subtitle?: string;
   description?: string;
   language?: string;
+  authors?: string[];
+  seriesName?: string;
+  seriesNumber?: string;
   identifiers?: Partial<BookIdentifiers>;
   status?: BookStatus;
 }

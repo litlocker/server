@@ -61,6 +61,9 @@ describe("application", () => {
         subtitle: "",
         description: "",
         language: "",
+        authors: [],
+        seriesName: "",
+        seriesNumber: "",
         identifiers: {
           isbn10: "",
           isbn13: "",
@@ -77,6 +80,9 @@ describe("application", () => {
         subtitle: "",
         description: "",
         language: "",
+        authors: [],
+        seriesName: "",
+        seriesNumber: "",
         identifiers: {
           isbn10: "",
           isbn13: "",
@@ -126,6 +132,9 @@ describe("application", () => {
           subtitle: "Earthsea Cycle",
           description: "Original description",
           language: "en",
+          authors: ["Ursula K. Le Guin"],
+          seriesName: "Earthsea Cycle",
+          seriesNumber: "2",
           identifiers: {
             isbn13: "9780689845360",
           },
@@ -137,6 +146,7 @@ describe("application", () => {
         id: book.id,
         updates: {
           description: "Updated description",
+          authors: ["Ursula K. Le Guin", "Another Contributor"],
           identifiers: {
             googleBooksId: "google-books-id",
           },
@@ -149,6 +159,9 @@ describe("application", () => {
         subtitle: "Earthsea Cycle",
         description: "Updated description",
         language: "en",
+        authors: ["Ursula K. Le Guin", "Another Contributor"],
+        seriesName: "Earthsea Cycle",
+        seriesNumber: "2",
         identifiers: {
           isbn10: "",
           isbn13: "9780689845360",
@@ -180,6 +193,45 @@ describe("application", () => {
         subtitle: "",
         description: "",
         language: "",
+        authors: [],
+        seriesName: "",
+        seriesNumber: "",
+        identifiers: {
+          isbn10: "",
+          isbn13: "",
+          asin: "",
+          goodreadsId: "",
+          googleBooksId: "",
+        },
+        status: "draft",
+      });
+    });
+
+    it("should store simple author and series metadata on books", () => {
+      const application = createApplication({
+        config,
+        dataStore: createDataStoreInMemory(),
+        logger,
+      });
+
+      const book = application.createBook({
+        book: {
+          title: "The Farthest Shore",
+          authors: ["Ursula K. Le Guin"],
+          seriesName: "Earthsea Cycle",
+          seriesNumber: "3",
+        },
+      });
+
+      expect(book).toEqual({
+        id: book.id,
+        title: "The Farthest Shore",
+        subtitle: "",
+        description: "",
+        language: "",
+        authors: ["Ursula K. Le Guin"],
+        seriesName: "Earthsea Cycle",
+        seriesNumber: "3",
         identifiers: {
           isbn10: "",
           isbn13: "",

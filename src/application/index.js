@@ -18,6 +18,14 @@ const normalizeBookIdentifiers = (identifiers) => {
 };
 
 /**
+ * @param { string[] | undefined } authors
+ * @returns { string[] }
+ */
+const normalizeBookAuthors = (authors) => {
+  return authors ?? [];
+};
+
+/**
  * @param { CreateBookInput } book
  */
 const normalizeBook = (book) => {
@@ -26,6 +34,9 @@ const normalizeBook = (book) => {
     subtitle: book.subtitle ?? "",
     description: book.description ?? "",
     language: book.language ?? "",
+    authors: normalizeBookAuthors(book.authors),
+    seriesName: book.seriesName ?? "",
+    seriesNumber: book.seriesNumber ?? "",
     identifiers: normalizeBookIdentifiers(book.identifiers),
     status: book.status ?? "draft",
   };
@@ -42,6 +53,9 @@ const normalizeBookUpdates = ({ currentBook, updates }) => {
     subtitle: updates.subtitle ?? currentBook.subtitle ?? "",
     description: updates.description ?? currentBook.description ?? "",
     language: updates.language ?? currentBook.language ?? "",
+    authors: updates.authors ?? currentBook.authors,
+    seriesName: updates.seriesName ?? currentBook.seriesName ?? "",
+    seriesNumber: updates.seriesNumber ?? currentBook.seriesNumber ?? "",
     identifiers: updates.identifiers
       ? normalizeBookIdentifiers({ ...currentBook.identifiers, ...updates.identifiers })
       : currentBook.identifiers,
