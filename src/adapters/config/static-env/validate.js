@@ -11,7 +11,7 @@ const validateConfig = (config) => {
   const ajv = new Ajv.default();
   const schema = {
     type: "object",
-    required: ["logger", "server"],
+    required: ["logger", "server", "storage", "imports", "auth", "metadataProviders"],
     properties: {
       logger: {
         type: "object",
@@ -34,6 +34,55 @@ const validateConfig = (config) => {
               port: { type: "number" },
             },
           },
+        },
+      },
+      storage: {
+        type: "object",
+        required: ["paths"],
+        properties: {
+          paths: {
+            type: "object",
+            required: ["library", "imports", "covers"],
+            properties: {
+              library: { type: "string", minLength: 1 },
+              imports: { type: "string", minLength: 1 },
+              covers: { type: "string", minLength: 1 },
+            },
+          },
+        },
+      },
+      imports: {
+        type: "object",
+        required: ["maxFileSizeInBytes", "allowedFileExtensions", "duplicateCheckEnabled"],
+        properties: {
+          maxFileSizeInBytes: { type: "number", minimum: 1 },
+          allowedFileExtensions: {
+            type: "array",
+            items: { type: "string", minLength: 1 },
+          },
+          duplicateCheckEnabled: { type: "boolean" },
+        },
+      },
+      auth: {
+        type: "object",
+        required: ["enabled", "bootstrapAdminEmail", "bootstrapAdminPassword", "sessionTtlMs"],
+        properties: {
+          enabled: { type: "boolean" },
+          bootstrapAdminEmail: { type: "string" },
+          bootstrapAdminPassword: { type: "string" },
+          sessionTtlMs: { type: "number", minimum: 1 },
+        },
+      },
+      metadataProviders: {
+        type: "object",
+        required: ["enabledProviders", "lookupTimeoutMs", "defaultLanguage"],
+        properties: {
+          enabledProviders: {
+            type: "array",
+            items: { type: "string", minLength: 1 },
+          },
+          lookupTimeoutMs: { type: "number", minimum: 1 },
+          defaultLanguage: { type: "string", minLength: 1 },
         },
       },
     },

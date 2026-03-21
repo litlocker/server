@@ -19,6 +19,29 @@ describe("http hono book routes integration", () => {
         timeoutMs: 1000,
       },
     },
+    storage: {
+      paths: {
+        library: "/tmp/litlocker/library",
+        imports: "/tmp/litlocker/imports",
+        covers: "/tmp/litlocker/covers",
+      },
+    },
+    imports: {
+      maxFileSizeInBytes: 50_000_000,
+      allowedFileExtensions: ["epub", "pdf", "cbz", "cbr"],
+      duplicateCheckEnabled: true,
+    },
+    auth: {
+      enabled: false,
+      bootstrapAdminEmail: "",
+      bootstrapAdminPassword: "",
+      sessionTtlMs: 86_400_000,
+    },
+    metadataProviders: {
+      enabledProviders: ["open-library"],
+      lookupTimeoutMs: 5_000,
+      defaultLanguage: "en",
+    },
   };
 
   const createTestApp = () => {
