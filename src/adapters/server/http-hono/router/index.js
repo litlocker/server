@@ -10,8 +10,15 @@ import { validateCreateBookPayload, validateUpdateBookPayload } from "./validate
  * @param { Application } params.application
  */
 const createRouters = ({ application }) => {
+  const healthRouter = new Hono();
   const helloRouter = new Hono();
   const booksRouter = new Hono();
+
+  healthRouter.get("/", (c) => {
+    const result = application.health();
+
+    return c.json(result);
+  });
 
   helloRouter.get("/:name", (c) => {
     const { name } = c.req.param();
@@ -81,6 +88,7 @@ const createRouters = ({ application }) => {
   });
 
   return {
+    healthRouter,
     helloRouter,
     booksRouter,
   };

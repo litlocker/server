@@ -23,6 +23,30 @@ describe("application", () => {
     error: () => {},
   };
 
+  describe("foundation functions", () => {
+    it("should expose the health function on the application", () => {
+      const application = createApplication({
+        config,
+        dataStore: createDataStoreInMemory(),
+        logger,
+      });
+
+      expect(application).toHaveProperty("health");
+    });
+
+    it("should return an ok health status", () => {
+      const application = createApplication({
+        config,
+        dataStore: createDataStoreInMemory(),
+        logger,
+      });
+
+      expect(application.health()).toEqual({
+        status: "ok",
+      });
+    });
+  });
+
   describe("book functions", () => {
     it("should expose book functions on the application", () => {
       const application = createApplication({

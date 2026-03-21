@@ -22,7 +22,7 @@ import { createRouters } from "./router/index.js";
 const createHonoApp = ({ application, config, logger }) => {
   const app = new Hono();
 
-  const { helloRouter, booksRouter } = createRouters({ application });
+  const { healthRouter, helloRouter, booksRouter } = createRouters({ application });
 
   app
     .use(cors({ origin: "*" }))
@@ -32,6 +32,7 @@ const createHonoApp = ({ application, config, logger }) => {
     .use(requestLogger(logger.info))
     .use(timeout(config.http.timeoutMs));
 
+  app.route("/health", healthRouter);
   app.route("/hello", helloRouter);
   app.route("/books", booksRouter);
 

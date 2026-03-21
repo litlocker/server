@@ -93,6 +93,13 @@ const normalizeBookUpdates = ({ currentBook, updates }) => {
 /** @type { CreateApplication } */
 const createApplication = ({ config: _config, dataStore, logger: _logger }) => {
   return {
+    health: () => {
+      // TODO: rewrite to actually check health of all dependencies
+      // after implementing real adapters
+      return {
+        status: "ok",
+      };
+    },
     hello: ({ name }) => {
       return `Hello, ${name}!`;
     },
