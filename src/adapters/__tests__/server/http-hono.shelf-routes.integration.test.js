@@ -5,6 +5,7 @@ import { createIdGeneratorSystem } from "../../id-generator/system/index.js";
 import { createLoggerPino } from "../../logger/pino/index.js";
 import { createPersistenceInMemory } from "../../persistence/in-memory/index.js";
 import { createHonoApp } from "../../server/http-hono/app.js";
+import { createExpectedErrorResponse } from "./test-helpers.js";
 
 describe("http hono shelf routes integration", () => {
   const config = {
@@ -230,8 +231,14 @@ describe("http hono shelf routes integration", () => {
 
     expect(invalidCreateResponse.status).toBe(400);
     await expect(invalidCreateResponse.json()).resolves.toEqual({
-      message: "Invalid shelf payload",
-      errors: ["/ must have required property 'name'"],
+      ...createExpectedErrorResponse({
+        code: "invalid_shelf_payload",
+        message: "Invalid shelf payload",
+        details: {
+          resource: "shelf",
+        },
+        errors: ["/ must have required property 'name'"],
+      }),
     });
 
     const createShelfResponse = await app.request(
@@ -259,8 +266,14 @@ describe("http hono shelf routes integration", () => {
 
     expect(invalidUpdateResponse.status).toBe(400);
     await expect(invalidUpdateResponse.json()).resolves.toEqual({
-      message: "Invalid shelf payload",
-      errors: ["/ must NOT have fewer than 1 properties"],
+      ...createExpectedErrorResponse({
+        code: "invalid_shelf_payload",
+        message: "Invalid shelf payload",
+        details: {
+          resource: "shelf",
+        },
+        errors: ["/ must NOT have fewer than 1 properties"],
+      }),
     });
   });
 });

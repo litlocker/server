@@ -5,6 +5,7 @@ import { createIdGeneratorSystem } from "../../id-generator/system/index.js";
 import { createLoggerPino } from "../../logger/pino/index.js";
 import { createPersistenceInMemory } from "../../persistence/in-memory/index.js";
 import { createHonoApp } from "../../server/http-hono/app.js";
+import { createExpectedErrorResponse } from "./test-helpers.js";
 
 describe("http hono book routes integration", () => {
   const config = {
@@ -192,8 +193,14 @@ describe("http hono book routes integration", () => {
 
     expect(invalidCreateResponse.status).toBe(400);
     await expect(invalidCreateResponse.json()).resolves.toEqual({
-      message: "Invalid book payload",
-      errors: ["/ must have required property 'title'"],
+      ...createExpectedErrorResponse({
+        code: "invalid_book_payload",
+        message: "Invalid book payload",
+        details: {
+          resource: "book",
+        },
+        errors: ["/ must have required property 'title'"],
+      }),
     });
 
     const invalidUpdateResponse = await app.request(
@@ -208,8 +215,14 @@ describe("http hono book routes integration", () => {
 
     expect(invalidUpdateResponse.status).toBe(400);
     await expect(invalidUpdateResponse.json()).resolves.toEqual({
-      message: "Invalid book payload",
-      errors: ["/ must NOT have fewer than 1 properties"],
+      ...createExpectedErrorResponse({
+        code: "invalid_book_payload",
+        message: "Invalid book payload",
+        details: {
+          resource: "book",
+        },
+        errors: ["/ must NOT have fewer than 1 properties"],
+      }),
     });
   });
 
@@ -220,7 +233,13 @@ describe("http hono book routes integration", () => {
 
     expect(getResponse.status).toBe(404);
     await expect(getResponse.json()).resolves.toEqual({
-      message: "Book not found",
+      ...createExpectedErrorResponse({
+        code: "book_not_found",
+        message: "Book not found",
+        details: {
+          id: "missing-book-id",
+        },
+      }),
     });
 
     const patchResponse = await app.request(
@@ -237,7 +256,13 @@ describe("http hono book routes integration", () => {
 
     expect(patchResponse.status).toBe(404);
     await expect(patchResponse.json()).resolves.toEqual({
-      message: "Book not found",
+      ...createExpectedErrorResponse({
+        code: "book_not_found",
+        message: "Book not found",
+        details: {
+          id: "missing-book-id",
+        },
+      }),
     });
   });
 

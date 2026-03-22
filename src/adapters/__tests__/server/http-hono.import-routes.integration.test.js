@@ -10,6 +10,7 @@ import { createLoggerPino } from "../../logger/pino/index.js";
 import { createMetadataProviderStatic } from "../../metadata-provider/static/index.js";
 import { createPersistenceInMemory } from "../../persistence/in-memory/index.js";
 import { createHonoApp } from "../../server/http-hono/app.js";
+import { createExpectedErrorResponse } from "./test-helpers.js";
 
 describe("http hono import routes integration", () => {
   const testRootPath = mkdtempSync(join(tmpdir(), "litlocker-import-routes-"));
@@ -241,7 +242,13 @@ describe("http hono import routes integration", () => {
 
     expect(getResponse.status).toBe(404);
     await expect(getResponse.json()).resolves.toEqual({
-      message: "Import job not found",
+      ...createExpectedErrorResponse({
+        code: "import_job_not_found",
+        message: "Import job not found",
+        details: {
+          id: "missing-import-job-id",
+        },
+      }),
     });
 
     const finalizeResponse = await app.request(
@@ -252,7 +259,13 @@ describe("http hono import routes integration", () => {
 
     expect(finalizeResponse.status).toBe(404);
     await expect(finalizeResponse.json()).resolves.toEqual({
-      message: "Import job not found or cannot be finalized",
+      ...createExpectedErrorResponse({
+        code: "import_job_not_found_or_not_finalizable",
+        message: "Import job not found or cannot be finalized",
+        details: {
+          id: "missing-import-job-id",
+        },
+      }),
     });
   });
 

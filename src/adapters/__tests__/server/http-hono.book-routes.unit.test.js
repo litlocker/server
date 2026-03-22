@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import { createHonoApp } from "../../server/http-hono/app.js";
-import { createApplicationMock, createLoggerMock } from "./test-helpers.js";
+import {
+  createApplicationMock,
+  createExpectedErrorResponse,
+  createLoggerMock,
+} from "./test-helpers.js";
 
 describe("http hono book routes", () => {
   const config = {
@@ -86,8 +90,14 @@ describe("http hono book routes", () => {
 
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({
-      message: "Invalid book payload",
-      errors: ["/ must have required property 'title'"],
+      ...createExpectedErrorResponse({
+        code: "invalid_book_payload",
+        message: "Invalid book payload",
+        details: {
+          resource: "book",
+        },
+        errors: ["/ must have required property 'title'"],
+      }),
     });
     expect(application.createBook).not.toHaveBeenCalled();
   });
@@ -267,8 +277,14 @@ describe("http hono book routes", () => {
 
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({
-      message: "Invalid book payload",
-      errors: ["/ must NOT have fewer than 1 properties"],
+      ...createExpectedErrorResponse({
+        code: "invalid_book_payload",
+        message: "Invalid book payload",
+        details: {
+          resource: "book",
+        },
+        errors: ["/ must NOT have fewer than 1 properties"],
+      }),
     });
     expect(application.updateBook).not.toHaveBeenCalled();
   });
@@ -293,7 +309,13 @@ describe("http hono book routes", () => {
 
     expect(response.status).toBe(404);
     await expect(response.json()).resolves.toEqual({
-      message: "Book not found",
+      ...createExpectedErrorResponse({
+        code: "book_not_found",
+        message: "Book not found",
+        details: {
+          id: "missing-book-id",
+        },
+      }),
     });
     expect(application.updateBook).toHaveBeenCalledWith({
       id: "missing-book-id",
@@ -355,7 +377,13 @@ describe("http hono book routes", () => {
 
     expect(response.status).toBe(404);
     await expect(response.json()).resolves.toEqual({
-      message: "Book not found",
+      ...createExpectedErrorResponse({
+        code: "book_not_found",
+        message: "Book not found",
+        details: {
+          id: "missing-book-id",
+        },
+      }),
     });
     expect(application.getBook).toHaveBeenCalledWith({ id: "missing-book-id" });
   });

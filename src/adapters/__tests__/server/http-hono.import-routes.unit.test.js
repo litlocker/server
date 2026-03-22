@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import { createHonoApp } from "../../server/http-hono/app.js";
-import { createApplicationMock, createLoggerMock } from "./test-helpers.js";
+import {
+  createApplicationMock,
+  createExpectedErrorResponse,
+  createLoggerMock,
+} from "./test-helpers.js";
 
 describe("http hono import routes", () => {
   const config = {
@@ -143,7 +147,10 @@ describe("http hono import routes", () => {
 
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({
-      message: "Import file not found",
+      ...createExpectedErrorResponse({
+        code: "import_file_not_found",
+        message: "Import file not found",
+      }),
     });
     expect(application.ingestImportUpload).not.toHaveBeenCalled();
   });
@@ -283,7 +290,13 @@ describe("http hono import routes", () => {
 
     expect(response.status).toBe(404);
     await expect(response.json()).resolves.toEqual({
-      message: "Import job not found",
+      ...createExpectedErrorResponse({
+        code: "import_job_not_found",
+        message: "Import job not found",
+        details: {
+          id: "missing-import-job-id",
+        },
+      }),
     });
   });
 
@@ -326,7 +339,13 @@ describe("http hono import routes", () => {
 
     expect(response.status).toBe(404);
     await expect(response.json()).resolves.toEqual({
-      message: "Import job not found or cannot be finalized",
+      ...createExpectedErrorResponse({
+        code: "import_job_not_found_or_not_finalizable",
+        message: "Import job not found or cannot be finalized",
+        details: {
+          id: "import-job-1",
+        },
+      }),
     });
   });
 });

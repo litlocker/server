@@ -18,6 +18,7 @@ import { requestId } from "hono/request-id";
 import { secureHeaders } from "hono/secure-headers";
 import { timeout } from "hono/timeout";
 import { runWithLogContext } from "../../logger/request-context/index.js";
+import { respondWithInternalError } from "./router/http-error-response.js";
 import { createRouters } from "./router/index.js";
 
 /**
@@ -134,6 +135,13 @@ const createHonoApp = ({ application, authConfig, config, logger }) => {
   app.route("/imports", importsRouter);
   app.route("/progress", progressRouter);
   app.route("/shelves", shelvesRouter);
+  app.onError((error, c) => {
+    return respondWithInternalError({
+      context: c,
+      logger,
+      error,
+    });
+  });
 
   return app;
 };

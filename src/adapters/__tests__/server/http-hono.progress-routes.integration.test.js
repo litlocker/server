@@ -5,6 +5,7 @@ import { createIdGeneratorSystem } from "../../id-generator/system/index.js";
 import { createLoggerPino } from "../../logger/pino/index.js";
 import { createPersistenceInMemory } from "../../persistence/in-memory/index.js";
 import { createHonoApp } from "../../server/http-hono/app.js";
+import { createExpectedErrorResponse } from "./test-helpers.js";
 
 describe("http hono progress routes integration", () => {
   const config = {
@@ -175,8 +176,14 @@ describe("http hono progress routes integration", () => {
 
     expect(epubResponse.status).toBe(400);
     await expect(epubResponse.json()).resolves.toEqual({
-      message: "Invalid progress payload",
-      errors: ["/locator must be a valid EPUB CFI"],
+      ...createExpectedErrorResponse({
+        code: "invalid_progress_payload",
+        message: "Invalid progress payload",
+        details: {
+          resource: "progress",
+        },
+        errors: ["/locator must be a valid EPUB CFI"],
+      }),
     });
 
     const pdfResponse = await app.request(
@@ -197,8 +204,14 @@ describe("http hono progress routes integration", () => {
 
     expect(pdfResponse.status).toBe(400);
     await expect(pdfResponse.json()).resolves.toEqual({
-      message: "Invalid progress payload",
-      errors: ["/locator must be a valid PDF page locator"],
+      ...createExpectedErrorResponse({
+        code: "invalid_progress_payload",
+        message: "Invalid progress payload",
+        details: {
+          resource: "progress",
+        },
+        errors: ["/locator must be a valid PDF page locator"],
+      }),
     });
 
     const comicResponse = await app.request(
@@ -219,8 +232,14 @@ describe("http hono progress routes integration", () => {
 
     expect(comicResponse.status).toBe(400);
     await expect(comicResponse.json()).resolves.toEqual({
-      message: "Invalid progress payload",
-      errors: ["/locator must be a valid comic image locator"],
+      ...createExpectedErrorResponse({
+        code: "invalid_progress_payload",
+        message: "Invalid progress payload",
+        details: {
+          resource: "progress",
+        },
+        errors: ["/locator must be a valid comic image locator"],
+      }),
     });
   });
 });

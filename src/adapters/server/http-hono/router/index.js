@@ -4,6 +4,13 @@
 
 import { getAuth } from "@hono/oidc-auth";
 import { Hono } from "hono";
+import {
+  respondWithApplicationFailure,
+  respondWithError,
+  respondWithNotFound,
+  respondWithUnauthorized,
+  respondWithValidationError,
+} from "./http-error-response.js";
 import { validateCreateBookPayload, validateUpdateBookPayload } from "./validate-book-payload.js";
 import { validateCreateProgressPayload } from "./validate-progress-payload.js";
 import {
@@ -28,13 +35,11 @@ const createRouters = ({ application, authEnabled = false, authIssuer = "" }) =>
     const result = await application.health();
 
     if (!result.success) {
-      return c.json(
-        {
-          message: result.error.message,
-          error: result.error,
-        },
-        503,
-      );
+      return respondWithApplicationFailure({
+        context: c,
+        failure: result,
+        status: 503,
+      });
     }
 
     return c.json(result.data);
@@ -45,13 +50,12 @@ const createRouters = ({ application, authEnabled = false, authIssuer = "" }) =>
     const validationResult = validateCreateBookPayload(book);
 
     if (!validationResult.success) {
-      return c.json(
-        {
-          message: "Invalid book payload",
-          errors: validationResult.errors,
-        },
-        400,
-      );
+      return respondWithValidationError({
+        context: c,
+        resource: "book",
+        message: "Invalid book payload",
+        errors: validationResult.errors,
+      });
     }
 
     const result = await application.createBook({ book });
@@ -86,19 +90,23 @@ const createRouters = ({ application, authEnabled = false, authIssuer = "" }) =>
     const validationResult = validateUpdateBookPayload(updates);
 
     if (!validationResult.success) {
-      return c.json(
-        {
-          message: "Invalid book payload",
-          errors: validationResult.errors,
-        },
-        400,
-      );
+      return respondWithValidationError({
+        context: c,
+        resource: "book",
+        message: "Invalid book payload",
+        errors: validationResult.errors,
+      });
     }
 
     const result = await application.updateBook({ id, updates });
 
     if (!result) {
-      return c.json({ message: "Book not found" }, 404);
+      return respondWithNotFound({
+        context: c,
+        resource: "book",
+        message: "Book not found",
+        details: { id },
+      });
     }
 
     return c.json({ book: result });
@@ -109,7 +117,12 @@ const createRouters = ({ application, authEnabled = false, authIssuer = "" }) =>
     const result = await application.getBook({ id });
 
     if (!result) {
-      return c.json({ message: "Book not found" }, 404);
+      return respondWithNotFound({
+        context: c,
+        resource: "book",
+        message: "Book not found",
+        details: { id },
+      });
     }
 
     return c.json({ book: result });
@@ -123,7 +136,12 @@ const createRouters = ({ application, authEnabled = false, authIssuer = "" }) =>
       const file = formData.get("file");
 
       if (!(file instanceof File)) {
-        return c.json({ message: "Import file not found" }, 400);
+        return respondWithError({
+          context: c,
+          status: 400,
+          code: "import_file_not_found",
+          message: "Import file not found",
+        });
       }
 
       const result = await application.ingestImportUpload({
@@ -154,7 +172,12 @@ const createRouters = ({ application, authEnabled = false, authIssuer = "" }) =>
     const result = await application.getImportJob({ id });
 
     if (!result) {
-      return c.json({ message: "Import job not found" }, 404);
+      return respondWithNotFound({
+        context: c,
+        resource: "import_job",
+        message: "Import job not found",
+        details: { id },
+      });
     }
 
     return c.json({ importJob: result });
@@ -165,7 +188,13 @@ const createRouters = ({ application, authEnabled = false, authIssuer = "" }) =>
     const result = await application.finalizeImportJob({ id });
 
     if (!result) {
-      return c.json({ message: "Import job not found or cannot be finalized" }, 404);
+      return respondWithError({
+        context: c,
+        status: 404,
+        code: "import_job_not_found_or_not_finalizable",
+        message: "Import job not found or cannot be finalized",
+        details: { id },
+      });
     }
 
     return c.json({ importJob: result });
@@ -173,31 +202,57 @@ const createRouters = ({ application, authEnabled = false, authIssuer = "" }) =>
 
   progressRouter.get("/:bookId", async (c) => {
     const { bookId } = c.req.param();
-    const result = authEnabled
-      ? await getAuth(c).then((auth) => {
-          if (!auth?.sub) {
-            return null;
-          }
 
-          return application.getCurrentUserReadingProgress({
-            bookId,
-            currentUser: {
-              authIssuer,
-              authSubject: auth.sub,
-              email: auth.email ?? "",
-              emailVerified: auth.email_verified === true,
-              displayName: String(auth.name ?? auth.email ?? auth.sub),
-              avatarUrl: String(auth.picture ?? ""),
-            },
-          });
-        })
-      : await application.getReadingProgress({
-          bookId,
-          userId: c.req.query("userId") ?? "",
+    if (authEnabled) {
+      const auth = await getAuth(c);
+
+      if (!auth?.sub) {
+        return respondWithUnauthorized({
+          context: c,
+          code: "unauthenticated",
+          message: "Authentication is required",
         });
+      }
+
+      const result = await application.getCurrentUserReadingProgress({
+        bookId,
+        currentUser: {
+          authIssuer,
+          authSubject: auth.sub,
+          email: auth.email ?? "",
+          emailVerified: auth.email_verified === true,
+          displayName: String(auth.name ?? auth.email ?? auth.sub),
+          avatarUrl: String(auth.picture ?? ""),
+        },
+      });
+
+      if (!result) {
+        return respondWithNotFound({
+          context: c,
+          resource: "reading_progress",
+          message: "Reading progress not found",
+          details: { bookId },
+        });
+      }
+
+      return c.json({ progress: result });
+    }
+
+    const result = await application.getReadingProgress({
+      bookId,
+      userId: c.req.query("userId") ?? "",
+    });
 
     if (!result) {
-      return c.json({ message: "Reading progress not found" }, 404);
+      return respondWithNotFound({
+        context: c,
+        resource: "reading_progress",
+        message: "Reading progress not found",
+        details: {
+          bookId,
+          userId: c.req.query("userId") ?? "",
+        },
+      });
     }
 
     return c.json({ progress: result });
@@ -215,37 +270,62 @@ const createRouters = ({ application, authEnabled = false, authIssuer = "" }) =>
     );
 
     if (!validationResult.success) {
-      return c.json(
-        {
-          message: "Invalid progress payload",
-          errors: validationResult.errors,
-        },
-        400,
-      );
+      return respondWithValidationError({
+        context: c,
+        resource: "progress",
+        message: "Invalid progress payload",
+        errors: validationResult.errors,
+      });
     }
 
-    const result = authEnabled
-      ? await getAuth(c).then((auth) => {
-          if (!auth?.sub) {
-            return null;
-          }
+    if (authEnabled) {
+      const auth = await getAuth(c);
 
-          return application.saveCurrentUserReadingProgress({
-            currentUser: {
-              authIssuer,
-              authSubject: auth.sub,
-              email: auth.email ?? "",
-              emailVerified: auth.email_verified === true,
-              displayName: String(auth.name ?? auth.email ?? auth.sub),
-              avatarUrl: String(auth.picture ?? ""),
-            },
-            progress,
-          });
-        })
-      : await application.saveReadingProgress({ progress });
+      if (!auth?.sub) {
+        return respondWithUnauthorized({
+          context: c,
+          code: "unauthenticated",
+          message: "Authentication is required",
+        });
+      }
 
+      const result = await application.saveCurrentUserReadingProgress({
+        currentUser: {
+          authIssuer,
+          authSubject: auth.sub,
+          email: auth.email ?? "",
+          emailVerified: auth.email_verified === true,
+          displayName: String(auth.name ?? auth.email ?? auth.sub),
+          avatarUrl: String(auth.picture ?? ""),
+        },
+        progress,
+      });
+
+      if (!result) {
+        return respondWithNotFound({
+          context: c,
+          resource: "book_or_user",
+          message: "Book or user not found",
+          details: {
+            bookId: progress.bookId ?? "",
+          },
+        });
+      }
+
+      return c.json({ progress: result }, 201);
+    }
+
+    const result = await application.saveReadingProgress({ progress });
     if (!result) {
-      return c.json({ message: "Book or user not found" }, 404);
+      return respondWithNotFound({
+        context: c,
+        resource: "book_or_user",
+        message: "Book or user not found",
+        details: {
+          bookId: progress.bookId ?? "",
+          userId: progress.userId ?? "",
+        },
+      });
     }
 
     return c.json({ progress: result }, 201);
@@ -256,13 +336,12 @@ const createRouters = ({ application, authEnabled = false, authIssuer = "" }) =>
     const validationResult = validateCreateShelfPayload(shelf);
 
     if (!validationResult.success) {
-      return c.json(
-        {
-          message: "Invalid shelf payload",
-          errors: validationResult.errors,
-        },
-        400,
-      );
+      return respondWithValidationError({
+        context: c,
+        resource: "shelf",
+        message: "Invalid shelf payload",
+        errors: validationResult.errors,
+      });
     }
 
     const result = await application.createShelf({ shelf });
@@ -282,19 +361,23 @@ const createRouters = ({ application, authEnabled = false, authIssuer = "" }) =>
     const validationResult = validateUpdateShelfPayload(updates);
 
     if (!validationResult.success) {
-      return c.json(
-        {
-          message: "Invalid shelf payload",
-          errors: validationResult.errors,
-        },
-        400,
-      );
+      return respondWithValidationError({
+        context: c,
+        resource: "shelf",
+        message: "Invalid shelf payload",
+        errors: validationResult.errors,
+      });
     }
 
     const result = await application.updateShelf({ id, updates });
 
     if (!result) {
-      return c.json({ message: "Shelf not found" }, 404);
+      return respondWithNotFound({
+        context: c,
+        resource: "shelf",
+        message: "Shelf not found",
+        details: { id },
+      });
     }
 
     return c.json({ shelf: result });
@@ -305,7 +388,12 @@ const createRouters = ({ application, authEnabled = false, authIssuer = "" }) =>
     const result = await application.deleteShelf({ id });
 
     if (!result.success) {
-      return c.json({ message: "Shelf not found" }, 404);
+      return respondWithNotFound({
+        context: c,
+        resource: "shelf",
+        message: "Shelf not found",
+        details: { id },
+      });
     }
 
     return c.json(result);
@@ -319,7 +407,12 @@ const createRouters = ({ application, authEnabled = false, authIssuer = "" }) =>
     });
 
     if (!result) {
-      return c.json({ message: "Shelf or book not found" }, 404);
+      return respondWithNotFound({
+        context: c,
+        resource: "shelf_or_book",
+        message: "Shelf or book not found",
+        details: { shelfId: id, bookId },
+      });
     }
 
     return c.json({ shelf: result });
@@ -333,7 +426,12 @@ const createRouters = ({ application, authEnabled = false, authIssuer = "" }) =>
     });
 
     if (!result) {
-      return c.json({ message: "Shelf not found" }, 404);
+      return respondWithNotFound({
+        context: c,
+        resource: "shelf",
+        message: "Shelf not found",
+        details: { id },
+      });
     }
 
     return c.json({ shelf: result });

@@ -93,4 +93,26 @@ const createApplicationMock = (overrides = {}) => {
   };
 };
 
-export { createApplicationMock, createLoggerMock };
+/**
+ * @param {object} params
+ * @param {string} params.code
+ * @param {string} params.message
+ * @param {Record<string, unknown>} [params.details]
+ * @param {string[]} [params.errors]
+ */
+const createExpectedErrorResponse = ({ code, message, details = {}, errors }) => {
+  return {
+    message,
+    error: {
+      code,
+      message,
+      details: {
+        ...details,
+        ...(errors ? { errors } : {}),
+      },
+    },
+    ...(errors ? { errors } : {}),
+  };
+};
+
+export { createApplicationMock, createExpectedErrorResponse, createLoggerMock };

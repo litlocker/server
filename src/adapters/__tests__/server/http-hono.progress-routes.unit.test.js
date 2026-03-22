@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import { createHonoApp } from "../../server/http-hono/app.js";
-import { createApplicationMock, createLoggerMock } from "./test-helpers.js";
+import {
+  createApplicationMock,
+  createExpectedErrorResponse,
+  createLoggerMock,
+} from "./test-helpers.js";
 
 describe("http hono progress routes", () => {
   const config = {
@@ -50,7 +54,14 @@ describe("http hono progress routes", () => {
 
     expect(response.status).toBe(404);
     await expect(response.json()).resolves.toEqual({
-      message: "Reading progress not found",
+      ...createExpectedErrorResponse({
+        code: "reading_progress_not_found",
+        message: "Reading progress not found",
+        details: {
+          bookId: "book-1",
+          userId: "user-1",
+        },
+      }),
     });
   });
 
@@ -125,7 +136,14 @@ describe("http hono progress routes", () => {
 
     expect(response.status).toBe(404);
     await expect(response.json()).resolves.toEqual({
-      message: "Book or user not found",
+      ...createExpectedErrorResponse({
+        code: "book_or_user_not_found",
+        message: "Book or user not found",
+        details: {
+          bookId: "book-1",
+          userId: "user-1",
+        },
+      }),
     });
   });
 
@@ -151,8 +169,14 @@ describe("http hono progress routes", () => {
 
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({
-      message: "Invalid progress payload",
-      errors: ["/locator must be a valid EPUB CFI"],
+      ...createExpectedErrorResponse({
+        code: "invalid_progress_payload",
+        message: "Invalid progress payload",
+        details: {
+          resource: "progress",
+        },
+        errors: ["/locator must be a valid EPUB CFI"],
+      }),
     });
     expect(application.saveReadingProgress).not.toHaveBeenCalled();
   });
@@ -179,8 +203,14 @@ describe("http hono progress routes", () => {
 
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({
-      message: "Invalid progress payload",
-      errors: ["/locator must be a valid PDF page locator"],
+      ...createExpectedErrorResponse({
+        code: "invalid_progress_payload",
+        message: "Invalid progress payload",
+        details: {
+          resource: "progress",
+        },
+        errors: ["/locator must be a valid PDF page locator"],
+      }),
     });
     expect(application.saveReadingProgress).not.toHaveBeenCalled();
   });
@@ -207,8 +237,14 @@ describe("http hono progress routes", () => {
 
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({
-      message: "Invalid progress payload",
-      errors: ["/locator must be a valid comic image locator"],
+      ...createExpectedErrorResponse({
+        code: "invalid_progress_payload",
+        message: "Invalid progress payload",
+        details: {
+          resource: "progress",
+        },
+        errors: ["/locator must be a valid comic image locator"],
+      }),
     });
     expect(application.saveReadingProgress).not.toHaveBeenCalled();
   });

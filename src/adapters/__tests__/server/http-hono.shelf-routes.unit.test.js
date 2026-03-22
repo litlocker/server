@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { createHonoApp } from "../../server/http-hono/app.js";
-import { createApplicationMock, createLoggerMock } from "./test-helpers.js";
+import {
+  createApplicationMock,
+  createExpectedErrorResponse,
+  createLoggerMock,
+} from "./test-helpers.js";
 
 describe("http hono shelf routes", () => {
   const config = {
@@ -65,8 +69,14 @@ describe("http hono shelf routes", () => {
 
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({
-      message: "Invalid shelf payload",
-      errors: ["/ must have required property 'name'"],
+      ...createExpectedErrorResponse({
+        code: "invalid_shelf_payload",
+        message: "Invalid shelf payload",
+        details: {
+          resource: "shelf",
+        },
+        errors: ["/ must have required property 'name'"],
+      }),
     });
     expect(application.createShelf).not.toHaveBeenCalled();
   });
@@ -146,8 +156,14 @@ describe("http hono shelf routes", () => {
 
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({
-      message: "Invalid shelf payload",
-      errors: ["/ must NOT have fewer than 1 properties"],
+      ...createExpectedErrorResponse({
+        code: "invalid_shelf_payload",
+        message: "Invalid shelf payload",
+        details: {
+          resource: "shelf",
+        },
+        errors: ["/ must NOT have fewer than 1 properties"],
+      }),
     });
     expect(application.updateShelf).not.toHaveBeenCalled();
   });
@@ -171,7 +187,13 @@ describe("http hono shelf routes", () => {
 
     expect(response.status).toBe(404);
     await expect(response.json()).resolves.toEqual({
-      message: "Shelf not found",
+      ...createExpectedErrorResponse({
+        code: "shelf_not_found",
+        message: "Shelf not found",
+        details: {
+          id: "missing-shelf-id",
+        },
+      }),
     });
   });
 
@@ -208,7 +230,13 @@ describe("http hono shelf routes", () => {
 
     expect(response.status).toBe(404);
     await expect(response.json()).resolves.toEqual({
-      message: "Shelf not found",
+      ...createExpectedErrorResponse({
+        code: "shelf_not_found",
+        message: "Shelf not found",
+        details: {
+          id: "missing-shelf-id",
+        },
+      }),
     });
   });
 
@@ -253,7 +281,14 @@ describe("http hono shelf routes", () => {
 
     expect(response.status).toBe(404);
     await expect(response.json()).resolves.toEqual({
-      message: "Shelf or book not found",
+      ...createExpectedErrorResponse({
+        code: "shelf_or_book_not_found",
+        message: "Shelf or book not found",
+        details: {
+          shelfId: "missing-shelf-id",
+          bookId: "book-1",
+        },
+      }),
     });
   });
 
@@ -298,7 +333,13 @@ describe("http hono shelf routes", () => {
 
     expect(response.status).toBe(404);
     await expect(response.json()).resolves.toEqual({
-      message: "Shelf not found",
+      ...createExpectedErrorResponse({
+        code: "shelf_not_found",
+        message: "Shelf not found",
+        details: {
+          id: "missing-shelf-id",
+        },
+      }),
     });
   });
 });

@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createHonoApp } from "../../server/http-hono/app.js";
-import { createApplicationMock, createLoggerMock } from "./test-helpers.js";
+import {
+  createApplicationMock,
+  createExpectedErrorResponse,
+  createLoggerMock,
+} from "./test-helpers.js";
 
 const { getAuthMock, initOidcAuthMiddlewareMock, oidcAuthMiddlewareMock } = vi.hoisted(() => ({
   getAuthMock: vi.fn(),
@@ -182,7 +186,13 @@ describe("http hono progress routes with auth", () => {
 
     expect(response.status).toBe(404);
     await expect(response.json()).resolves.toEqual({
-      message: "Reading progress not found",
+      ...createExpectedErrorResponse({
+        code: "reading_progress_not_found",
+        message: "Reading progress not found",
+        details: {
+          bookId: "book-1",
+        },
+      }),
     });
   });
 });
