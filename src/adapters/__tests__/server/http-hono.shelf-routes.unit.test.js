@@ -62,6 +62,30 @@ describe("http hono shelf routes", () => {
     });
   });
 
+  it("should reject an invalid shelf payload through POST /shelves", async () => {
+    const application = createApplication();
+    const app = createHonoApp({ application, config, logger });
+
+    const response = await app.request(
+      new Request("http://localhost/shelves", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          description: "Priority reading list",
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      message: "Invalid shelf payload",
+      errors: ["/ must have required property 'name'"],
+    });
+    expect(application.createShelf).not.toHaveBeenCalled();
+  });
+
   it("should list shelves through GET /shelves", async () => {
     const shelves = [
       {
@@ -119,6 +143,28 @@ describe("http hono shelf routes", () => {
         name: "Updated Favorites",
       },
     });
+  });
+
+  it("should reject an invalid shelf payload through PATCH /shelves/:id", async () => {
+    const application = createApplication();
+    const app = createHonoApp({ application, config, logger });
+
+    const response = await app.request(
+      new Request("http://localhost/shelves/shelf-1", {
+        method: "PATCH",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({}),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      message: "Invalid shelf payload",
+      errors: ["/ must NOT have fewer than 1 properties"],
+    });
+    expect(application.updateShelf).not.toHaveBeenCalled();
   });
 
   it("should return 404 when PATCH /shelves/:id cannot find a shelf", async () => {

@@ -4,6 +4,10 @@
 
 import { Hono } from "hono";
 import { validateCreateBookPayload, validateUpdateBookPayload } from "./validate-book-payload.js";
+import {
+  validateCreateShelfPayload,
+  validateUpdateShelfPayload,
+} from "./validate-shelf-payload.js";
 
 /**
  * @param { object } params
@@ -105,6 +109,18 @@ const createRouters = ({ application }) => {
 
   shelvesRouter.post("/", async (c) => {
     const shelf = await c.req.json();
+    const validationResult = validateCreateShelfPayload(shelf);
+
+    if (!validationResult.success) {
+      return c.json(
+        {
+          message: "Invalid shelf payload",
+          errors: validationResult.errors,
+        },
+        400,
+      );
+    }
+
     const result = application.createShelf({ shelf });
 
     return c.json({ shelf: result }, 201);
@@ -119,6 +135,18 @@ const createRouters = ({ application }) => {
   shelvesRouter.patch("/:id", async (c) => {
     const { id } = c.req.param();
     const updates = await c.req.json();
+    const validationResult = validateUpdateShelfPayload(updates);
+
+    if (!validationResult.success) {
+      return c.json(
+        {
+          message: "Invalid shelf payload",
+          errors: validationResult.errors,
+        },
+        400,
+      );
+    }
+
     const result = application.updateShelf({ id, updates });
 
     if (!result) {

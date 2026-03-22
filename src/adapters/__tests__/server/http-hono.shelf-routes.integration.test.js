@@ -187,4 +187,55 @@ describe("http hono shelf routes integration", () => {
       },
     });
   });
+
+  it("should reject invalid create and update payloads through the API", async () => {
+    const app = createTestApp();
+
+    const invalidCreateResponse = await app.request(
+      new Request("http://localhost/shelves", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          description: "Priority reading list",
+        }),
+      }),
+    );
+
+    expect(invalidCreateResponse.status).toBe(400);
+    await expect(invalidCreateResponse.json()).resolves.toEqual({
+      message: "Invalid shelf payload",
+      errors: ["/ must have required property 'name'"],
+    });
+
+    const createShelfResponse = await app.request(
+      new Request("http://localhost/shelves", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          name: "Favorites",
+        }),
+      }),
+    );
+    const { shelf } = await createShelfResponse.json();
+
+    const invalidUpdateResponse = await app.request(
+      new Request(`http://localhost/shelves/${shelf.id}`, {
+        method: "PATCH",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({}),
+      }),
+    );
+
+    expect(invalidUpdateResponse.status).toBe(400);
+    await expect(invalidUpdateResponse.json()).resolves.toEqual({
+      message: "Invalid shelf payload",
+      errors: ["/ must NOT have fewer than 1 properties"],
+    });
+  });
 });
