@@ -543,6 +543,8 @@ describe("application", () => {
       expect(application).toHaveProperty("updateShelf");
       expect(application).toHaveProperty("listShelves");
       expect(application).toHaveProperty("deleteShelf");
+      expect(application).toHaveProperty("addBookToShelf");
+      expect(application).toHaveProperty("removeBookFromShelf");
     });
 
     it("should create and list shelves", () => {
@@ -667,6 +669,198 @@ describe("application", () => {
       expect(application.deleteShelf({ id: "missing-shelf-id" })).toEqual({
         success: false,
       });
+    });
+
+    it("should add a book to a shelf", () => {
+      const application = createApplication({
+        clock: createClockSystem(),
+        config,
+        persistence: createPersistenceInMemory(),
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+      const book = application.createBook({
+        book: {
+          title: "The Left Hand of Darkness",
+        },
+      });
+      const shelf = application.createShelf({
+        shelf: {
+          name: "Favorites",
+        },
+      });
+
+      const updatedShelf = application.addBookToShelf({
+        shelfId: shelf.id,
+        bookId: book.id,
+      });
+
+      expect(updatedShelf).toEqual({
+        ...shelf,
+        bookIds: [book.id],
+      });
+      expect(application.listShelves()).toEqual([updatedShelf]);
+    });
+
+    it("should not duplicate a book when adding it to a shelf twice", () => {
+      const application = createApplication({
+        clock: createClockSystem(),
+        config,
+        persistence: createPersistenceInMemory(),
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+      const book = application.createBook({
+        book: {
+          title: "A Wizard of Earthsea",
+        },
+      });
+      const shelf = application.createShelf({
+        shelf: {
+          name: "Favorites",
+        },
+      });
+
+      application.addBookToShelf({
+        shelfId: shelf.id,
+        bookId: book.id,
+      });
+      const updatedShelf = application.addBookToShelf({
+        shelfId: shelf.id,
+        bookId: book.id,
+      });
+
+      expect(updatedShelf).toEqual({
+        ...shelf,
+        bookIds: [book.id],
+      });
+    });
+
+    it("should return null when adding a missing book to a shelf", () => {
+      const application = createApplication({
+        clock: createClockSystem(),
+        config,
+        persistence: createPersistenceInMemory(),
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+      const shelf = application.createShelf({
+        shelf: {
+          name: "Favorites",
+        },
+      });
+
+      expect(
+        application.addBookToShelf({
+          shelfId: shelf.id,
+          bookId: "missing-book-id",
+        }),
+      ).toBeNull();
+    });
+
+    it("should return null when adding a book to a missing shelf", () => {
+      const application = createApplication({
+        clock: createClockSystem(),
+        config,
+        persistence: createPersistenceInMemory(),
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+      const book = application.createBook({
+        book: {
+          title: "Tehanu",
+        },
+      });
+
+      expect(
+        application.addBookToShelf({
+          shelfId: "missing-shelf-id",
+          bookId: book.id,
+        }),
+      ).toBeNull();
+    });
+
+    it("should remove a book from a shelf", () => {
+      const application = createApplication({
+        clock: createClockSystem(),
+        config,
+        persistence: createPersistenceInMemory(),
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+      const firstBook = application.createBook({
+        book: {
+          title: "The Tombs of Atuan",
+        },
+      });
+      const secondBook = application.createBook({
+        book: {
+          title: "The Farthest Shore",
+        },
+      });
+      const shelf = application.createShelf({
+        shelf: {
+          name: "Earthsea",
+        },
+      });
+
+      application.addBookToShelf({
+        shelfId: shelf.id,
+        bookId: firstBook.id,
+      });
+      application.addBookToShelf({
+        shelfId: shelf.id,
+        bookId: secondBook.id,
+      });
+
+      const updatedShelf = application.removeBookFromShelf({
+        shelfId: shelf.id,
+        bookId: firstBook.id,
+      });
+
+      expect(updatedShelf).toEqual({
+        ...shelf,
+        bookIds: [secondBook.id],
+      });
+    });
+
+    it("should return the unchanged shelf when removing a book that is not present", () => {
+      const application = createApplication({
+        clock: createClockSystem(),
+        config,
+        persistence: createPersistenceInMemory(),
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+      const shelf = application.createShelf({
+        shelf: {
+          name: "Favorites",
+        },
+      });
+
+      const updatedShelf = application.removeBookFromShelf({
+        shelfId: shelf.id,
+        bookId: "missing-book-id",
+      });
+
+      expect(updatedShelf).toEqual(shelf);
+    });
+
+    it("should return null when removing a book from a missing shelf", () => {
+      const application = createApplication({
+        clock: createClockSystem(),
+        config,
+        persistence: createPersistenceInMemory(),
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+
+      expect(
+        application.removeBookFromShelf({
+          shelfId: "missing-shelf-id",
+          bookId: "book-1",
+        }),
+      ).toBeNull();
     });
   });
 });

@@ -5,7 +5,13 @@ import { IdGenerator } from "./interfaces/id-generator.d.ts";
 import { Logger } from "./interfaces/logger.d.ts";
 import { Persistence } from "./interfaces/persistence.d.ts";
 import { Result, HealthStatus } from "./interfaces/result.d.ts";
-import { CreateShelfInput, Shelf, UpdateShelfInput } from "./interfaces/shelf.d.ts";
+import {
+  AddBookToShelfInput,
+  CreateShelfInput,
+  RemoveBookFromShelfInput,
+  Shelf,
+  UpdateShelfInput,
+} from "./interfaces/shelf.d.ts";
 
 type Health = () => Result<HealthStatus>;
 type CreateBook = ({ book }: { book: CreateBookInput }) => Book;
@@ -16,6 +22,8 @@ type CreateShelf = ({ shelf }: { shelf: CreateShelfInput }) => Shelf;
 type UpdateShelf = ({ id, updates }: { id: string; updates: UpdateShelfInput }) => Shelf | null;
 type ListShelves = () => Shelf[];
 type DeleteShelf = ({ id }: { id: string }) => { success: boolean };
+type AddBookToShelf = ({ shelfId, bookId }: AddBookToShelfInput) => Shelf | null;
+type RemoveBookFromShelf = ({ shelfId, bookId }: RemoveBookFromShelfInput) => Shelf | null;
 
 interface Application {
   health: Health;
@@ -27,6 +35,8 @@ interface Application {
   updateShelf: UpdateShelf;
   listShelves: ListShelves;
   deleteShelf: DeleteShelf;
+  addBookToShelf: AddBookToShelf;
+  removeBookFromShelf: RemoveBookFromShelf;
 }
 
 interface Deps {

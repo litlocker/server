@@ -1,7 +1,7 @@
 /**
  * @import { CreateApplication } from './interface.js'
  * @import { BookCover, BookIdentifiers, CreateBookInput, UpdateBookInput } from './entities/book.js'
- * @import { CreateShelfInput, UpdateShelfInput } from './interfaces/shelf.js'
+ * @import { CreateShelfInput, Shelf, UpdateShelfInput } from './interfaces/shelf.js'
  */
 
 const createHealthSuccessResult = (details) => {
@@ -137,6 +137,28 @@ const normalizeShelfUpdates = ({ currentShelf, updates }) => {
   };
 };
 
+/**
+ * @param { Shelf } shelf
+ * @param { string } bookId
+ * @returns { string[] }
+ */
+const addBookIdToShelf = (shelf, bookId) => {
+  if (shelf.bookIds.includes(bookId)) {
+    return shelf.bookIds;
+  }
+
+  return [...shelf.bookIds, bookId];
+};
+
+/**
+ * @param { Shelf } shelf
+ * @param { string } bookId
+ * @returns { string[] }
+ */
+const removeBookIdFromShelf = (shelf, bookId) => {
+  return shelf.bookIds.filter((currentBookId) => currentBookId !== bookId);
+};
+
 /** @type { CreateApplication } */
 const createApplication = ({ clock, config: _config, persistence, idGenerator, logger }) => {
   return {
@@ -210,6 +232,40 @@ const createApplication = ({ clock, config: _config, persistence, idGenerator, l
     },
     deleteShelf: ({ id }) => {
       return persistence.shelves.delete({ id });
+    },
+    addBookToShelf: ({ shelfId, bookId }) => {
+      const currentShelf = persistence.shelves.get({ id: shelfId });
+
+      if (!currentShelf) {
+        return null;
+      }
+
+      const currentBook = persistence.books.get({ id: bookId });
+
+      if (!currentBook) {
+        return null;
+      }
+
+      return persistence.shelves.update({
+        id: shelfId,
+        updates: {
+          bookIds: addBookIdToShelf(currentShelf, currentBook.id),
+        },
+      });
+    },
+    removeBookFromShelf: ({ shelfId, bookId }) => {
+      const currentShelf = persistence.shelves.get({ id: shelfId });
+
+      if (!currentShelf) {
+        return null;
+      }
+
+      return persistence.shelves.update({
+        id: shelfId,
+        updates: {
+          bookIds: removeBookIdFromShelf(currentShelf, bookId),
+        },
+      });
     },
   };
 };
