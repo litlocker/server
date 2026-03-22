@@ -13,6 +13,7 @@
     "lint:fix": "pnpm run lint:base --fix",
     "lint:staged": "lint-staged",
     "lint:commit": "commitlint --edit",
+    "lint:ts": "tsc --noEmit -p jsconfig.json",
     "fmt:base": "oxfmt",
     "fmt:check": "pnpm run fmt:base --check",
     "fmt:fix": "pnpm run fmt:base",
