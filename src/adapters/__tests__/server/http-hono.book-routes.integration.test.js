@@ -213,4 +213,73 @@ describe("http hono book routes integration", () => {
       message: "Book not found",
     });
   });
+
+  it("should filter books through GET /books query params", async () => {
+    const app = createTestApp();
+
+    const firstCreateResponse = await app.request(
+      new Request("http://localhost/books", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          title: "The Left Hand of Darkness",
+          authors: ["Ursula K. Le Guin"],
+          tags: ["science-fiction"],
+        }),
+      }),
+    );
+    const { book: firstBook } = await firstCreateResponse.json();
+
+    const secondCreateResponse = await app.request(
+      new Request("http://localhost/books", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          title: "A Wizard of Earthsea",
+          authors: ["Ursula K. Le Guin"],
+          tags: ["fantasy"],
+        }),
+      }),
+    );
+    const { book: secondBook } = await secondCreateResponse.json();
+
+    const createShelfResponse = await app.request(
+      new Request("http://localhost/shelves", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          name: "Favorites",
+        }),
+      }),
+    );
+    const { shelf } = await createShelfResponse.json();
+
+    await app.request(
+      new Request(`http://localhost/shelves/${shelf.id}/books/${firstBook.id}`, {
+        method: "POST",
+      }),
+    );
+
+    const response = await app.request(
+      `http://localhost/books?author=ursula&tag=science-fiction&shelfId=${shelf.id}`,
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      books: [firstBook],
+    });
+
+    const titleResponse = await app.request("http://localhost/books?title=earthsea");
+
+    expect(titleResponse.status).toBe(200);
+    await expect(titleResponse.json()).resolves.toEqual({
+      books: [secondBook],
+    });
+  });
 });

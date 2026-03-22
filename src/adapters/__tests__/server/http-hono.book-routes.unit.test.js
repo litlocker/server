@@ -141,7 +141,69 @@ describe("http hono book routes", () => {
     await expect(response.json()).resolves.toEqual({
       books,
     });
-    expect(application.listBooks).toHaveBeenCalledOnce();
+    expect(application.listBooks).toHaveBeenCalledWith({
+      filters: undefined,
+    });
+  });
+
+  it("should pass query filters through GET /books", async () => {
+    const books = [
+      {
+        id: "book-1",
+        title: "The Left Hand of Darkness",
+        subtitle: "",
+        description: "",
+        language: "",
+        authors: ["Ursula K. Le Guin"],
+        tags: ["science-fiction"],
+        seriesName: "",
+        seriesNumber: "",
+        cover: {
+          sourcePath: "",
+          thumbnailPath: "",
+          mimeType: "",
+          dominantColor: "",
+        },
+        identifiers: {
+          isbn10: "",
+          isbn13: "",
+          asin: "",
+          goodreadsId: "",
+          googleBooksId: "",
+        },
+        status: "draft",
+      },
+    ];
+    const application = {
+      createBook: vi.fn(),
+      updateBook: vi.fn(),
+      listBooks: vi.fn().mockReturnValue(books),
+      getBook: vi.fn(),
+      createShelf: vi.fn(),
+      updateShelf: vi.fn(),
+      listShelves: vi.fn(),
+      deleteShelf: vi.fn(),
+      addBookToShelf: vi.fn(),
+      removeBookFromShelf: vi.fn(),
+    };
+    const app = createHonoApp({ application, config, logger });
+
+    const response = await app.request(
+      "http://localhost/books?title=darkness&author=ursula&tag=science-fiction&shelfId=shelf-1",
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      books,
+    });
+    expect(application.listBooks).toHaveBeenCalledWith({
+      filters: {
+        title: "darkness",
+        author: "ursula",
+        tag: "science-fiction",
+        shelfId: "shelf-1",
+      },
+    });
   });
 
   it("should update a book through PATCH /books/:id", async () => {

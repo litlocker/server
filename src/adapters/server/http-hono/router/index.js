@@ -50,7 +50,20 @@ const createRouters = ({ application }) => {
   });
 
   booksRouter.get("/", (c) => {
-    const result = application.listBooks();
+    const title = c.req.query("title");
+    const author = c.req.query("author");
+    const tag = c.req.query("tag");
+    const shelfId = c.req.query("shelfId");
+    const filters =
+      title || author || tag || shelfId
+        ? {
+            ...(title ? { title } : {}),
+            ...(author ? { author } : {}),
+            ...(tag ? { tag } : {}),
+            ...(shelfId ? { shelfId } : {}),
+          }
+        : undefined;
+    const result = application.listBooks({ filters });
 
     return c.json({ books: result });
   });
