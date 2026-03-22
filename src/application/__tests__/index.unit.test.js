@@ -111,10 +111,10 @@ describe("application", () => {
       }),
     };
   };
-  const createTestMetadataProvider = (metadataRecord = null) => {
+  const createTestMetadataProvider = ({ embeddedMetadata = null, lookupResults = [] } = {}) => {
     return {
-      extractMetadata: () => metadataRecord,
-      lookupMetadata: () => [],
+      extractMetadata: () => embeddedMetadata,
+      lookupMetadata: () => lookupResults,
       checkHealth: () => ({
         success: true,
         data: {
@@ -1213,23 +1213,25 @@ describe("application", () => {
 
     it("should extract embedded metadata when creating an import job", () => {
       const metadataProvider = createTestMetadataProvider({
-        title: "The Left Hand of Darkness",
-        subtitle: "",
-        description: "A landmark science fiction novel",
-        language: "en",
-        authors: ["Ursula K. Le Guin"],
-        tags: ["science-fiction"],
-        seriesName: "Hainish Cycle",
-        seriesNumber: "4",
-        identifiers: {
-          isbn10: "",
-          isbn13: "9780441478125",
-          asin: "",
-          goodreadsId: "",
-          googleBooksId: "",
+        embeddedMetadata: {
+          title: "The Left Hand of Darkness",
+          subtitle: "",
+          description: "A landmark science fiction novel",
+          language: "en",
+          authors: ["Ursula K. Le Guin"],
+          tags: ["science-fiction"],
+          seriesName: "Hainish Cycle",
+          seriesNumber: "4",
+          identifiers: {
+            isbn10: "",
+            isbn13: "9780441478125",
+            asin: "",
+            goodreadsId: "",
+            googleBooksId: "",
+          },
+          coverPath: "/covers/left-hand.jpg",
+          source: "embedded",
         },
-        coverPath: "/covers/left-hand.jpg",
-        source: "embedded",
       });
       const application = createApplication({
         clock: createClockSystem(),
@@ -1278,23 +1280,25 @@ describe("application", () => {
     it("should ingest an uploaded file into the temporary import area", () => {
       const fileStorage = createTestFileStorage();
       const metadataProvider = createTestMetadataProvider({
-        title: "The Left Hand of Darkness",
-        subtitle: "",
-        description: "",
-        language: "en",
-        authors: ["Ursula K. Le Guin"],
-        tags: [],
-        seriesName: "",
-        seriesNumber: "",
-        identifiers: {
-          isbn10: "",
-          isbn13: "9780441478125",
-          asin: "",
-          goodreadsId: "",
-          googleBooksId: "",
+        embeddedMetadata: {
+          title: "The Left Hand of Darkness",
+          subtitle: "",
+          description: "",
+          language: "en",
+          authors: ["Ursula K. Le Guin"],
+          tags: [],
+          seriesName: "",
+          seriesNumber: "",
+          identifiers: {
+            isbn10: "",
+            isbn13: "9780441478125",
+            asin: "",
+            goodreadsId: "",
+            googleBooksId: "",
+          },
+          coverPath: "",
+          source: "embedded",
         },
-        coverPath: "",
-        source: "embedded",
       });
       const application = createApplication({
         clock: createClockSystem(),
@@ -1364,6 +1368,218 @@ describe("application", () => {
         }),
       ).toBe(true);
       expect(application.listImportJobs()).toEqual([importJob]);
+    });
+
+    it("should append external metadata candidates after embedded extraction", () => {
+      const metadataProvider = createTestMetadataProvider({
+        embeddedMetadata: {
+          title: "The Left Hand of Darkness",
+          subtitle: "",
+          description: "",
+          language: "en",
+          authors: ["Ursula K. Le Guin"],
+          tags: ["science-fiction"],
+          seriesName: "",
+          seriesNumber: "",
+          identifiers: {
+            isbn10: "",
+            isbn13: "9780441478125",
+            asin: "",
+            goodreadsId: "",
+            googleBooksId: "",
+          },
+          coverPath: "",
+          source: "embedded",
+        },
+        lookupResults: [
+          {
+            title: "The Left Hand of Darkness",
+            subtitle: "A Novel",
+            description: "Expanded catalog metadata",
+            language: "en",
+            authors: ["Ursula K. Le Guin"],
+            tags: ["science-fiction", "classic"],
+            seriesName: "Hainish Cycle",
+            seriesNumber: "4",
+            identifiers: {
+              isbn10: "",
+              isbn13: "9780441478125",
+              asin: "",
+              goodreadsId: "18423",
+              googleBooksId: "",
+            },
+            coverPath: "/covers/external-left-hand.jpg",
+            source: "external",
+          },
+        ],
+      });
+      const application = createApplication({
+        clock: createClockSystem(),
+        config,
+        metadataProvider,
+        persistence: createPersistenceInMemory(),
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+
+      const importJob = application.createImportJob({
+        job: {
+          source: {
+            kind: "filesystem",
+            path: "/library/inbox/left-hand.epub",
+            originalFileName: "left-hand.epub",
+          },
+          detectedFileType: "epub",
+        },
+      });
+
+      expect(importJob.metadataCandidates).toEqual([
+        {
+          title: "The Left Hand of Darkness",
+          subtitle: "",
+          description: "",
+          language: "en",
+          authors: ["Ursula K. Le Guin"],
+          tags: ["science-fiction"],
+          seriesName: "",
+          seriesNumber: "",
+          identifiers: {
+            isbn10: "",
+            isbn13: "9780441478125",
+            asin: "",
+            goodreadsId: "",
+            googleBooksId: "",
+          },
+          coverPath: "",
+          source: "embedded",
+          confidence: "1.00",
+        },
+        {
+          title: "The Left Hand of Darkness",
+          subtitle: "A Novel",
+          description: "Expanded catalog metadata",
+          language: "en",
+          authors: ["Ursula K. Le Guin"],
+          tags: ["science-fiction", "classic"],
+          seriesName: "Hainish Cycle",
+          seriesNumber: "4",
+          identifiers: {
+            isbn10: "",
+            isbn13: "9780441478125",
+            asin: "",
+            goodreadsId: "18423",
+            googleBooksId: "",
+          },
+          coverPath: "/covers/external-left-hand.jpg",
+          source: "external",
+          confidence: "0.80",
+        },
+      ]);
+    });
+
+    it("should append external metadata candidates during upload ingestion", () => {
+      const fileStorage = createTestFileStorage();
+      const metadataProvider = createTestMetadataProvider({
+        embeddedMetadata: {
+          title: "The Left Hand of Darkness",
+          subtitle: "",
+          description: "",
+          language: "en",
+          authors: ["Ursula K. Le Guin"],
+          tags: [],
+          seriesName: "",
+          seriesNumber: "",
+          identifiers: {
+            isbn10: "",
+            isbn13: "9780441478125",
+            asin: "",
+            goodreadsId: "",
+            googleBooksId: "",
+          },
+          coverPath: "",
+          source: "embedded",
+        },
+        lookupResults: [
+          {
+            title: "The Left Hand of Darkness",
+            subtitle: "Annotated Edition",
+            description: "",
+            language: "en",
+            authors: ["Ursula K. Le Guin"],
+            tags: ["science-fiction"],
+            seriesName: "",
+            seriesNumber: "",
+            identifiers: {
+              isbn10: "",
+              isbn13: "9780441478125",
+              asin: "",
+              goodreadsId: "18423",
+              googleBooksId: "",
+            },
+            coverPath: "",
+            source: "external",
+          },
+        ],
+      });
+      const application = createApplication({
+        clock: createClockSystem(),
+        config,
+        fileStorage,
+        metadataProvider,
+        persistence: createPersistenceInMemory(),
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+
+      const importJob = application.ingestImportUpload({
+        upload: {
+          name: "left-hand.epub",
+          contents: new Uint8Array([1, 2, 3]),
+        },
+      });
+
+      expect(importJob.metadataCandidates).toEqual([
+        {
+          title: "The Left Hand of Darkness",
+          subtitle: "",
+          description: "",
+          language: "en",
+          authors: ["Ursula K. Le Guin"],
+          tags: [],
+          seriesName: "",
+          seriesNumber: "",
+          identifiers: {
+            isbn10: "",
+            isbn13: "9780441478125",
+            asin: "",
+            goodreadsId: "",
+            googleBooksId: "",
+          },
+          coverPath: "",
+          source: "embedded",
+          confidence: "1.00",
+        },
+        {
+          title: "The Left Hand of Darkness",
+          subtitle: "Annotated Edition",
+          description: "",
+          language: "en",
+          authors: ["Ursula K. Le Guin"],
+          tags: ["science-fiction"],
+          seriesName: "",
+          seriesNumber: "",
+          identifiers: {
+            isbn10: "",
+            isbn13: "9780441478125",
+            asin: "",
+            goodreadsId: "18423",
+            googleBooksId: "",
+          },
+          coverPath: "",
+          source: "external",
+          confidence: "0.80",
+        },
+      ]);
     });
 
     it("should detect duplicate uploads by file hash", () => {

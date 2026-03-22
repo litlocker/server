@@ -156,6 +156,13 @@ const createImportJobMetadataCandidateFromRecord = (metadataRecord) => {
   });
 };
 
+const createImportJobMetadataCandidateFromLookupRecord = (metadataRecord) => {
+  return normalizeImportJobMetadataCandidate({
+    ...metadataRecord,
+    confidence: "0.80",
+  });
+};
+
 /**
  * @param { ImportJobMetadataCandidate[] | undefined } metadataCandidates
  * @returns { ImportJobMetadataCandidate[] }
@@ -298,6 +305,24 @@ const createEmbeddedMetadataCandidates = ({ metadataProvider, filePath, fileType
   }
 
   return [createImportJobMetadataCandidateFromRecord(metadataRecord)];
+};
+
+const createExternalMetadataCandidates = ({ metadataProvider, metadataCandidates }) => {
+  const [primaryMetadataCandidate] = metadataCandidates;
+
+  if (!primaryMetadataCandidate) {
+    return [];
+  }
+
+  return metadataProvider
+    .lookupMetadata({
+      input: {
+        title: primaryMetadataCandidate.title,
+        authors: primaryMetadataCandidate.authors,
+        identifiers: primaryMetadataCandidate.identifiers,
+      },
+    })
+    .map(createImportJobMetadataCandidateFromLookupRecord);
 };
 
 /**
@@ -622,7 +647,7 @@ const createApplication = ({
       });
     },
     createImportJob: ({ job }) => {
-      const metadataCandidates =
+      const embeddedMetadataCandidates =
         job.metadataCandidates && job.metadataCandidates.length > 0
           ? normalizeImportJobMetadataCandidates(job.metadataCandidates)
           : createEmbeddedMetadataCandidates({
@@ -630,6 +655,13 @@ const createApplication = ({
               filePath: job.source.path,
               fileType: job.detectedFileType ?? "",
             });
+      const metadataCandidates = [
+        ...embeddedMetadataCandidates,
+        ...createExternalMetadataCandidates({
+          metadataProvider,
+          metadataCandidates: embeddedMetadataCandidates,
+        }),
+      ];
 
       return persistence.importJobs.create({
         record: {
@@ -664,11 +696,18 @@ const createApplication = ({
         },
       });
       const detectedFileType = detectFileTypeFromFileName(upload.name);
-      const metadataCandidates = createEmbeddedMetadataCandidates({
+      const embeddedMetadataCandidates = createEmbeddedMetadataCandidates({
         metadataProvider,
         filePath: savedFile.path,
         fileType: detectedFileType,
       });
+      const metadataCandidates = [
+        ...embeddedMetadataCandidates,
+        ...createExternalMetadataCandidates({
+          metadataProvider,
+          metadataCandidates: embeddedMetadataCandidates,
+        }),
+      ];
 
       return persistence.importJobs.create({
         record: {
