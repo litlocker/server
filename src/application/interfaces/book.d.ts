@@ -12,5 +12,21 @@ type CreateBook = ({ book }: { book: CreateBookInput }) => Book;
 type UpdateBook = ({ id, updates }: { id: string; updates: UpdateBookInput }) => Book | null;
 type ListBooks = ({ filters }: { filters?: ListBooksInput }) => Book[];
 type GetBook = ({ id }: { id: string }) => Book | null;
+interface BookFileAccess {
+  bookId: string;
+  fileName: string;
+  format: string;
+  mimeType: string;
+  contents: Uint8Array;
+}
+type GetBookFileAccess = ({ id }: { id: string }) => BookFileAccess | null;
 
-export type { ListBooksInput, CreateBook, UpdateBook, ListBooks, GetBook };
+export type {
+  ListBooksInput,
+  BookFileAccess,
+  CreateBook,
+  UpdateBook,
+  ListBooks,
+  GetBook,
+  GetBookFileAccess,
+};

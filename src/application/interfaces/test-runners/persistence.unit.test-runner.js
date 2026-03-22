@@ -82,6 +82,7 @@ const runPersistenceUnitTests = (createPersistence) => {
               goodreadsId: "",
               googleBooksId: "",
             },
+            filePath: "",
             status: "draft",
           },
         });
@@ -199,6 +200,7 @@ const runPersistenceUnitTests = (createPersistence) => {
               goodreadsId: "",
               googleBooksId: "",
             },
+            filePath: "",
             status: "draft",
           },
         });
@@ -226,6 +228,7 @@ const runPersistenceUnitTests = (createPersistence) => {
               goodreadsId: "",
               googleBooksId: "",
             },
+            filePath: "",
             status: "draft",
           },
         });

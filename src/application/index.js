@@ -552,6 +552,7 @@ const normalizeBook = (book) => {
     seriesNumber: book.seriesNumber ?? "",
     cover: normalizeBookCover(book.cover),
     identifiers: normalizeBookIdentifiers(book.identifiers),
+    filePath: book.filePath ?? "",
     status: book.status ?? "draft",
   };
 };
@@ -577,6 +578,7 @@ const normalizeBookUpdates = ({ currentBook, updates }) => {
     identifiers: updates.identifiers
       ? normalizeBookIdentifiers({ ...currentBook.identifiers, ...updates.identifiers })
       : currentBook.identifiers,
+    filePath: updates.filePath ?? currentBook.filePath ?? "",
     status: updates.status ?? currentBook.status,
   };
 };
@@ -635,6 +637,49 @@ const removeBookIdFromShelf = (shelf, bookId) => {
  */
 const normalizeSearchValue = (value) => {
   return value.trim().toLocaleLowerCase();
+};
+
+/**
+ * @param {string} filePath
+ * @returns {string}
+ */
+const createFileNameFromPath = (filePath) => {
+  return filePath.split("/").pop() ?? "";
+};
+
+/**
+ * @param {string} filePath
+ * @returns {string}
+ */
+const createBookFileFormatFromPath = (filePath) => {
+  const extensionIndex = filePath.lastIndexOf(".");
+
+  if (extensionIndex < 0 || extensionIndex === filePath.length - 1) {
+    return "";
+  }
+
+  return filePath.slice(extensionIndex + 1).toLocaleLowerCase();
+};
+
+/**
+ * @param {string} filePath
+ * @returns {string}
+ */
+const createBookFileMimeTypeFromPath = (filePath) => {
+  const format = createBookFileFormatFromPath(filePath);
+
+  switch (format) {
+    case "epub":
+      return "application/epub+zip";
+    case "pdf":
+      return "application/pdf";
+    case "cbz":
+      return "application/vnd.comicbook+zip";
+    case "cbr":
+      return "application/vnd.comicbook-rar";
+    default:
+      return "";
+  }
 };
 
 /**
@@ -786,6 +831,29 @@ const createApplication = ({
     },
     getBook: ({ id }) => {
       return persistence.books.get({ id });
+    },
+    getBookFileAccess: ({ id }) => {
+      const book = persistence.books.get({ id });
+
+      if (!book?.filePath) {
+        return null;
+      }
+
+      if (!fileStorage.fileExists({ file: { path: book.filePath } })) {
+        return null;
+      }
+
+      return {
+        bookId: book.id,
+        fileName: createFileNameFromPath(book.filePath),
+        format: createBookFileFormatFromPath(book.filePath),
+        mimeType: createBookFileMimeTypeFromPath(book.filePath),
+        contents: fileStorage.readFile({
+          file: {
+            path: book.filePath,
+          },
+        }),
+      };
     },
     createShelf: ({ shelf }) => {
       return persistence.shelves.create({

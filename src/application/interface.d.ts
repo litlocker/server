@@ -1,5 +1,5 @@
 import { Book, CreateBookInput, UpdateBookInput } from "./entities/book.d.ts";
-import { ListBooksInput } from "./interfaces/book.d.ts";
+import { GetBookFileAccess as GetBookFileAccessFn, ListBooksInput } from "./interfaces/book.d.ts";
 import { Clock } from "./interfaces/clock.d.ts";
 import { Config } from "./interfaces/config.d.ts";
 import { FileStorage } from "./interfaces/file-storage.d.ts";
@@ -31,6 +31,7 @@ type CreateBook = ({ book }: { book: CreateBookInput }) => Book;
 type UpdateBook = ({ id, updates }: { id: string; updates: UpdateBookInput }) => Book | null;
 type ListBooks = (input?: { filters?: ListBooksInput }) => Book[];
 type GetBook = ({ id }: { id: string }) => Book | null;
+type GetBookFileAccess = GetBookFileAccessFn;
 type CreateShelf = ({ shelf }: { shelf: CreateShelfInput }) => Shelf;
 type UpdateShelf = ({ id, updates }: { id: string; updates: UpdateShelfInput }) => Shelf | null;
 type ListShelves = () => Shelf[];
@@ -52,6 +53,7 @@ interface Application {
   updateBook: UpdateBook;
   listBooks: ListBooks;
   getBook: GetBook;
+  getBookFileAccess: GetBookFileAccess;
   createShelf: CreateShelf;
   updateShelf: UpdateShelf;
   listShelves: ListShelves;

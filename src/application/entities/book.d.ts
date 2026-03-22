@@ -27,6 +27,7 @@ interface Book {
   seriesNumber: string;
   cover: BookCover;
   identifiers: BookIdentifiers;
+  filePath: string;
   status: BookStatus;
 }
 
@@ -41,6 +42,7 @@ interface CreateBookInput {
   seriesNumber?: string;
   cover?: Partial<BookCover>;
   identifiers?: Partial<BookIdentifiers>;
+  filePath?: string;
   status?: BookStatus;
 }
 
@@ -55,6 +57,7 @@ interface UpdateBookInput {
   seriesNumber?: string;
   cover?: Partial<BookCover>;
   identifiers?: Partial<BookIdentifiers>;
+  filePath?: string;
   status?: BookStatus;
 }
 

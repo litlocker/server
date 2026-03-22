@@ -101,6 +101,7 @@ describe("http hono book routes integration", () => {
         goodreadsId: "",
         googleBooksId: "",
       },
+      filePath: "",
       status: "draft",
     });
 

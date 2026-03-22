@@ -36,6 +36,7 @@ describe("http hono book routes", () => {
         goodreadsId: "",
         googleBooksId: "",
       },
+      filePath: "",
       status: "draft",
     };
     const application = createApplicationMock({
@@ -115,6 +116,7 @@ describe("http hono book routes", () => {
           goodreadsId: "",
           googleBooksId: "",
         },
+        filePath: "",
         status: "draft",
       },
     ];
@@ -159,6 +161,7 @@ describe("http hono book routes", () => {
           goodreadsId: "",
           googleBooksId: "",
         },
+        filePath: "",
         status: "draft",
       },
     ];
@@ -210,6 +213,7 @@ describe("http hono book routes", () => {
         goodreadsId: "",
         googleBooksId: "",
       },
+      filePath: "",
       status: "draft",
     };
     const application = createApplicationMock({
@@ -319,6 +323,7 @@ describe("http hono book routes", () => {
         goodreadsId: "",
         googleBooksId: "",
       },
+      filePath: "",
       status: "draft",
     };
     const application = createApplicationMock({

@@ -311,6 +311,7 @@ describe("application", () => {
       expect(application).toHaveProperty("updateBook");
       expect(application).toHaveProperty("listBooks");
       expect(application).toHaveProperty("getBook");
+      expect(application).toHaveProperty("getBookFileAccess");
     });
 
     it("should create and list books", () => {
@@ -356,6 +357,7 @@ describe("application", () => {
           goodreadsId: "",
           googleBooksId: "",
         },
+        filePath: "",
         status: "draft",
       });
       expect(firstBook.id).toEqual(expect.any(String));
@@ -382,6 +384,7 @@ describe("application", () => {
           goodreadsId: "",
           googleBooksId: "",
         },
+        filePath: "",
         status: "draft",
       });
       expect(application.listBooks()).toEqual([firstBook, secondBook]);
@@ -641,6 +644,7 @@ describe("application", () => {
           goodreadsId: "",
           googleBooksId: "google-books-id",
         },
+        filePath: "",
         status: "ready",
       });
       expect(application.getBook({ id: book.id })).toEqual(updatedBook);
@@ -684,6 +688,7 @@ describe("application", () => {
           goodreadsId: "",
           googleBooksId: "",
         },
+        filePath: "",
         status: "draft",
       });
     });
@@ -729,6 +734,7 @@ describe("application", () => {
           goodreadsId: "",
           googleBooksId: "",
         },
+        filePath: "",
         status: "draft",
       });
     });
@@ -778,6 +784,7 @@ describe("application", () => {
           goodreadsId: "",
           googleBooksId: "",
         },
+        filePath: "",
         status: "draft",
       });
     });
@@ -2123,6 +2130,7 @@ describe("application", () => {
             goodreadsId: "",
             googleBooksId: "",
           },
+          filePath: "",
           status: "draft",
         },
       });
@@ -2203,6 +2211,7 @@ describe("application", () => {
             goodreadsId: "",
             googleBooksId: "",
           },
+          filePath: "",
           status: "draft",
         },
       });
@@ -2308,6 +2317,7 @@ describe("application", () => {
             goodreadsId: "",
             googleBooksId: "",
           },
+          filePath: "",
           status: "draft",
         },
       });
@@ -2328,6 +2338,88 @@ describe("application", () => {
             locator: "",
             percentage: "0.10",
           },
+        }),
+      ).toBeNull();
+    });
+  });
+
+  describe("book file access functions", () => {
+    it("should return book file access details for a stored book file", () => {
+      const fileStorage = createTestFileStorage();
+      const fileContents = new Uint8Array([1, 2, 3, 4]);
+
+      fileStorage.saveFile({
+        file: {
+          path: "/tmp/litlocker/library/left-hand.epub",
+          name: "left-hand.epub",
+          mimeType: "application/epub+zip",
+          contents: fileContents,
+        },
+      });
+      const application = createApplication({
+        clock: createClockSystem(),
+        config,
+        fileStorage,
+        persistence: createPersistenceInMemory(),
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+      const book = application.createBook({
+        book: {
+          title: "The Left Hand of Darkness",
+          filePath: "/tmp/litlocker/library/left-hand.epub",
+        },
+      });
+
+      expect(
+        application.getBookFileAccess({
+          id: book.id,
+        }),
+      ).toEqual({
+        bookId: book.id,
+        fileName: "left-hand.epub",
+        format: "epub",
+        mimeType: "application/epub+zip",
+        contents: fileContents,
+      });
+    });
+
+    it("should return null when a book cannot be found for file access", () => {
+      const application = createApplication({
+        clock: createClockSystem(),
+        config,
+        fileStorage: createTestFileStorage(),
+        persistence: createPersistenceInMemory(),
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+
+      expect(
+        application.getBookFileAccess({
+          id: "missing-book-id",
+        }),
+      ).toBeNull();
+    });
+
+    it("should return null when the stored book file does not exist", () => {
+      const application = createApplication({
+        clock: createClockSystem(),
+        config,
+        fileStorage: createTestFileStorage(),
+        persistence: createPersistenceInMemory(),
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+      const book = application.createBook({
+        book: {
+          title: "The Left Hand of Darkness",
+          filePath: "/tmp/litlocker/library/missing-book.epub",
+        },
+      });
+
+      expect(
+        application.getBookFileAccess({
+          id: book.id,
         }),
       ).toBeNull();
     });

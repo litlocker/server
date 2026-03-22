@@ -13,6 +13,7 @@ import { vi } from "vitest";
  *   updateBook: Mock;
  *   listBooks: Mock;
  *   getBook: Mock;
+ *   getBookFileAccess: Mock;
  *   createShelf: Mock;
  *   updateShelf: Mock;
  *   listShelves: Mock;
@@ -69,6 +70,7 @@ const createApplicationMock = (overrides = {}) => {
     updateBook: vi.fn(),
     listBooks: vi.fn(),
     getBook: vi.fn(),
+    getBookFileAccess: vi.fn(),
     createShelf: vi.fn(),
     updateShelf: vi.fn(),
     listShelves: vi.fn(),
