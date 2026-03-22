@@ -7,7 +7,12 @@ import { createHonoApp } from "./app.js";
 
 /** @type { CreateServer } */
 const createServerHttpHono = ({ application, config, logger }) => {
-  const app = createHonoApp({ application, config, logger });
+  const app = createHonoApp({
+    application,
+    authConfig: config.auth,
+    config: config.server,
+    logger,
+  });
 
   /**
    * @type { import("@hono/node-server").ServerType | null }
@@ -18,7 +23,7 @@ const createServerHttpHono = ({ application, config, logger }) => {
     start: async () => {
       server = serve({
         fetch: app.fetch,
-        port: config.http.port,
+        port: config.server.http.port,
       });
 
       if (!server) {
@@ -26,7 +31,7 @@ const createServerHttpHono = ({ application, config, logger }) => {
         return { success: false };
       }
 
-      logger.info(`Server is running on port ${config.http.port}`);
+      logger.info(`Server is running on port ${config.server.http.port}`);
       return { success: true };
     },
     stop: async ({ reason }) => {

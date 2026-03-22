@@ -27,7 +27,14 @@ const boot = () => {
     logger,
   });
 
-  const server = createServerHttpHono({ application, config: config.server, logger });
+  const server = createServerHttpHono({
+    application,
+    config: {
+      server: config.server,
+      auth: config.auth,
+    },
+    logger,
+  });
 
   return {
     clock,

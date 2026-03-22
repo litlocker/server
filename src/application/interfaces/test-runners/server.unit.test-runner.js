@@ -42,6 +42,7 @@ const runServerUnitTests = (createServer) => {
         enabled: false,
         bootstrapAdminEmail: "",
         bootstrapAdminPassword: "",
+        sessionSecret: "0123456789abcdef0123456789abcdef",
         sessionTtlMs: 86_400_000,
         sessionCookieName: "litlocker-session",
         sessionCookieSecure: false,
@@ -69,7 +70,14 @@ const runServerUnitTests = (createServer) => {
     const application = createApplication({ clock, config, persistence, idGenerator, logger });
 
     describe("interface", () => {
-      const server = createServer({ application, config: config.server, logger });
+      const server = createServer({
+        application,
+        config: {
+          server: config.server,
+          auth: config.auth,
+        },
+        logger,
+      });
 
       afterAll(async () => {
         await server.stop({ reason: { message: "test cleanup" } });
@@ -88,7 +96,10 @@ const runServerUnitTests = (createServer) => {
           it("should return failure", async () => {
             const server = createServer({
               application,
-              config: config.server,
+              config: {
+                server: config.server,
+                auth: config.auth,
+              },
               logger,
             });
 
@@ -105,7 +116,10 @@ const runServerUnitTests = (createServer) => {
           it("should return success", async () => {
             const server = createServer({
               application,
-              config: config.server,
+              config: {
+                server: config.server,
+                auth: config.auth,
+              },
               logger,
             });
 
@@ -123,7 +137,10 @@ const runServerUnitTests = (createServer) => {
           it("should return failure", async () => {
             const server = createServer({
               application,
-              config: config.server,
+              config: {
+                server: config.server,
+                auth: config.auth,
+              },
               logger,
             });
 
@@ -140,7 +157,10 @@ const runServerUnitTests = (createServer) => {
           it("should return success", async () => {
             const server = createServer({
               application,
-              config: config.server,
+              config: {
+                server: config.server,
+                auth: config.auth,
+              },
               logger,
             });
 
@@ -158,7 +178,10 @@ const runServerUnitTests = (createServer) => {
         it("should expose health status", () => {
           const server = createServer({
             application,
-            config: config.server,
+            config: {
+              server: config.server,
+              auth: config.auth,
+            },
             logger,
           });
 

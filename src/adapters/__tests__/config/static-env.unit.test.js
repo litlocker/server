@@ -34,6 +34,7 @@ describe("static env config adapter", () => {
     delete process.env.AUTH__ENABLED;
     delete process.env.AUTH__BOOTSTRAP_ADMIN_EMAIL;
     delete process.env.AUTH__BOOTSTRAP_ADMIN_PASSWORD;
+    delete process.env.AUTH__SESSION_SECRET;
     delete process.env.AUTH__SESSION_TTL_MS;
     delete process.env.AUTH__SESSION_COOKIE_NAME;
     delete process.env.AUTH__SESSION_COOKIE_SECURE;
@@ -77,6 +78,7 @@ describe("static env config adapter", () => {
         enabled: false,
         bootstrapAdminEmail: "",
         bootstrapAdminPassword: "",
+        sessionSecret: "litlocker-development-session-secret",
         sessionTtlMs: 86_400_000,
         sessionCookieName: "litlocker-session",
         sessionCookieSecure: false,
@@ -113,6 +115,7 @@ describe("static env config adapter", () => {
     process.env.AUTH__ENABLED = "true";
     process.env.AUTH__BOOTSTRAP_ADMIN_EMAIL = "admin@example.com";
     process.env.AUTH__BOOTSTRAP_ADMIN_PASSWORD = "super-secret";
+    process.env.AUTH__SESSION_SECRET = "0123456789abcdef0123456789abcdef";
     process.env.AUTH__SESSION_TTL_MS = "7200000";
     process.env.AUTH__SESSION_COOKIE_NAME = "litlocker-auth";
     process.env.AUTH__SESSION_COOKIE_SECURE = "true";
@@ -156,6 +159,7 @@ describe("static env config adapter", () => {
         enabled: true,
         bootstrapAdminEmail: "admin@example.com",
         bootstrapAdminPassword: "super-secret",
+        sessionSecret: "0123456789abcdef0123456789abcdef",
         sessionTtlMs: 7_200_000,
         sessionCookieName: "litlocker-auth",
         sessionCookieSecure: true,
@@ -191,6 +195,14 @@ describe("static env config adapter", () => {
 
     expect(() => createConfigStaticEnv()).toThrow(
       "Invalid configuration: /auth/sessionCookieSecure must be boolean",
+    );
+  });
+
+  it("should throw when the auth session secret is too short", () => {
+    process.env.AUTH__SESSION_SECRET = "too-short";
+
+    expect(() => createConfigStaticEnv()).toThrow(
+      "Invalid configuration: /auth/sessionSecret must NOT have fewer than 32 characters",
     );
   });
 });

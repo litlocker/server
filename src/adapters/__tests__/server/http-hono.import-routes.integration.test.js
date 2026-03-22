@@ -41,6 +41,7 @@ describe("http hono import routes integration", () => {
       enabled: false,
       bootstrapAdminEmail: "",
       bootstrapAdminPassword: "",
+      sessionSecret: "0123456789abcdef0123456789abcdef",
       sessionTtlMs: 86_400_000,
       sessionCookieName: "litlocker-session",
       sessionCookieSecure: false,

@@ -115,6 +115,7 @@ const createConfigStaticEnv = () => {
       }),
       bootstrapAdminEmail: process.env.AUTH__BOOTSTRAP_ADMIN_EMAIL || "",
       bootstrapAdminPassword: process.env.AUTH__BOOTSTRAP_ADMIN_PASSWORD || "",
+      sessionSecret: process.env.AUTH__SESSION_SECRET || "litlocker-development-session-secret",
       sessionTtlMs: getEnvNumber({
         name: "AUTH__SESSION_TTL_MS",
         defaultValue: 86_400_000,

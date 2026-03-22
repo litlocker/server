@@ -17,7 +17,7 @@ interface Server {
 
 interface Deps {
   application: Application;
-  config: Config["server"];
+  config: Pick<Config, "server" | "auth">;
   logger: Logger;
 }
 type CreateServer = (deps: Deps) => Server;

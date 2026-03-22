@@ -29,6 +29,7 @@ interface AuthConfig {
   enabled: boolean;
   bootstrapAdminEmail: string;
   bootstrapAdminPassword: string;
+  sessionSecret: string;
   sessionTtlMs: number;
   sessionCookieName: string;
   sessionCookieSecure: boolean;
@@ -61,4 +62,4 @@ interface Config {
 
 type CreateConfig = () => Config;
 
-export type { Config, CreateConfig };
+export type { AuthConfig, Config, CreateConfig };
