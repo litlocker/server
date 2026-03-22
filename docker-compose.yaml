@@ -1,0 +1,67 @@
+services:
+  litlocker-postgres:
+    image: postgres:17-bookworm
+    container_name: litlocker-postgres
+    environment:
+      POSTGRES_USER: ${DATABASE__USER:-devdb}
+      POSTGRES_PASSWORD: ${DATABASE__PASSWORD:-devpass}
+      POSTGRES_DB: ${DATABASE__DATABASE:-devdb}
+    ports:
+      - "15432:5432"
+    volumes:
+      - litlocker-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE__USER:-devdb} -d ${DATABASE__DATABASE:-devdb}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  litlocker-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: litlocker-server
+    depends_on:
+      litlocker-postgres:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      SERVER__HTTP__ADDRESS: http://localhost:3000
+      SERVER__HTTP__PORT: 3000
+      DATABASE__HOST: litlocker-postgres
+      DATABASE__PORT: 5432
+      DATABASE__USER: ${DATABASE__USER:-devdb}
+      DATABASE__PASSWORD: ${DATABASE__PASSWORD:-devpass}
+      DATABASE__DATABASE: ${DATABASE__DATABASE:-devdb}
+      DATABASE__SCHEMA: ${DATABASE__SCHEMA:-litlocker}
+      STORAGE__PATHS__LIBRARY: /app/data/library
+      STORAGE__PATHS__IMPORTS: /app/data/imports
+      STORAGE__PATHS__COVERS: /app/data/covers
+    ports:
+      - "3000:3000"
+    volumes:
+      - litlocker-library-data:/app/data/library
+      - litlocker-imports-data:/app/data/imports
+      - litlocker-covers-data:/app/data/covers
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/health').then((response) => { if (!response.ok) process.exit(1); }).catch(() => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  litlocker-postgres-data:
+  litlocker-library-data:
+  litlocker-imports-data:
+  litlocker-covers-data:

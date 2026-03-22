@@ -1,0 +1,11 @@
+.git
+.husky
+.pnpm-store
+.zed
+node_modules
+coverage
+dist
+data
+tmp
+*.log
+.env

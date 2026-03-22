@@ -71,6 +71,20 @@ pnpm run dev
 
 The server will start on `http://localhost:3000` by default.
 
+### Docker
+
+```bash
+cp .env.example .env
+docker compose up --build
+```
+
+The compose stack starts:
+
+- `litlocker-server` on `http://localhost:3000`
+- `litlocker-postgres` on `localhost:15432`
+
+The app container still runs migrations on startup, so the schema is brought up before the server begins serving requests.
+
 ## Environment Variables
 
 Defined in [.env.example](/Users/curamet/development/oss/litlocker/server/.env.example):
@@ -97,6 +111,8 @@ Defined in [.env.example](/Users/curamet/development/oss/litlocker/server/.env.e
 ## Operations
 
 - Backup and restore guide: [BACKUP_RESTORE.md](/Users/curamet/development/oss/litlocker/server/BACKUP_RESTORE.md)
+- Docker stack: [docker-compose.yaml](/Users/curamet/development/oss/litlocker/server/docker-compose.yaml)
+- Container image: [Dockerfile](/Users/curamet/development/oss/litlocker/server/Dockerfile)
 
 ## Current API
 
