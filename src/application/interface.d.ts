@@ -10,6 +10,7 @@ import {
   IngestImportUploadInput,
 } from "./interfaces/import-job.d.ts";
 import { Logger } from "./interfaces/logger.d.ts";
+import { MetadataProvider } from "./interfaces/metadata-provider.d.ts";
 import { Persistence } from "./interfaces/persistence.d.ts";
 import { Result, HealthStatus } from "./interfaces/result.d.ts";
 import {
@@ -61,6 +62,7 @@ interface Deps {
   config: Config;
   fileStorage: FileStorage;
   logger: Logger;
+  metadataProvider: MetadataProvider;
   persistence: Persistence;
   idGenerator: IdGenerator;
 }

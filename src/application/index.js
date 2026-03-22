@@ -52,6 +52,20 @@ const createDefaultFileStorage = () => {
   };
 };
 
+const createDefaultMetadataProvider = () => {
+  return {
+    extractMetadata: () => null,
+    lookupMetadata: () => [],
+    checkHealth: () => ({
+      success: true,
+      data: {
+        status: "ok",
+        details: {},
+      },
+    }),
+  };
+};
+
 /**
  * @param { Partial<BookIdentifiers> | undefined } identifiers
  * @returns { BookIdentifiers }
@@ -133,6 +147,13 @@ const normalizeImportJobMetadataCandidate = (metadataCandidate) => {
     source: metadataCandidate?.source ?? "",
     confidence: metadataCandidate?.confidence ?? "",
   };
+};
+
+const createImportJobMetadataCandidateFromRecord = (metadataRecord) => {
+  return normalizeImportJobMetadataCandidate({
+    ...metadataRecord,
+    confidence: "1.00",
+  });
 };
 
 /**
@@ -258,6 +279,25 @@ const createDuplicateDetection = ({
       metadataCandidates,
     }),
   });
+};
+
+const createEmbeddedMetadataCandidates = ({ metadataProvider, filePath, fileType }) => {
+  if (!filePath || !fileType) {
+    return [];
+  }
+
+  const metadataRecord = metadataProvider.extractMetadata({
+    input: {
+      filePath,
+      fileType,
+    },
+  });
+
+  if (!metadataRecord) {
+    return [];
+  }
+
+  return [createImportJobMetadataCandidateFromRecord(metadataRecord)];
 };
 
 /**
@@ -458,6 +498,7 @@ const createApplication = ({
   clock,
   config,
   fileStorage = createDefaultFileStorage(),
+  metadataProvider = createDefaultMetadataProvider(),
   persistence,
   idGenerator,
   logger,
@@ -467,6 +508,7 @@ const createApplication = ({
       const checks = {
         clock: clock.checkHealth(),
         fileStorage: fileStorage.checkHealth(),
+        metadataProvider: metadataProvider.checkHealth(),
         persistence: persistence.checkHealth(),
         idGenerator: idGenerator.checkHealth(),
         logger: logger.checkHealth(),
@@ -580,7 +622,14 @@ const createApplication = ({
       });
     },
     createImportJob: ({ job }) => {
-      const metadataCandidates = normalizeImportJobMetadataCandidates(job.metadataCandidates);
+      const metadataCandidates =
+        job.metadataCandidates && job.metadataCandidates.length > 0
+          ? normalizeImportJobMetadataCandidates(job.metadataCandidates)
+          : createEmbeddedMetadataCandidates({
+              metadataProvider,
+              filePath: job.source.path,
+              fileType: job.detectedFileType ?? "",
+            });
 
       return persistence.importJobs.create({
         record: {
@@ -614,6 +663,12 @@ const createApplication = ({
           contents: upload.contents,
         },
       });
+      const detectedFileType = detectFileTypeFromFileName(upload.name);
+      const metadataCandidates = createEmbeddedMetadataCandidates({
+        metadataProvider,
+        filePath: savedFile.path,
+        fileType: detectedFileType,
+      });
 
       return persistence.importJobs.create({
         record: {
@@ -624,12 +679,13 @@ const createApplication = ({
               path: savedFile.path,
               originalFileName: upload.name,
             },
-            detectedFileType: detectFileTypeFromFileName(upload.name),
+            detectedFileType,
+            metadataCandidates,
           }),
           duplicateDetection: createDuplicateDetection({
             duplicateCheckEnabled: config.imports.duplicateCheckEnabled,
             fileHash,
-            metadataCandidates: [],
+            metadataCandidates,
             persistence,
           }),
         },

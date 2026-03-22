@@ -77,6 +77,13 @@ describe("http hono health route integration", () => {
               details: {},
             },
           },
+          metadataProvider: {
+            success: true,
+            data: {
+              status: "ok",
+              details: {},
+            },
+          },
           persistence: {
             success: true,
             data: {
