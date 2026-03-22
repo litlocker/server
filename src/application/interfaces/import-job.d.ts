@@ -1,5 +1,6 @@
 import {
   ImportJob,
+  ImportJobDuplicateDetection,
   ImportJobErrorDetails,
   ImportJobMetadataCandidate,
   ImportJobSource,
@@ -14,6 +15,8 @@ interface CreateImportJobInput {
     originalFileName?: string;
   };
   detectedFileType?: string;
+  metadataCandidates?: ImportJobMetadataCandidate[];
+  fileHash?: string;
 }
 
 interface IngestImportUploadInput {
@@ -41,6 +44,7 @@ export type {
   ImportJobSourceKind,
   ImportJobSource,
   ImportJobMetadataCandidate,
+  ImportJobDuplicateDetection,
   ImportJobErrorDetails,
   CreateImportJobInput,
   IngestImportUploadInput,

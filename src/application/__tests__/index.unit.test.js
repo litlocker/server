@@ -1147,6 +1147,11 @@ describe("application", () => {
         },
         detectedFileType: "",
         metadataCandidates: [],
+        duplicateDetection: {
+          fileHash: "",
+          duplicateImportJobIds: [],
+          duplicateBookIds: [],
+        },
         error: {
           code: "",
           message: "",
@@ -1164,6 +1169,11 @@ describe("application", () => {
         },
         detectedFileType: "pdf",
         metadataCandidates: [],
+        duplicateDetection: {
+          fileHash: "",
+          duplicateImportJobIds: [],
+          duplicateBookIds: [],
+        },
         error: {
           code: "",
           message: "",
@@ -1203,6 +1213,11 @@ describe("application", () => {
         },
         detectedFileType: "epub",
         metadataCandidates: [],
+        duplicateDetection: {
+          fileHash: "039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81",
+          duplicateImportJobIds: [],
+          duplicateBookIds: [],
+        },
         error: {
           code: "",
           message: "",
@@ -1217,6 +1232,95 @@ describe("application", () => {
         }),
       ).toBe(true);
       expect(application.listImportJobs()).toEqual([importJob]);
+    });
+
+    it("should detect duplicate uploads by file hash", () => {
+      const fileStorage = createTestFileStorage();
+      const application = createApplication({
+        clock: createClockSystem(),
+        config,
+        fileStorage,
+        persistence: createPersistenceInMemory(),
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+
+      const firstImportJob = application.ingestImportUpload({
+        upload: {
+          name: "left-hand.epub",
+          contents: new Uint8Array([1, 2, 3]),
+        },
+      });
+      const secondImportJob = application.ingestImportUpload({
+        upload: {
+          name: "left-hand-copy.epub",
+          contents: new Uint8Array([1, 2, 3]),
+        },
+      });
+
+      expect(secondImportJob.duplicateDetection).toEqual({
+        fileHash: "039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81",
+        duplicateImportJobIds: [firstImportJob.id],
+        duplicateBookIds: [],
+      });
+    });
+
+    it("should detect duplicate books by known identifiers from metadata candidates", () => {
+      const application = createApplication({
+        clock: createClockSystem(),
+        config,
+        persistence: createPersistenceInMemory(),
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+
+      const book = application.createBook({
+        book: {
+          title: "The Left Hand of Darkness",
+          identifiers: {
+            isbn13: "9780441478125",
+          },
+        },
+      });
+
+      const importJob = application.createImportJob({
+        job: {
+          source: {
+            kind: "filesystem",
+            path: "/library/inbox/left-hand.epub",
+            originalFileName: "left-hand.epub",
+          },
+          detectedFileType: "epub",
+          metadataCandidates: [
+            {
+              title: "The Left Hand of Darkness",
+              subtitle: "",
+              description: "",
+              language: "en",
+              authors: ["Ursula K. Le Guin"],
+              tags: [],
+              seriesName: "",
+              seriesNumber: "",
+              identifiers: {
+                isbn10: "",
+                isbn13: "9780441478125",
+                asin: "",
+                goodreadsId: "",
+                googleBooksId: "",
+              },
+              coverPath: "",
+              source: "embedded",
+              confidence: "0.95",
+            },
+          ],
+        },
+      });
+
+      expect(importJob.duplicateDetection).toEqual({
+        fileHash: "",
+        duplicateImportJobIds: [],
+        duplicateBookIds: [book.id],
+      });
     });
 
     it("should finalize an existing import job", () => {

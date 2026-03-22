@@ -30,12 +30,19 @@ interface ImportJobErrorDetails {
   details: string;
 }
 
+interface ImportJobDuplicateDetection {
+  fileHash: string;
+  duplicateImportJobIds: string[];
+  duplicateBookIds: string[];
+}
+
 interface ImportJob {
   id: string;
   status: ImportJobStatus;
   source: ImportJobSource;
   detectedFileType: string;
   metadataCandidates: ImportJobMetadataCandidate[];
+  duplicateDetection: ImportJobDuplicateDetection;
   error: ImportJobErrorDetails;
 }
 
@@ -45,5 +52,6 @@ export type {
   ImportJobSource,
   ImportJobMetadataCandidate,
   ImportJobErrorDetails,
+  ImportJobDuplicateDetection,
   ImportJob,
 };

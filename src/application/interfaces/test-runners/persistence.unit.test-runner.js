@@ -134,6 +134,11 @@ const runPersistenceUnitTests = (createPersistence) => {
                 confidence: "0.90",
               },
             ],
+            duplicateDetection: {
+              fileHash: "",
+              duplicateImportJobIds: [],
+              duplicateBookIds: [],
+            },
             error: {
               code: "",
               message: "",

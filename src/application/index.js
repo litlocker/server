@@ -2,11 +2,12 @@
  * @import { CreateApplication } from './interface.js'
  * @import { BookCover, BookIdentifiers, CreateBookInput, UpdateBookInput } from './entities/book.js'
  * @import { Book } from './entities/book.js'
- * @import { ImportJobErrorDetails, ImportJobMetadataCandidate, ImportJobSource, CreateImportJobInput } from './interfaces/import-job.js'
+ * @import { ImportJobDuplicateDetection, ImportJobErrorDetails, ImportJobMetadataCandidate, ImportJobSource, CreateImportJobInput } from './interfaces/import-job.js'
  * @import { ListBooksInput } from './interfaces/book.js'
  * @import { CreateShelfInput, Shelf, UpdateShelfInput } from './interfaces/shelf.js'
  */
 
+import { createHash } from "node:crypto";
 import { join } from "node:path";
 
 const createHealthSuccessResult = (details) => {
@@ -155,6 +156,22 @@ const normalizeImportJobError = (error) => {
 };
 
 /**
+ * @param { Partial<ImportJobDuplicateDetection> | undefined } duplicateDetection
+ * @returns { ImportJobDuplicateDetection }
+ */
+const normalizeImportJobDuplicateDetection = (duplicateDetection) => {
+  return {
+    fileHash: duplicateDetection?.fileHash ?? "",
+    duplicateImportJobIds: duplicateDetection?.duplicateImportJobIds
+      ? [...duplicateDetection.duplicateImportJobIds]
+      : [],
+    duplicateBookIds: duplicateDetection?.duplicateBookIds
+      ? [...duplicateDetection.duplicateBookIds]
+      : [],
+  };
+};
+
+/**
  * @param { CreateImportJobInput } job
  */
 const normalizeImportJob = (job) => {
@@ -162,9 +179,85 @@ const normalizeImportJob = (job) => {
     status: "queued",
     source: normalizeImportJobSource(job.source),
     detectedFileType: job.detectedFileType ?? "",
-    metadataCandidates: normalizeImportJobMetadataCandidates(),
+    metadataCandidates: normalizeImportJobMetadataCandidates(job.metadataCandidates),
+    duplicateDetection: normalizeImportJobDuplicateDetection(),
     error: normalizeImportJobError(),
   };
+};
+
+const getNonEmptyIdentifierEntries = (identifiers) => {
+  return Object.entries(identifiers).filter(([, value]) => value !== "");
+};
+
+const createFileHash = (contents) => {
+  return createHash("sha256").update(Buffer.from(contents)).digest("hex");
+};
+
+const findDuplicateImportJobIds = ({ fileHash, importJobs }) => {
+  if (!fileHash) {
+    return [];
+  }
+
+  return importJobs
+    .filter((importJob) => importJob.duplicateDetection.fileHash === fileHash)
+    .map((importJob) => importJob.id);
+};
+
+const findDuplicateBookIds = ({ books, metadataCandidates }) => {
+  if (metadataCandidates.length === 0) {
+    return [];
+  }
+
+  const duplicateBookIds = new Set();
+
+  books.forEach((book) => {
+    const bookIdentifierEntries = getNonEmptyIdentifierEntries(book.identifiers);
+
+    if (bookIdentifierEntries.length === 0) {
+      return;
+    }
+
+    const isDuplicate = metadataCandidates.some((metadataCandidate) => {
+      const candidateIdentifierEntries = getNonEmptyIdentifierEntries(
+        metadataCandidate.identifiers,
+      );
+
+      return candidateIdentifierEntries.some(([key, value]) =>
+        bookIdentifierEntries.some(
+          ([bookKey, bookValue]) => bookKey === key && bookValue === value,
+        ),
+      );
+    });
+
+    if (isDuplicate) {
+      duplicateBookIds.add(book.id);
+    }
+  });
+
+  return Array.from(duplicateBookIds);
+};
+
+const createDuplicateDetection = ({
+  duplicateCheckEnabled,
+  fileHash,
+  metadataCandidates,
+  persistence,
+}) => {
+  if (!duplicateCheckEnabled) {
+    return normalizeImportJobDuplicateDetection();
+  }
+
+  return normalizeImportJobDuplicateDetection({
+    fileHash,
+    duplicateImportJobIds: findDuplicateImportJobIds({
+      fileHash,
+      importJobs: persistence.importJobs.list(),
+    }),
+    duplicateBookIds: findDuplicateBookIds({
+      books: persistence.books.list(),
+      metadataCandidates,
+    }),
+  });
 };
 
 /**
@@ -487,15 +580,27 @@ const createApplication = ({
       });
     },
     createImportJob: ({ job }) => {
+      const metadataCandidates = normalizeImportJobMetadataCandidates(job.metadataCandidates);
+
       return persistence.importJobs.create({
         record: {
           id: idGenerator.generate(),
-          ...normalizeImportJob(job),
+          ...normalizeImportJob({
+            ...job,
+            metadataCandidates,
+          }),
+          duplicateDetection: createDuplicateDetection({
+            duplicateCheckEnabled: config.imports.duplicateCheckEnabled,
+            fileHash: job.fileHash ?? "",
+            metadataCandidates,
+            persistence,
+          }),
         },
       });
     },
     ingestImportUpload: ({ upload }) => {
       const importJobId = idGenerator.generate();
+      const fileHash = createFileHash(upload.contents);
       const importPath = createImportUploadPath({
         importsPath: config.storage.paths.imports,
         importJobId,
@@ -520,6 +625,12 @@ const createApplication = ({
               originalFileName: upload.name,
             },
             detectedFileType: detectFileTypeFromFileName(upload.name),
+          }),
+          duplicateDetection: createDuplicateDetection({
+            duplicateCheckEnabled: config.imports.duplicateCheckEnabled,
+            fileHash,
+            metadataCandidates: [],
+            persistence,
           }),
         },
       });
