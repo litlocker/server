@@ -12,7 +12,7 @@ type SaveReadingProgress = ({
   progress,
 }: {
   progress: SaveReadingProgressInput;
-}) => ReadingProgress;
+}) => ReadingProgress | null;
 type GetReadingProgress = ({
   bookId,
   userId,

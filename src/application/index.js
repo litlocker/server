@@ -4,6 +4,7 @@
  * @import { Book } from './entities/book.js'
  * @import { ImportJob, ImportJobDuplicateDetection, ImportJobErrorDetails, ImportJobMetadataCandidate, ImportJobSource, CreateImportJobInput } from './interfaces/import-job.js'
  * @import { ListBooksInput } from './interfaces/book.js'
+ * @import { ReadingProgress, SaveReadingProgressInput } from './interfaces/reading-progress.js'
  * @import { CreateShelfInput, Shelf, UpdateShelfInput } from './interfaces/shelf.js'
  * @import { FailureResult, HealthStatus, SuccessResult } from './interfaces/result.js'
  */
@@ -637,6 +638,23 @@ const normalizeSearchValue = (value) => {
 };
 
 /**
+ * @param {SaveReadingProgressInput} progress
+ * @param {string} timestamp
+ * @returns {Omit<ReadingProgress, "id">}
+ */
+const normalizeReadingProgress = (progress, timestamp) => {
+  return {
+    bookId: progress.bookId,
+    userId: progress.userId,
+    format: progress.format,
+    locator: progress.locator ?? "",
+    percentage: progress.percentage ?? "",
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  };
+};
+
+/**
  * @param { Book } book
  * @param { ListBooksInput } filters
  * @param { Shelf | null } shelf
@@ -940,6 +958,43 @@ const createApplication = ({
     },
     getImportJob: ({ id }) => {
       return persistence.importJobs.get({ id });
+    },
+    saveReadingProgress: ({ progress }) => {
+      const currentBook = persistence.books.get({ id: progress.bookId });
+
+      if (!currentBook) {
+        return null;
+      }
+
+      const currentUser = persistence.users.get({ id: progress.userId });
+
+      if (!currentUser) {
+        return null;
+      }
+
+      const currentReadingProgress = persistence.readingProgress.get({
+        bookId: progress.bookId,
+        userId: progress.userId,
+      });
+      const timestamp = clock.now().toISOString();
+
+      return persistence.readingProgress.save({
+        record: currentReadingProgress
+          ? {
+              ...currentReadingProgress,
+              format: progress.format,
+              locator: progress.locator ?? currentReadingProgress.locator,
+              percentage: progress.percentage ?? currentReadingProgress.percentage,
+              updatedAt: timestamp,
+            }
+          : {
+              id: idGenerator.generate(),
+              ...normalizeReadingProgress(progress, timestamp),
+            },
+      });
+    },
+    getReadingProgress: ({ bookId, userId }) => {
+      return persistence.readingProgress.get({ bookId, userId });
     },
     finalizeImportJob: ({ id }) => {
       const currentImportJob = persistence.importJobs.get({ id });

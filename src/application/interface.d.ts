@@ -13,6 +13,10 @@ import {
 import { Logger } from "./interfaces/logger.d.ts";
 import { MetadataProvider } from "./interfaces/metadata-provider.d.ts";
 import { Persistence } from "./interfaces/persistence.d.ts";
+import {
+  GetReadingProgress as GetReadingProgressFn,
+  SaveReadingProgress as SaveReadingProgressFn,
+} from "./interfaces/reading-progress.d.ts";
 import { Result, HealthStatus } from "./interfaces/result.d.ts";
 import {
   AddBookToShelfInput,
@@ -39,6 +43,8 @@ type ReviewImportJob = ({ id, metadataCandidateIndex }: ReviewImportJobInput) =>
 type ListImportJobs = () => ImportJob[];
 type GetImportJob = ({ id }: { id: string }) => ImportJob | null;
 type FinalizeImportJob = ({ id }: { id: string }) => ImportJob | null;
+type SaveReadingProgress = SaveReadingProgressFn;
+type GetReadingProgress = GetReadingProgressFn;
 
 interface Application {
   health: Health;
@@ -58,6 +64,8 @@ interface Application {
   listImportJobs: ListImportJobs;
   getImportJob: GetImportJob;
   finalizeImportJob: FinalizeImportJob;
+  saveReadingProgress: SaveReadingProgress;
+  getReadingProgress: GetReadingProgress;
 }
 
 interface Deps {

@@ -25,6 +25,8 @@ import { vi } from "vitest";
  *   listImportJobs: Mock;
  *   getImportJob: Mock;
  *   finalizeImportJob: Mock;
+ *   saveReadingProgress: Mock;
+ *   getReadingProgress: Mock;
  * }} ApplicationMock
  */
 
@@ -79,6 +81,8 @@ const createApplicationMock = (overrides = {}) => {
     listImportJobs: vi.fn(),
     getImportJob: vi.fn(),
     finalizeImportJob: vi.fn(),
+    saveReadingProgress: vi.fn(),
+    getReadingProgress: vi.fn(),
     ...overrides,
   };
 };

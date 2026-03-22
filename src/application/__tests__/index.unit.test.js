@@ -2091,4 +2091,245 @@ describe("application", () => {
       ).toBeNull();
     });
   });
+
+  describe("reading progress functions", () => {
+    it("should save reading progress for an existing book and user", () => {
+      const clock = {
+        now: () => new Date("2026-03-22T12:00:00.000Z"),
+        checkHealth: () => createHealthSuccessResult(),
+      };
+      const persistence = createPersistenceInMemory();
+      const book = persistence.books.create({
+        record: {
+          id: "book-1",
+          title: "The Left Hand of Darkness",
+          subtitle: "",
+          description: "",
+          language: "",
+          authors: [],
+          tags: [],
+          seriesName: "",
+          seriesNumber: "",
+          cover: {
+            sourcePath: "",
+            thumbnailPath: "",
+            mimeType: "",
+            dominantColor: "",
+          },
+          identifiers: {
+            isbn10: "",
+            isbn13: "",
+            asin: "",
+            goodreadsId: "",
+            googleBooksId: "",
+          },
+          status: "draft",
+        },
+      });
+      const user = persistence.users.create({
+        record: {
+          id: "user-1",
+          email: "reader@example.com",
+          displayName: "Reader",
+          role: "admin",
+        },
+      });
+      const application = createApplication({
+        clock,
+        config,
+        persistence,
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+
+      const readingProgress = application.saveReadingProgress({
+        progress: {
+          bookId: book.id,
+          userId: user.id,
+          format: "epub",
+          locator: "epubcfi(/6/2[cover]!/4/1:0)",
+          percentage: "0.25",
+        },
+      });
+
+      expect(readingProgress).toEqual({
+        id: readingProgress?.id,
+        bookId: "book-1",
+        userId: "user-1",
+        format: "epub",
+        locator: "epubcfi(/6/2[cover]!/4/1:0)",
+        percentage: "0.25",
+        createdAt: "2026-03-22T12:00:00.000Z",
+        updatedAt: "2026-03-22T12:00:00.000Z",
+      });
+      expect(
+        application.getReadingProgress({
+          bookId: book.id,
+          userId: user.id,
+        }),
+      ).toEqual(readingProgress);
+    });
+
+    it("should update existing reading progress while preserving createdAt", () => {
+      const timestamps = ["2026-03-22T12:00:00.000Z", "2026-03-22T12:15:00.000Z"];
+      let timestampIndex = 0;
+      const clock = {
+        now: () => new Date(timestamps[timestampIndex++]),
+        checkHealth: () => createHealthSuccessResult(),
+      };
+      const persistence = createPersistenceInMemory();
+
+      persistence.books.create({
+        record: {
+          id: "book-1",
+          title: "The Left Hand of Darkness",
+          subtitle: "",
+          description: "",
+          language: "",
+          authors: [],
+          tags: [],
+          seriesName: "",
+          seriesNumber: "",
+          cover: {
+            sourcePath: "",
+            thumbnailPath: "",
+            mimeType: "",
+            dominantColor: "",
+          },
+          identifiers: {
+            isbn10: "",
+            isbn13: "",
+            asin: "",
+            goodreadsId: "",
+            googleBooksId: "",
+          },
+          status: "draft",
+        },
+      });
+      persistence.users.create({
+        record: {
+          id: "user-1",
+          email: "reader@example.com",
+          displayName: "Reader",
+          role: "admin",
+        },
+      });
+      const application = createApplication({
+        clock,
+        config,
+        persistence,
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+
+      const initialProgress = application.saveReadingProgress({
+        progress: {
+          bookId: "book-1",
+          userId: "user-1",
+          format: "epub",
+          locator: "epubcfi(/6/2[cover]!/4/1:0)",
+          percentage: "0.25",
+        },
+      });
+      const updatedProgress = application.saveReadingProgress({
+        progress: {
+          bookId: "book-1",
+          userId: "user-1",
+          format: "epub",
+          locator: "epubcfi(/6/8!/4/2:10)",
+          percentage: "0.75",
+        },
+      });
+
+      expect(updatedProgress).toEqual({
+        ...initialProgress,
+        locator: "epubcfi(/6/8!/4/2:10)",
+        percentage: "0.75",
+        updatedAt: "2026-03-22T12:15:00.000Z",
+      });
+    });
+
+    it("should return null when saving progress for a missing book", () => {
+      const persistence = createPersistenceInMemory();
+
+      persistence.users.create({
+        record: {
+          id: "user-1",
+          email: "reader@example.com",
+          displayName: "Reader",
+          role: "admin",
+        },
+      });
+      const application = createApplication({
+        clock: createClockSystem(),
+        config,
+        persistence,
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+
+      expect(
+        application.saveReadingProgress({
+          progress: {
+            bookId: "missing-book-id",
+            userId: "user-1",
+            format: "epub",
+            locator: "",
+            percentage: "0.10",
+          },
+        }),
+      ).toBeNull();
+    });
+
+    it("should return null when saving progress for a missing user", () => {
+      const persistence = createPersistenceInMemory();
+
+      persistence.books.create({
+        record: {
+          id: "book-1",
+          title: "The Left Hand of Darkness",
+          subtitle: "",
+          description: "",
+          language: "",
+          authors: [],
+          tags: [],
+          seriesName: "",
+          seriesNumber: "",
+          cover: {
+            sourcePath: "",
+            thumbnailPath: "",
+            mimeType: "",
+            dominantColor: "",
+          },
+          identifiers: {
+            isbn10: "",
+            isbn13: "",
+            asin: "",
+            goodreadsId: "",
+            googleBooksId: "",
+          },
+          status: "draft",
+        },
+      });
+      const application = createApplication({
+        clock: createClockSystem(),
+        config,
+        persistence,
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+
+      expect(
+        application.saveReadingProgress({
+          progress: {
+            bookId: "book-1",
+            userId: "missing-user-id",
+            format: "epub",
+            locator: "",
+            percentage: "0.10",
+          },
+        }),
+      ).toBeNull();
+    });
+  });
 });
