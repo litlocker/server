@@ -1,4 +1,5 @@
 import { Book, CreateBookInput, UpdateBookInput } from "./entities/book.d.ts";
+import { ListBooksInput } from "./interfaces/book.d.ts";
 import { Clock } from "./interfaces/clock.d.ts";
 import { Config } from "./interfaces/config.d.ts";
 import { IdGenerator } from "./interfaces/id-generator.d.ts";
@@ -16,7 +17,7 @@ import {
 type Health = () => Result<HealthStatus>;
 type CreateBook = ({ book }: { book: CreateBookInput }) => Book;
 type UpdateBook = ({ id, updates }: { id: string; updates: UpdateBookInput }) => Book | null;
-type ListBooks = () => Book[];
+type ListBooks = ({ filters }: { filters?: ListBooksInput }) => Book[];
 type GetBook = ({ id }: { id: string }) => Book | null;
 type CreateShelf = ({ shelf }: { shelf: CreateShelfInput }) => Shelf;
 type UpdateShelf = ({ id, updates }: { id: string; updates: UpdateShelfInput }) => Shelf | null;

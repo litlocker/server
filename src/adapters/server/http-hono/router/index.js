@@ -12,6 +12,7 @@ import { validateCreateBookPayload, validateUpdateBookPayload } from "./validate
 const createRouters = ({ application }) => {
   const healthRouter = new Hono();
   const booksRouter = new Hono();
+  const shelvesRouter = new Hono();
 
   healthRouter.get("/", (c) => {
     const result = application.health();
@@ -89,9 +90,74 @@ const createRouters = ({ application }) => {
     return c.json({ book: result });
   });
 
+  shelvesRouter.post("/", async (c) => {
+    const shelf = await c.req.json();
+    const result = application.createShelf({ shelf });
+
+    return c.json({ shelf: result }, 201);
+  });
+
+  shelvesRouter.get("/", (c) => {
+    const result = application.listShelves();
+
+    return c.json({ shelves: result });
+  });
+
+  shelvesRouter.patch("/:id", async (c) => {
+    const { id } = c.req.param();
+    const updates = await c.req.json();
+    const result = application.updateShelf({ id, updates });
+
+    if (!result) {
+      return c.json({ message: "Shelf not found" }, 404);
+    }
+
+    return c.json({ shelf: result });
+  });
+
+  shelvesRouter.delete("/:id", (c) => {
+    const { id } = c.req.param();
+    const result = application.deleteShelf({ id });
+
+    if (!result.success) {
+      return c.json({ message: "Shelf not found" }, 404);
+    }
+
+    return c.json(result);
+  });
+
+  shelvesRouter.post("/:id/books/:bookId", (c) => {
+    const { id, bookId } = c.req.param();
+    const result = application.addBookToShelf({
+      shelfId: id,
+      bookId,
+    });
+
+    if (!result) {
+      return c.json({ message: "Shelf or book not found" }, 404);
+    }
+
+    return c.json({ shelf: result });
+  });
+
+  shelvesRouter.delete("/:id/books/:bookId", (c) => {
+    const { id, bookId } = c.req.param();
+    const result = application.removeBookFromShelf({
+      shelfId: id,
+      bookId,
+    });
+
+    if (!result) {
+      return c.json({ message: "Shelf not found" }, 404);
+    }
+
+    return c.json({ shelf: result });
+  });
+
   return {
     healthRouter,
     booksRouter,
+    shelvesRouter,
   };
 };
 
