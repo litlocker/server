@@ -1,14 +1,15 @@
-interface User {
-  id: string;
-  email: string;
-  displayName: string;
-  role: string;
-}
+import { User, UserRole } from "../entities/user.d.ts";
 
 interface CreateUserInput {
+  authIssuer: string;
+  authSubject: string;
   email: string;
+  emailVerified?: boolean;
   displayName?: string;
-  role?: string;
+  avatarUrl?: string;
+  role?: UserRole;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 type CreateUser = ({ user }: { user: CreateUserInput }) => User;

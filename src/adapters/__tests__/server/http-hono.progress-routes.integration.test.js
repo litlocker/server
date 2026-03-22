@@ -77,9 +77,15 @@ describe("http hono progress routes integration", () => {
     const user = persistence.users.create({
       record: {
         id: "user-1",
+        authIssuer: "https://id.example.com",
+        authSubject: "reader-123",
         email: "reader@example.com",
+        emailVerified: true,
         displayName: "Reader",
+        avatarUrl: "https://id.example.com/avatar/reader-123",
         role: "admin",
+        createdAt: "2026-03-22T00:00:00.000Z",
+        updatedAt: "2026-03-22T00:00:00.000Z",
       },
     });
 
