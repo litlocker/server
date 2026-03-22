@@ -1,6 +1,8 @@
 /**
  * @import { CreateApplication } from './interface.js'
  * @import { BookCover, BookIdentifiers, CreateBookInput, UpdateBookInput } from './entities/book.js'
+ * @import { Book } from './entities/book.js'
+ * @import { ListBooksInput } from './interfaces/book.js'
  * @import { CreateShelfInput, Shelf, UpdateShelfInput } from './interfaces/shelf.js'
  */
 
@@ -159,6 +161,60 @@ const removeBookIdFromShelf = (shelf, bookId) => {
   return shelf.bookIds.filter((currentBookId) => currentBookId !== bookId);
 };
 
+/**
+ * @param { string } value
+ * @returns { string }
+ */
+const normalizeSearchValue = (value) => {
+  return value.trim().toLocaleLowerCase();
+};
+
+/**
+ * @param { Book } book
+ * @param { ListBooksInput } filters
+ * @param { Shelf | null } shelf
+ * @returns { boolean }
+ */
+const doesBookMatchFilters = (book, filters, shelf) => {
+  if (filters.title) {
+    const normalizedTitle = normalizeSearchValue(filters.title);
+
+    if (!book.title.toLocaleLowerCase().includes(normalizedTitle)) {
+      return false;
+    }
+  }
+
+  if (filters.author) {
+    const normalizedAuthor = normalizeSearchValue(filters.author);
+    const hasMatchingAuthor = book.authors.some((author) =>
+      author.toLocaleLowerCase().includes(normalizedAuthor),
+    );
+
+    if (!hasMatchingAuthor) {
+      return false;
+    }
+  }
+
+  if (filters.tag) {
+    const normalizedTag = normalizeSearchValue(filters.tag);
+    const hasMatchingTag = book.tags.some((tag) => tag.toLocaleLowerCase() === normalizedTag);
+
+    if (!hasMatchingTag) {
+      return false;
+    }
+  }
+
+  if (filters.shelfId) {
+    if (!shelf) {
+      return false;
+    }
+
+    return shelf.bookIds.includes(book.id);
+  }
+
+  return true;
+};
+
 /** @type { CreateApplication } */
 const createApplication = ({ clock, config: _config, persistence, idGenerator, logger }) => {
   return {
@@ -201,8 +257,16 @@ const createApplication = ({ clock, config: _config, persistence, idGenerator, l
         updates: normalizeBookUpdates({ currentBook, updates }),
       });
     },
-    listBooks: () => {
-      return persistence.books.list();
+    listBooks: ({ filters } = {}) => {
+      const books = persistence.books.list();
+
+      if (!filters) {
+        return books;
+      }
+
+      const shelf = filters.shelfId ? persistence.shelves.get({ id: filters.shelfId }) : null;
+
+      return books.filter((book) => doesBookMatchFilters(book, filters, shelf));
     },
     getBook: ({ id }) => {
       return persistence.books.get({ id });

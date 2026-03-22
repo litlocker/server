@@ -273,6 +273,90 @@ describe("application", () => {
       expect(application.listBooks()).toEqual([firstBook, secondBook]);
     });
 
+    it("should filter books by title, author, tag, and shelf membership", () => {
+      const application = createApplication({
+        clock: createClockSystem(),
+        config,
+        persistence: createPersistenceInMemory(),
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+
+      const firstBook = application.createBook({
+        book: {
+          title: "The Left Hand of Darkness",
+          authors: ["Ursula K. Le Guin"],
+          tags: ["science-fiction", "classic"],
+        },
+      });
+      const secondBook = application.createBook({
+        book: {
+          title: "A Wizard of Earthsea",
+          authors: ["Ursula K. Le Guin"],
+          tags: ["fantasy"],
+        },
+      });
+      const thirdBook = application.createBook({
+        book: {
+          title: "Kindred",
+          authors: ["Octavia E. Butler"],
+          tags: ["science-fiction"],
+        },
+      });
+      const shelf = application.createShelf({
+        shelf: {
+          name: "Favorites",
+        },
+      });
+
+      application.addBookToShelf({
+        shelfId: shelf.id,
+        bookId: firstBook.id,
+      });
+      application.addBookToShelf({
+        shelfId: shelf.id,
+        bookId: secondBook.id,
+      });
+
+      expect(
+        application.listBooks({
+          filters: {
+            title: "earthsea",
+          },
+        }),
+      ).toEqual([secondBook]);
+      expect(
+        application.listBooks({
+          filters: {
+            author: "octavia",
+          },
+        }),
+      ).toEqual([thirdBook]);
+      expect(
+        application.listBooks({
+          filters: {
+            tag: "science-fiction",
+          },
+        }),
+      ).toEqual([firstBook, thirdBook]);
+      expect(
+        application.listBooks({
+          filters: {
+            shelfId: shelf.id,
+          },
+        }),
+      ).toEqual([firstBook, secondBook]);
+      expect(
+        application.listBooks({
+          filters: {
+            author: "ursula",
+            tag: "fantasy",
+            shelfId: shelf.id,
+          },
+        }),
+      ).toEqual([secondBook]);
+    });
+
     it("should fetch a book by id", () => {
       const application = createApplication({
         clock: createClockSystem(),
