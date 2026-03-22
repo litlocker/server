@@ -1,6 +1,7 @@
 /**
  * @import { Config } from "../../../application/interfaces/config.js";
  * @import { FileStorage, FileStorageEntry } from "../../../application/interfaces/file-storage.js";
+ * @import { Logger } from "../../../application/interfaces/logger.js";
  * @import { FailureResult, SuccessResult, HealthStatus } from "../../../application/interfaces/result.js";
  */
 
@@ -114,9 +115,10 @@ const ensureParentDirectory = ({ path, allowedRoots }) => {
 /**
  * @param { object } params
  * @param { Pick<Config, "storage"> } params.config
+ * @param { Logger } [params.logger]
  * @returns { FileStorage }
  */
-const createFileStorageLocalFilesystem = ({ config }) => {
+const createFileStorageLocalFilesystem = ({ config, logger }) => {
   const allowedRoots = createAllowedRoots(config);
   const metadata = new Map();
 
@@ -142,6 +144,13 @@ const createFileStorageLocalFilesystem = ({ config }) => {
       });
 
       metadata.set(resolvedPath, entry);
+      logger?.info("File saved to local storage", {
+        domain: "file_storage",
+        operation: "save",
+        path: resolvedPath,
+        mimeType: entry.mimeType,
+        sizeInBytes: entry.sizeInBytes,
+      });
 
       return entry;
     },
@@ -149,6 +158,11 @@ const createFileStorageLocalFilesystem = ({ config }) => {
       const resolvedPath = resolveAllowedPath({
         path: file.path,
         allowedRoots,
+      });
+      logger?.info("File read from local storage", {
+        domain: "file_storage",
+        operation: "read",
+        path: resolvedPath,
       });
 
       return new Uint8Array(readFileSync(resolvedPath));
@@ -160,6 +174,11 @@ const createFileStorageLocalFilesystem = ({ config }) => {
       });
 
       if (!existsSync(resolvedPath)) {
+        logger?.warn("Attempted to delete a missing file", {
+          domain: "file_storage",
+          operation: "delete",
+          path: resolvedPath,
+        });
         return {
           success: false,
         };
@@ -167,6 +186,11 @@ const createFileStorageLocalFilesystem = ({ config }) => {
 
       rmSync(resolvedPath);
       metadata.delete(resolvedPath);
+      logger?.info("File deleted from local storage", {
+        domain: "file_storage",
+        operation: "delete",
+        path: resolvedPath,
+      });
 
       return {
         success: true,
@@ -199,6 +223,13 @@ const createFileStorageLocalFilesystem = ({ config }) => {
 
       metadata.delete(fromPath);
       metadata.set(toPath, nextMetadata);
+      logger?.info("File moved within local storage", {
+        domain: "file_storage",
+        operation: "move",
+        fromPath,
+        toPath,
+        sizeInBytes: nextMetadata.sizeInBytes,
+      });
 
       return nextMetadata;
     },

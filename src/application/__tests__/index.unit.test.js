@@ -7,7 +7,7 @@
  * @import { Awaitable, HealthStatus, SuccessResult } from "../interfaces/result.js"
  */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createClockSystem } from "../../adapters/clock/system/index.js";
 import { createIdGeneratorSystem } from "../../adapters/id-generator/system/index.js";
 import { createPersistenceInMemory } from "../../adapters/persistence/in-memory/index.js";
@@ -1578,6 +1578,111 @@ describe("application", () => {
           confidence: "0.80",
         },
       ]);
+    });
+
+    it("should emit structured logs for metadata preparation and import creation", () => {
+      const logger = {
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        checkHealth: () => createHealthSuccessResult(),
+      };
+      const metadataProvider = createTestMetadataProvider({
+        embeddedMetadata: {
+          title: "The Left Hand of Darkness",
+          subtitle: "",
+          description: "",
+          language: "en",
+          authors: ["Ursula K. Le Guin"],
+          tags: [],
+          seriesName: "",
+          seriesNumber: "",
+          identifiers: {
+            isbn10: "",
+            isbn13: "9780441478125",
+            asin: "",
+            goodreadsId: "",
+            googleBooksId: "",
+          },
+          coverPath: "",
+          source: "embedded",
+        },
+        lookupResults: [
+          {
+            title: "The Left Hand of Darkness",
+            subtitle: "A Novel",
+            description: "",
+            language: "en",
+            authors: ["Ursula K. Le Guin"],
+            tags: [],
+            seriesName: "",
+            seriesNumber: "",
+            identifiers: {
+              isbn10: "",
+              isbn13: "9780441478125",
+              asin: "",
+              goodreadsId: "",
+              googleBooksId: "",
+            },
+            coverPath: "",
+            source: "external",
+          },
+        ],
+      });
+      const application = createApplication({
+        clock: createClockSystem(),
+        config,
+        metadataProvider,
+        persistence: createPersistenceInMemory(),
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+
+      createImportJobSync(application, {
+        job: {
+          source: {
+            kind: "filesystem",
+            path: "/library/inbox/left-hand.epub",
+            originalFileName: "left-hand.epub",
+          },
+          detectedFileType: "epub",
+        },
+      });
+
+      expect(logger.info).toHaveBeenCalledWith("Embedded metadata extraction completed", {
+        domain: "metadata",
+        operation: "extract_embedded",
+        filePath: "/library/inbox/left-hand.epub",
+        fileType: "epub",
+        candidateCount: 1,
+      });
+      expect(logger.info).toHaveBeenCalledWith("External metadata lookup completed", {
+        domain: "metadata",
+        operation: "lookup_external",
+        title: "The Left Hand of Darkness",
+        authorCount: 1,
+        candidateCount: 1,
+      });
+      expect(logger.info).toHaveBeenCalledWith("Import metadata candidates prepared", {
+        domain: "import",
+        operation: "prepare_metadata",
+        sourceKind: "filesystem",
+        sourcePath: "/library/inbox/left-hand.epub",
+        detectedFileType: "epub",
+        embeddedCandidateCount: 1,
+        externalCandidateCount: 1,
+      });
+      expect(logger.info).toHaveBeenCalledWith("Import job created", {
+        domain: "import",
+        operation: "create_import_job",
+        importJobId: expect.any(String),
+        sourceKind: "filesystem",
+        detectedFileType: "epub",
+        metadataCandidateCount: 2,
+        duplicateImportJobCount: 0,
+        duplicateBookCount: 0,
+      });
     });
 
     it("should append external metadata candidates during upload ingestion", () => {

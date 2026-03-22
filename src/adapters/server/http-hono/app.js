@@ -68,11 +68,35 @@ const createHonoApp = ({ application, authConfig, config, logger }) => {
 
   if (isAuthEnabled) {
     app.get("/auth/callback", async (c) => {
-      return processOAuthCallback(c);
+      logger.info("OIDC callback request received", {
+        domain: "auth",
+        operation: "callback_request",
+        path: c.req.path,
+      });
+      const response = await processOAuthCallback(c);
+      logger.info("OIDC callback request completed", {
+        domain: "auth",
+        operation: "callback_request",
+        path: c.req.path,
+        statusCode: response.status,
+      });
+
+      return response;
     });
 
     app.post("/auth/logout", async (c) => {
+      logger.info("OIDC logout request received", {
+        domain: "auth",
+        operation: "logout_request",
+        path: c.req.path,
+      });
       await revokeSession(c);
+      logger.info("OIDC logout request completed", {
+        domain: "auth",
+        operation: "logout_request",
+        path: c.req.path,
+        statusCode: 200,
+      });
 
       return c.json({ success: true });
     });
@@ -82,7 +106,18 @@ const createHonoApp = ({ application, authConfig, config, logger }) => {
         return next();
       }
 
-      return oidcAuthMiddleware()(c, next);
+      const response = await oidcAuthMiddleware()(c, next);
+
+      if (response instanceof Response && response.status >= 300) {
+        logger.info("OIDC middleware handled request", {
+          domain: "auth",
+          operation: "protect_route",
+          path: c.req.path,
+          statusCode: response.status,
+        });
+      }
+
+      return response;
     });
   }
 

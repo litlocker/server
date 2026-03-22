@@ -95,9 +95,10 @@ const createUserEmail = ({ code }) => {
  * @param {Pick<Config, "auth">} params.config
  * @param {Clock} params.clock
  * @param {IdGenerator} params.idGenerator
+ * @param {import("../../../application/interfaces/logger.js").Logger} [params.logger]
  * @returns {AuthProvider}
  */
-const createAuthOidc = ({ config, clock, idGenerator }) => {
+const createAuthOidc = ({ config, clock, idGenerator, logger }) => {
   /** @type {Map<string, { nonce: string; pkceCodeVerifier: string; returnToUrl: string }>} */
   const pendingLogins = new Map();
   /** @type {Map<string, AuthenticatedSession>} */
@@ -143,6 +144,13 @@ const createAuthOidc = ({ config, clock, idGenerator }) => {
           createPkceCodeChallenge(pkceCodeVerifier),
         );
       }
+
+      logger?.info("OIDC login started", {
+        domain: "auth",
+        operation: "login",
+        authIssuer: config.auth.oidc.issuerUrl,
+        returnToUrl: login.returnToUrl,
+      });
 
       return {
         success: true,
@@ -210,6 +218,13 @@ const createAuthOidc = ({ config, clock, idGenerator }) => {
       };
 
       activeSessions.set(session.sessionToken, authenticatedSession);
+      logger?.info("OIDC callback completed", {
+        domain: "auth",
+        operation: "callback",
+        authIssuer: config.auth.oidc.issuerUrl,
+        userId: session.userId,
+        sessionId: session.id,
+      });
 
       return {
         success: true,
@@ -247,6 +262,13 @@ const createAuthOidc = ({ config, clock, idGenerator }) => {
           },
         });
       }
+
+      logger?.info("OIDC session verified", {
+        domain: "auth",
+        operation: "verify_session",
+        sessionId: authenticatedSession.session.id,
+        userId: authenticatedSession.user.id,
+      });
 
       return {
         success: true,
@@ -286,6 +308,13 @@ const createAuthOidc = ({ config, clock, idGenerator }) => {
         "post_logout_redirect_uri",
         config.auth.oidc.postLogoutRedirectUrl,
       );
+      logger?.info("OIDC logout completed", {
+        domain: "auth",
+        operation: "logout",
+        authIssuer: config.auth.oidc.issuerUrl,
+        userId: authenticatedSession.user.id,
+        sessionId: authenticatedSession.session.id,
+      });
 
       return {
         success: true,

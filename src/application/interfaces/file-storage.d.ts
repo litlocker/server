@@ -1,3 +1,4 @@
+import { Logger } from "./logger.d.ts";
 import { CheckHealth } from "./result.d.ts";
 
 interface FileStorageEntry {
@@ -46,6 +47,10 @@ interface FileStorage {
   checkHealth: CheckHealth;
 }
 
-type CreateFileStorage = () => FileStorage;
+interface Deps {
+  logger?: Logger;
+}
+
+type CreateFileStorage = (deps?: Deps) => FileStorage;
 
 export type { FileStorageEntry, FileStorage, CreateFileStorage };

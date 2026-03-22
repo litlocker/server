@@ -29,12 +29,29 @@ const createMetadataRecord = ({ source }) => {
 };
 
 /** @type { CreateMetadataProvider } */
-const createMetadataProviderStatic = () => {
+const createMetadataProviderStatic = ({ logger } = {}) => {
   return {
-    extractMetadata: () => {
+    extractMetadata: ({ input }) => {
+      logger?.info("Embedded metadata extracted", {
+        domain: "metadata",
+        operation: "extract_embedded",
+        filePath: input.filePath,
+        fileType: input.fileType,
+        provider: "static",
+      });
+
       return createMetadataRecord({ source: "embedded" });
     },
-    lookupMetadata: () => {
+    lookupMetadata: ({ input }) => {
+      logger?.info("External metadata lookup completed", {
+        domain: "metadata",
+        operation: "lookup_external",
+        title: input.title,
+        authorCount: input.authors?.length ?? 0,
+        provider: "static",
+        resultCount: 1,
+      });
+
       return [createMetadataRecord({ source: "external" })];
     },
     checkHealth: () => ({

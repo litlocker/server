@@ -90,11 +90,12 @@ describe("hono auth middleware", () => {
       health: vi.fn(createHealthSuccessResult),
       listBooks: vi.fn(() => []),
     });
+    const logger = createLoggerMock();
     const app = createHonoApp({
       application,
       authConfig,
       config: serverConfig,
-      logger: createLoggerMock(),
+      logger,
     });
 
     const healthResponse = await app.request("http://localhost/health");
@@ -103,6 +104,12 @@ describe("hono auth middleware", () => {
     expect(healthResponse.status).toBe(200);
     expect(booksResponse.status).toBe(302);
     expect(booksResponse.headers.get("location")).toBe("https://id.example.com/authorize");
+    expect(logger.info).toHaveBeenCalledWith("OIDC middleware handled request", {
+      domain: "auth",
+      operation: "protect_route",
+      path: "/books",
+      statusCode: 302,
+    });
     expect(initOidcAuthMiddlewareMock).toHaveBeenCalledWith({
       OIDC_AUTH_SECRET: "0123456789abcdef0123456789abcdef",
       OIDC_AUTH_EXPIRES: "86400",
@@ -243,11 +250,12 @@ describe("hono auth middleware", () => {
     processOAuthCallbackMock.mockResolvedValue(new Response(null, { status: 302 }));
     revokeSessionMock.mockResolvedValue(undefined);
 
+    const logger = createLoggerMock();
     const app = createHonoApp({
       application: createApplicationMock(),
       authConfig,
       config: serverConfig,
-      logger: createLoggerMock(),
+      logger,
     });
 
     const callbackResponse = await app.request(
@@ -261,5 +269,27 @@ describe("hono auth middleware", () => {
     expect(logoutResponse.status).toBe(200);
     expect(processOAuthCallbackMock).toHaveBeenCalledTimes(1);
     expect(revokeSessionMock).toHaveBeenCalledTimes(1);
+    expect(logger.info).toHaveBeenCalledWith("OIDC callback request received", {
+      domain: "auth",
+      operation: "callback_request",
+      path: "/auth/callback",
+    });
+    expect(logger.info).toHaveBeenCalledWith("OIDC callback request completed", {
+      domain: "auth",
+      operation: "callback_request",
+      path: "/auth/callback",
+      statusCode: 302,
+    });
+    expect(logger.info).toHaveBeenCalledWith("OIDC logout request received", {
+      domain: "auth",
+      operation: "logout_request",
+      path: "/auth/logout",
+    });
+    expect(logger.info).toHaveBeenCalledWith("OIDC logout request completed", {
+      domain: "auth",
+      operation: "logout_request",
+      path: "/auth/logout",
+      statusCode: 200,
+    });
   });
 });

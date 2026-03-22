@@ -422,11 +422,12 @@ const createDuplicateDetection = ({
 /**
  * @param {object} params
  * @param {import('./interfaces/metadata-provider.js').MetadataProvider} params.metadataProvider
+ * @param {import('./interfaces/logger.js').Logger} params.logger
  * @param {string} params.filePath
  * @param {string} params.fileType
  * @returns {ImportJobMetadataCandidate[]}
  */
-const createEmbeddedMetadataCandidates = ({ metadataProvider, filePath, fileType }) => {
+const createEmbeddedMetadataCandidates = ({ metadataProvider, logger, filePath, fileType }) => {
   if (!filePath || !fileType) {
     return [];
   }
@@ -439,8 +440,23 @@ const createEmbeddedMetadataCandidates = ({ metadataProvider, filePath, fileType
   });
 
   if (!metadataRecord) {
+    logger.info("Embedded metadata extraction returned no candidates", {
+      domain: "metadata",
+      operation: "extract_embedded",
+      filePath,
+      fileType,
+      candidateCount: 0,
+    });
     return [];
   }
+
+  logger.info("Embedded metadata extraction completed", {
+    domain: "metadata",
+    operation: "extract_embedded",
+    filePath,
+    fileType,
+    candidateCount: 1,
+  });
 
   return [createImportJobMetadataCandidateFromRecord(metadataRecord)];
 };
@@ -448,17 +464,18 @@ const createEmbeddedMetadataCandidates = ({ metadataProvider, filePath, fileType
 /**
  * @param {object} params
  * @param {import('./interfaces/metadata-provider.js').MetadataProvider} params.metadataProvider
+ * @param {import('./interfaces/logger.js').Logger} params.logger
  * @param {ImportJobMetadataCandidate[]} params.metadataCandidates
  * @returns {ImportJobMetadataCandidate[]}
  */
-const createExternalMetadataCandidates = ({ metadataProvider, metadataCandidates }) => {
+const createExternalMetadataCandidates = ({ metadataProvider, logger, metadataCandidates }) => {
   const [primaryMetadataCandidate] = metadataCandidates;
 
   if (!primaryMetadataCandidate) {
     return [];
   }
 
-  return metadataProvider
+  const externalMetadataCandidates = metadataProvider
     .lookupMetadata({
       input: {
         title: primaryMetadataCandidate.title,
@@ -467,6 +484,25 @@ const createExternalMetadataCandidates = ({ metadataProvider, metadataCandidates
       },
     })
     .map(createImportJobMetadataCandidateFromLookupRecord);
+
+  logger.info("External metadata lookup completed", {
+    domain: "metadata",
+    operation: "lookup_external",
+    title: primaryMetadataCandidate.title,
+    authorCount: primaryMetadataCandidate.authors.length,
+    candidateCount: externalMetadataCandidates.length,
+  });
+
+  return externalMetadataCandidates;
+};
+
+/**
+ * @param {import("./interfaces/logger.js").Logger} logger
+ * @param {string} message
+ * @param {Record<string, unknown>} details
+ */
+const logDomainInfo = (logger, message, details) => {
+  logger.info(message, details);
 };
 
 /**
@@ -1191,6 +1227,7 @@ const createApplication = ({
           ? normalizeImportJobMetadataCandidates(job.metadataCandidates)
           : createEmbeddedMetadataCandidates({
               metadataProvider,
+              logger,
               filePath: job.source.path,
               fileType: job.detectedFileType ?? "",
             });
@@ -1198,6 +1235,7 @@ const createApplication = ({
         ...embeddedMetadataCandidates,
         ...createExternalMetadataCandidates({
           metadataProvider,
+          logger,
           metadataCandidates: embeddedMetadataCandidates,
         }),
       ];
@@ -1209,16 +1247,46 @@ const createApplication = ({
       });
 
       return flatMapAwaitable(duplicateDetection, (duplicateDetection) => {
-        return persistence.importJobs.create({
-          record: {
-            id: idGenerator.generate(),
-            ...normalizeImportJob({
-              ...job,
-              metadataCandidates,
-            }),
-            duplicateDetection,
-          },
+        logDomainInfo(logger, "Import metadata candidates prepared", {
+          domain: "import",
+          operation: "prepare_metadata",
+          sourceKind: job.source.kind,
+          sourcePath: job.source.path,
+          detectedFileType: job.detectedFileType ?? "",
+          embeddedCandidateCount: embeddedMetadataCandidates.length,
+          externalCandidateCount: Math.max(
+            metadataCandidates.length - embeddedMetadataCandidates.length,
+            0,
+          ),
         });
+
+        return mapAwaitable(
+          persistence.importJobs.create({
+            record: {
+              id: idGenerator.generate(),
+              ...normalizeImportJob({
+                ...job,
+                metadataCandidates,
+              }),
+              duplicateDetection,
+            },
+          }),
+          (createdImportJob) => {
+            logDomainInfo(logger, "Import job created", {
+              domain: "import",
+              operation: "create_import_job",
+              importJobId: createdImportJob.id,
+              sourceKind: createdImportJob.source.kind,
+              detectedFileType: createdImportJob.detectedFileType,
+              metadataCandidateCount: createdImportJob.metadataCandidates.length,
+              duplicateImportJobCount:
+                createdImportJob.duplicateDetection.duplicateImportJobIds.length,
+              duplicateBookCount: createdImportJob.duplicateDetection.duplicateBookIds.length,
+            });
+
+            return createdImportJob;
+          },
+        );
       });
     },
     ingestImportUpload: ({ upload }) => {
@@ -1240,6 +1308,7 @@ const createApplication = ({
       const detectedFileType = detectFileTypeFromFileName(upload.name);
       const embeddedMetadataCandidates = createEmbeddedMetadataCandidates({
         metadataProvider,
+        logger,
         filePath: savedFile.path,
         fileType: detectedFileType,
       });
@@ -1247,6 +1316,7 @@ const createApplication = ({
         ...embeddedMetadataCandidates,
         ...createExternalMetadataCandidates({
           metadataProvider,
+          logger,
           metadataCandidates: embeddedMetadataCandidates,
         }),
       ];
@@ -1258,26 +1328,62 @@ const createApplication = ({
       });
 
       return flatMapAwaitable(duplicateDetection, (duplicateDetection) => {
-        return persistence.importJobs.create({
-          record: {
-            id: importJobId,
-            ...normalizeImportJob({
-              source: {
-                kind: "upload",
-                path: savedFile.path,
-                originalFileName: upload.name,
-              },
-              detectedFileType,
-              metadataCandidates,
-            }),
-            duplicateDetection,
-          },
+        logDomainInfo(logger, "Import upload metadata prepared", {
+          domain: "import",
+          operation: "prepare_upload_metadata",
+          fileName: upload.name,
+          detectedFileType,
+          fileHash,
+          uploadSizeInBytes: upload.contents.byteLength,
+          embeddedCandidateCount: embeddedMetadataCandidates.length,
+          externalCandidateCount: Math.max(
+            metadataCandidates.length - embeddedMetadataCandidates.length,
+            0,
+          ),
         });
+
+        return mapAwaitable(
+          persistence.importJobs.create({
+            record: {
+              id: importJobId,
+              ...normalizeImportJob({
+                source: {
+                  kind: "upload",
+                  path: savedFile.path,
+                  originalFileName: upload.name,
+                },
+                detectedFileType,
+                metadataCandidates,
+              }),
+              duplicateDetection,
+            },
+          }),
+          (createdImportJob) => {
+            logDomainInfo(logger, "Import upload ingested", {
+              domain: "import",
+              operation: "ingest_upload",
+              importJobId: createdImportJob.id,
+              sourcePath: createdImportJob.source.path,
+              detectedFileType: createdImportJob.detectedFileType,
+              metadataCandidateCount: createdImportJob.metadataCandidates.length,
+              duplicateImportJobCount:
+                createdImportJob.duplicateDetection.duplicateImportJobIds.length,
+              duplicateBookCount: createdImportJob.duplicateDetection.duplicateBookIds.length,
+            });
+
+            return createdImportJob;
+          },
+        );
       });
     },
     reviewImportJob: ({ id, metadataCandidateIndex }) => {
       return flatMapAwaitable(persistence.importJobs.get({ id }), (currentImportJob) => {
         if (!currentImportJob) {
+          logger.warn("Import review requested for a missing import job", {
+            domain: "import",
+            operation: "review",
+            importJobId: id,
+          });
           return null;
         }
 
@@ -1285,16 +1391,37 @@ const createApplication = ({
           metadataCandidateIndex < 0 ||
           metadataCandidateIndex >= currentImportJob.metadataCandidates.length
         ) {
+          logger.warn("Import review requested with an invalid metadata candidate index", {
+            domain: "import",
+            operation: "review",
+            importJobId: id,
+            metadataCandidateIndex,
+            metadataCandidateCount: currentImportJob.metadataCandidates.length,
+          });
           return null;
         }
 
-        return persistence.importJobs.update({
-          id,
-          updates: {
-            status: "review",
-            selectedMetadataCandidateIndex: metadataCandidateIndex,
+        return mapAwaitable(
+          persistence.importJobs.update({
+            id,
+            updates: {
+              status: "review",
+              selectedMetadataCandidateIndex: metadataCandidateIndex,
+            },
+          }),
+          (reviewedImportJob) => {
+            if (reviewedImportJob) {
+              logDomainInfo(logger, "Import job moved into review", {
+                domain: "import",
+                operation: "review",
+                importJobId: reviewedImportJob.id,
+                metadataCandidateIndex,
+              });
+            }
+
+            return reviewedImportJob;
           },
-        });
+        );
       });
     },
     listImportJobs: () => {
@@ -1354,6 +1481,11 @@ const createApplication = ({
     finalizeImportJob: ({ id }) => {
       return flatMapAwaitable(persistence.importJobs.get({ id }), (currentImportJob) => {
         if (!currentImportJob) {
+          logger.warn("Import finalization requested for a missing import job", {
+            domain: "import",
+            operation: "finalize",
+            importJobId: id,
+          });
           return null;
         }
 
@@ -1361,6 +1493,12 @@ const createApplication = ({
           currentImportJob.metadataCandidates.length > 0 &&
           currentImportJob.selectedMetadataCandidateIndex < 0
         ) {
+          logger.warn("Import finalization requested before metadata selection", {
+            domain: "import",
+            operation: "finalize",
+            importJobId: id,
+            metadataCandidateCount: currentImportJob.metadataCandidates.length,
+          });
           return null;
         }
 
@@ -1370,14 +1508,29 @@ const createApplication = ({
           importJob: currentImportJob,
         });
 
-        return persistence.importJobs.update({
-          id,
-          updates: {
-            metadataCandidates: importJobWithStoredCover.metadataCandidates,
-            status: "completed",
-            error: normalizeImportJobError(),
+        return mapAwaitable(
+          persistence.importJobs.update({
+            id,
+            updates: {
+              metadataCandidates: importJobWithStoredCover.metadataCandidates,
+              status: "completed",
+              error: normalizeImportJobError(),
+            },
+          }),
+          (finalizedImportJob) => {
+            if (finalizedImportJob) {
+              logDomainInfo(logger, "Import job finalized", {
+                domain: "import",
+                operation: "finalize",
+                importJobId: finalizedImportJob.id,
+                selectedMetadataCandidateIndex: finalizedImportJob.selectedMetadataCandidateIndex,
+                metadataCandidateCount: finalizedImportJob.metadataCandidates.length,
+              });
+            }
+
+            return finalizedImportJob;
           },
-        });
+        );
       });
     },
   };

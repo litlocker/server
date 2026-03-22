@@ -14,8 +14,8 @@ const boot = async () => {
   const config = createConfigStaticEnv();
   const logger = createLoggerPino({ config: config.logger });
   await runPendingPostgresMigrations({ config, logger });
-  const fileStorage = createFileStorageLocalFilesystem({ config });
-  const metadataProvider = createMetadataProviderStatic();
+  const fileStorage = createFileStorageLocalFilesystem({ config, logger });
+  const metadataProvider = createMetadataProviderStatic({ logger });
   const persistence = createPersistencePostgres({ config });
   const idGenerator = createIdGeneratorSystem();
 

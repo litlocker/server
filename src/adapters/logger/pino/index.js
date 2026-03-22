@@ -4,6 +4,52 @@
 
 import pino from "pino";
 
+/**
+ * @param {unknown} value
+ * @returns {value is Record<string, unknown>}
+ */
+const isRecord = (value) => {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+};
+
+/**
+ * @param {unknown[]} args
+ * @returns {Record<string, unknown>}
+ */
+const normalizeLogDetails = (args) => {
+  /** @type {Record<string, unknown>} */
+  let details = {};
+
+  args.forEach((arg, index) => {
+    if (arg instanceof Error) {
+      details = {
+        ...details,
+        error: {
+          name: arg.name,
+          message: arg.message,
+          stack: arg.stack ?? "",
+        },
+      };
+      return;
+    }
+
+    if (isRecord(arg)) {
+      details = {
+        ...details,
+        ...arg,
+      };
+      return;
+    }
+
+    details = {
+      ...details,
+      [`arg${index}`]: arg,
+    };
+  });
+
+  return details;
+};
+
 /** @type { CreateLogger } */
 const createLoggerPino = ({ config }) => {
   const { debugLogsEnabled, defaultMetadata } = config;
@@ -18,12 +64,31 @@ const createLoggerPino = ({ config }) => {
     },
   });
 
+  /**
+   * @param {"debug" | "info" | "warn" | "error"} level
+   * @returns {(message: string, ...args: unknown[]) => void}
+   */
+  const createLogMethod = (level) => {
+    return (message, ...args) => {
+      if (level === "debug" && !debugLogsEnabled) {
+        return;
+      }
+
+      logger[level](
+        {
+          ...defaultMetadata,
+          ...normalizeLogDetails(args),
+        },
+        message,
+      );
+    };
+  };
+
   return {
-    debug: (message, ...args) =>
-      debugLogsEnabled && logger.debug({ ...defaultMetadata, ...args }, message),
-    info: (message, ...args) => logger.info({ ...defaultMetadata, ...args }, message),
-    warn: (message, ...args) => logger.warn({ ...defaultMetadata, ...args }, message),
-    error: (message, ...args) => logger.error({ ...defaultMetadata, ...args }, message),
+    debug: createLogMethod("debug"),
+    info: createLogMethod("info"),
+    warn: createLogMethod("warn"),
+    error: createLogMethod("error"),
     checkHealth: () => ({
       success: true,
       data: {

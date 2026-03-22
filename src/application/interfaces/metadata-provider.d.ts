@@ -1,3 +1,4 @@
+import { Logger } from "./logger.d.ts";
 import { CheckHealth } from "./result.d.ts";
 
 interface MetadataRecord {
@@ -46,6 +47,10 @@ interface MetadataProvider {
   checkHealth: CheckHealth;
 }
 
-type CreateMetadataProvider = () => MetadataProvider;
+interface Deps {
+  logger?: Logger;
+}
+
+type CreateMetadataProvider = (deps?: Deps) => MetadataProvider;
 
 export type { MetadataProvider, CreateMetadataProvider };
