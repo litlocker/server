@@ -12,26 +12,27 @@ What exists today:
 
 - Hono-based HTTP server
 - Config, logger, and server boot wiring
-- In-memory `persistence` adapter
+- Postgres `persistence` adapter using `pg`
+- `node-pg-migrate` setup with app-start migration execution
 - `/health` endpoint
 - Application-level book CRUD functions
+- Application-level shelf CRUD and membership functions
+- Application-level import job and reading progress functions
 - `Book` entity with metadata, authors, tags, series, and cover fields
-- Book route validation
+- Book, shelf, import, and reading-progress route validation
 - Basic book routes:
   - `POST /books`
   - `GET /books`
   - `PATCH /books/:id`
   - `GET /books/:id`
-- Unit and integration coverage for the current book API flow
+- Unit and integration coverage for the current API flow
 
 What is not done yet:
 
-- Persistent storage
-- Shelves
-- Search and filtering
-- Import pipeline
-- Reader and progress sync
-- Auth
+- Persistence-backed integration flows
+- Backup and restore documentation
+- Richer reader file delivery
+- Operational hardening
 
 ## Architecture
 
@@ -85,10 +86,14 @@ Defined in [.env.example](/Users/curamet/development/oss/litlocker/server/.env.e
 
 - `pnpm run dev` - start the server in watch mode
 - `pnpm run start` - start the server once
+- `pnpm run migrate:up` - apply pending Postgres migrations
+- `pnpm run migrate:down` - roll back the latest Postgres migration
+- `pnpm run migrate:create <name>` - create a new Postgres migration file
 - `pnpm run test:unit` - run unit tests
 - `pnpm run test:integration` - run integration tests
 - `pnpm run test` - run all tests
 - `pnpm run lint:check` - run lint checks
+- `pnpm run lint:ts` - run `tsc --noEmit`
 - `pnpm run fmt:check` - check formatting
 
 ## Current API
