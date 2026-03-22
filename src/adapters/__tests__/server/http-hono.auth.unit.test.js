@@ -40,6 +40,34 @@ const createHealthSuccessResult = () => {
   };
 };
 
+const authConfig = {
+  enabled: true,
+  bootstrapAdminEmail: "",
+  bootstrapAdminPassword: "",
+  sessionSecret: "0123456789abcdef0123456789abcdef",
+  sessionTtlMs: 86_400_000,
+  sessionCookieName: "litlocker-session",
+  sessionCookieSecure: false,
+  oidc: {
+    issuerUrl: "https://id.example.com",
+    clientId: "litlocker-web",
+    clientSecret: "super-secret",
+    redirectUrl: "https://library.example.com/auth/callback",
+    postLogoutRedirectUrl: "https://library.example.com",
+    scopes: ["openid", "profile", "email"],
+    requirePkce: true,
+    discoveryTimeoutMs: 5_000,
+  },
+};
+
+const serverConfig = {
+  http: {
+    address: "https://library.example.com",
+    port: 3000,
+    timeoutMs: 1000,
+  },
+};
+
 describe("hono auth middleware", () => {
   it("should leave /health public while protecting application routes when auth is enabled", async () => {
     initOidcAuthMiddlewareMock.mockReturnValue(
@@ -64,32 +92,8 @@ describe("hono auth middleware", () => {
     });
     const app = createHonoApp({
       application,
-      authConfig: {
-        enabled: true,
-        bootstrapAdminEmail: "",
-        bootstrapAdminPassword: "",
-        sessionSecret: "0123456789abcdef0123456789abcdef",
-        sessionTtlMs: 86_400_000,
-        sessionCookieName: "litlocker-session",
-        sessionCookieSecure: false,
-        oidc: {
-          issuerUrl: "https://id.example.com",
-          clientId: "litlocker-web",
-          clientSecret: "super-secret",
-          redirectUrl: "https://library.example.com/auth/callback",
-          postLogoutRedirectUrl: "https://library.example.com",
-          scopes: ["openid", "profile", "email"],
-          requirePkce: true,
-          discoveryTimeoutMs: 5_000,
-        },
-      },
-      config: {
-        http: {
-          address: "https://library.example.com",
-          port: 3000,
-          timeoutMs: 1000,
-        },
-      },
+      authConfig,
+      config: serverConfig,
       logger: createLoggerMock(),
     });
 
@@ -113,6 +117,114 @@ describe("hono auth middleware", () => {
     });
   });
 
+  it("should allow authenticated requests to reach protected routes", async () => {
+    initOidcAuthMiddlewareMock.mockReturnValue(
+      /**
+       * @param {any} _c
+       * @param {() => Promise<Response> | Promise<Response> | Response | undefined} next
+       */
+      async (_c, next) => next(),
+    );
+    oidcAuthMiddlewareMock.mockReturnValue(
+      /**
+       * @param {any} _c
+       * @param {() => Promise<Response> | Promise<Response> | Response | undefined} next
+       */
+      async (_c, next) => next(),
+    );
+
+    /** @type {import("../../../application/entities/book.js").Book[]} */
+    const books = [
+      {
+        id: "book-1",
+        title: "The Left Hand of Darkness",
+        subtitle: "",
+        description: "",
+        language: "",
+        authors: [],
+        tags: [],
+        seriesName: "",
+        seriesNumber: "",
+        cover: {
+          sourcePath: "",
+          thumbnailPath: "",
+          mimeType: "",
+          dominantColor: "",
+        },
+        identifiers: {
+          isbn10: "",
+          isbn13: "",
+          asin: "",
+          goodreadsId: "",
+          googleBooksId: "",
+        },
+        filePath: "",
+        libraryStatus: "draft",
+        readingStatus: "unread",
+      },
+    ];
+    const application = createApplicationMock({
+      listBooks: vi.fn(() => books),
+    });
+    const app = createHonoApp({
+      application,
+      authConfig,
+      config: serverConfig,
+      logger: createLoggerMock(),
+    });
+
+    const response = await app.request("http://localhost/books");
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      books,
+    });
+    expect(application.listBooks).toHaveBeenCalledWith({
+      filters: undefined,
+    });
+  });
+
+  it("should surface invalid session handling from the oidc middleware", async () => {
+    initOidcAuthMiddlewareMock.mockReturnValue(
+      /**
+       * @param {any} _c
+       * @param {() => Promise<Response> | Promise<Response> | Response | undefined} next
+       */
+      async (_c, next) => next(),
+    );
+    oidcAuthMiddlewareMock.mockReturnValue(
+      /**
+       * @param {any} c
+       */
+      async (c) => {
+        return c.json(
+          {
+            message: "Invalid session",
+          },
+          401,
+        );
+      },
+    );
+
+    const application = createApplicationMock({
+      listBooks: vi.fn(() => []),
+    });
+    const app = createHonoApp({
+      application,
+      authConfig,
+      config: serverConfig,
+      logger: createLoggerMock(),
+    });
+
+    const response = await app.request("http://localhost/books");
+
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toEqual({
+      message: "Invalid session",
+    });
+    expect(application.listBooks).not.toHaveBeenCalled();
+  });
+
   it("should expose the callback and logout handlers when auth is enabled", async () => {
     initOidcAuthMiddlewareMock.mockReturnValue(
       /**
@@ -133,32 +245,8 @@ describe("hono auth middleware", () => {
 
     const app = createHonoApp({
       application: createApplicationMock(),
-      authConfig: {
-        enabled: true,
-        bootstrapAdminEmail: "",
-        bootstrapAdminPassword: "",
-        sessionSecret: "0123456789abcdef0123456789abcdef",
-        sessionTtlMs: 86_400_000,
-        sessionCookieName: "litlocker-session",
-        sessionCookieSecure: false,
-        oidc: {
-          issuerUrl: "https://id.example.com",
-          clientId: "litlocker-web",
-          clientSecret: "super-secret",
-          redirectUrl: "https://library.example.com/auth/callback",
-          postLogoutRedirectUrl: "https://library.example.com",
-          scopes: ["openid", "profile", "email"],
-          requirePkce: true,
-          discoveryTimeoutMs: 5_000,
-        },
-      },
-      config: {
-        http: {
-          address: "https://library.example.com",
-          port: 3000,
-          timeoutMs: 1000,
-        },
-      },
+      authConfig,
+      config: serverConfig,
       logger: createLoggerMock(),
     });
 
