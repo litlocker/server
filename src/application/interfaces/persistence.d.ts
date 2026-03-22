@@ -1,6 +1,6 @@
 import { Book } from "../entities/book.d.ts";
 import { ImportJob } from "../entities/import-job.d.ts";
-import { ReadingProgress } from "./reading-progress.d.ts";
+import { ReadingProgress } from "../entities/reading-progress.d.ts";
 import { CheckHealth } from "./result.d.ts";
 import { Shelf } from "./shelf.d.ts";
 import { User } from "./user.d.ts";

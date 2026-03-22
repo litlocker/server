@@ -1,7 +1,7 @@
 /**
  * @import { CreatePersistence, Persistence } from "../../../application/interfaces/persistence.js";
  * @import { Book } from "../../../application/entities/book.js";
- * @import { ReadingProgress } from "../../../application/interfaces/reading-progress.js";
+ * @import { ReadingProgress } from "../../../application/entities/reading-progress.js";
  * @import { HealthStatus, SuccessResult } from "../../../application/interfaces/result.js";
  */
 

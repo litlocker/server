@@ -1,14 +1,9 @@
-interface ReadingProgress {
-  id: string;
-  bookId: string;
-  userId: string;
-  locator: string;
-  percentage: string;
-}
+import { ReadingProgress, ReadingProgressFormat } from "../entities/reading-progress.d.ts";
 
 interface SaveReadingProgressInput {
   bookId: string;
   userId: string;
+  format: ReadingProgressFormat;
   locator?: string;
   percentage?: string;
 }
@@ -26,4 +21,10 @@ type GetReadingProgress = ({
   userId: string;
 }) => ReadingProgress | null;
 
-export type { ReadingProgress, SaveReadingProgressInput, SaveReadingProgress, GetReadingProgress };
+export type {
+  ReadingProgress,
+  ReadingProgressFormat,
+  SaveReadingProgressInput,
+  SaveReadingProgress,
+  GetReadingProgress,
+};

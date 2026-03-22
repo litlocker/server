@@ -152,8 +152,11 @@ const runPersistenceUnitTests = (createPersistence) => {
             id: "progress-1",
             bookId: book.id,
             userId: user.id,
+            format: "epub",
             locator: "epubcfi(/6/2[cover]!/4/1:0)",
             percentage: "0.25",
+            createdAt: "2026-03-22T00:00:00.000Z",
+            updatedAt: "2026-03-22T00:00:00.000Z",
           },
         });
 
