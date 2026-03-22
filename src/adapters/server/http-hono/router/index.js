@@ -17,6 +17,7 @@ const createRouters = ({ application }) => {
   const healthRouter = new Hono();
   const booksRouter = new Hono();
   const importsRouter = new Hono();
+  const progressRouter = new Hono();
   const shelvesRouter = new Hono();
 
   healthRouter.get("/", (c) => {
@@ -166,6 +167,32 @@ const createRouters = ({ application }) => {
     return c.json({ importJob: result });
   });
 
+  progressRouter.get("/:bookId", (c) => {
+    const { bookId } = c.req.param();
+    const userId = c.req.query("userId") ?? "";
+    const result = application.getReadingProgress({
+      bookId,
+      userId,
+    });
+
+    if (!result) {
+      return c.json({ message: "Reading progress not found" }, 404);
+    }
+
+    return c.json({ progress: result });
+  });
+
+  progressRouter.post("/", async (c) => {
+    const progress = await c.req.json();
+    const result = application.saveReadingProgress({ progress });
+
+    if (!result) {
+      return c.json({ message: "Book or user not found" }, 404);
+    }
+
+    return c.json({ progress: result }, 201);
+  });
+
   shelvesRouter.post("/", async (c) => {
     const shelf = await c.req.json();
     const validationResult = validateCreateShelfPayload(shelf);
@@ -258,6 +285,7 @@ const createRouters = ({ application }) => {
     healthRouter,
     booksRouter,
     importsRouter,
+    progressRouter,
     shelvesRouter,
   };
 };

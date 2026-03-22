@@ -1,0 +1,125 @@
+import { describe, expect, it } from "vitest";
+import { createApplication } from "../../../application/index.js";
+import { createClockSystem } from "../../clock/system/index.js";
+import { createIdGeneratorSystem } from "../../id-generator/system/index.js";
+import { createLoggerPino } from "../../logger/pino/index.js";
+import { createPersistenceInMemory } from "../../persistence/in-memory/index.js";
+import { createHonoApp } from "../../server/http-hono/app.js";
+
+describe("http hono progress routes integration", () => {
+  const config = {
+    logger: {
+      debugLogsEnabled: true,
+      defaultMetadata: { serviceName: "test" },
+    },
+    server: {
+      http: {
+        address: "http://localhost:3000",
+        port: 3000,
+        timeoutMs: 1000,
+      },
+    },
+    storage: {
+      paths: {
+        library: "/tmp/litlocker/library",
+        imports: "/tmp/litlocker/imports",
+        covers: "/tmp/litlocker/covers",
+      },
+    },
+    imports: {
+      maxFileSizeInBytes: 50_000_000,
+      allowedFileExtensions: ["epub", "pdf", "cbz", "cbr"],
+      duplicateCheckEnabled: true,
+    },
+    auth: {
+      enabled: false,
+      bootstrapAdminEmail: "",
+      bootstrapAdminPassword: "",
+      sessionTtlMs: 86_400_000,
+    },
+    metadataProviders: {
+      enabledProviders: ["open-library"],
+      lookupTimeoutMs: 5_000,
+      defaultLanguage: "en",
+    },
+  };
+
+  const createTestApp = () => {
+    const clock = createClockSystem();
+    const logger = createLoggerPino({ config: config.logger });
+    const persistence = createPersistenceInMemory();
+    const idGenerator = createIdGeneratorSystem();
+    const application = createApplication({
+      clock,
+      config,
+      persistence,
+      idGenerator,
+      logger,
+    });
+
+    const book = application.createBook({
+      book: {
+        title: "The Left Hand of Darkness",
+      },
+    });
+    const user = persistence.users.create({
+      record: {
+        id: "user-1",
+        email: "reader@example.com",
+        displayName: "Reader",
+        role: "admin",
+      },
+    });
+
+    return {
+      app: createHonoApp({
+        application,
+        config: config.server,
+        logger,
+      }),
+      book,
+      user,
+    };
+  };
+
+  it("should save and retrieve reading progress through the API", async () => {
+    const { app, book, user } = createTestApp();
+
+    const saveResponse = await app.request(
+      new Request("http://localhost/progress", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          bookId: book.id,
+          userId: user.id,
+          format: "epub",
+          locator: "epubcfi(/6/2[cover]!/4/1:0)",
+          percentage: "0.25",
+        }),
+      }),
+    );
+
+    expect(saveResponse.status).toBe(201);
+    const { progress: savedProgress } = await saveResponse.json();
+
+    expect(savedProgress).toEqual({
+      id: savedProgress.id,
+      bookId: book.id,
+      userId: user.id,
+      format: "epub",
+      locator: "epubcfi(/6/2[cover]!/4/1:0)",
+      percentage: "0.25",
+      createdAt: savedProgress.createdAt,
+      updatedAt: savedProgress.updatedAt,
+    });
+
+    const getResponse = await app.request(`http://localhost/progress/${book.id}?userId=${user.id}`);
+
+    expect(getResponse.status).toBe(200);
+    await expect(getResponse.json()).resolves.toEqual({
+      progress: savedProgress,
+    });
+  });
+});
