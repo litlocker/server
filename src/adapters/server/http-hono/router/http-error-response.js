@@ -138,6 +138,7 @@ const respondWithInternalError = ({ context, logger, error }) => {
 };
 
 export {
+  createErrorBody,
   respondWithApplicationFailure,
   respondWithError,
   respondWithInternalError,

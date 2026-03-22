@@ -1,6 +1,6 @@
 /**
  * @import { Application } from "../../../application/interface.js";
- * @import { AuthConfig, Config } from "../../../application/interfaces/config.js";
+ * @import { AuthConfig, Config, ImportsConfig } from "../../../application/interfaces/config.js";
  * @import { Logger } from "../../../application/interfaces/logger.js";
  */
 
@@ -11,6 +11,7 @@ import {
   revokeSession,
 } from "@hono/oidc-auth";
 import { Hono } from "hono";
+import { rateLimiter } from "hono-rate-limiter";
 import { cors } from "hono/cors";
 import { logger as requestLogger } from "hono/logger";
 import { prettyJSON } from "hono/pretty-json";
@@ -18,19 +19,93 @@ import { requestId } from "hono/request-id";
 import { secureHeaders } from "hono/secure-headers";
 import { timeout } from "hono/timeout";
 import { runWithLogContext } from "../../logger/request-context/index.js";
-import { respondWithInternalError } from "./router/http-error-response.js";
+import { createErrorBody, respondWithInternalError } from "./router/http-error-response.js";
 import { createRouters } from "./router/index.js";
+
+/**
+ * @param {import("hono").Context} context
+ * @returns {string}
+ */
+const getRateLimitKey = (context) => {
+  const forwardedFor = context.req.header("x-forwarded-for") || "";
+  const forwardedAddress = forwardedFor.split(",")[0]?.trim() || "";
+  const realIp = context.req.header("x-real-ip") || "";
+  const connectingIp = context.req.header("cf-connecting-ip") || "";
+
+  return forwardedAddress || realIp || connectingIp || "anonymous";
+};
+
+/**
+ * @param {object} params
+ * @param {Logger} params.logger
+ * @param {string} params.code
+ * @param {string} params.message
+ * @param {Record<string, unknown>} params.details
+ * @param {number} params.maxRequests
+ * @param {number} params.windowMs
+ * @param {(context: import("hono").Context) => boolean | Promise<boolean>} [params.skip]
+ * @returns {import("hono").MiddlewareHandler}
+ */
+const createRateLimitMiddleware = ({
+  logger,
+  code,
+  message,
+  details,
+  maxRequests,
+  windowMs,
+  skip,
+}) => {
+  return rateLimiter({
+    limit: maxRequests,
+    windowMs,
+    standardHeaders: "draft-6",
+    keyGenerator: getRateLimitKey,
+    skip,
+    handler: (context) => {
+      logger.warn("HTTP rate limit exceeded", {
+        domain: "http",
+        operation: "rate_limit",
+        path: context.req.path,
+        method: context.req.method,
+        ...details,
+      });
+
+      context.status(429);
+
+      return context.json(
+        createErrorBody({
+          code,
+          message,
+          details: {
+            ...details,
+            maxRequests,
+            windowMs,
+          },
+        }),
+      );
+    },
+  });
+};
 
 /**
  * @param { object } params
  * @param { Application } params.application
  * @param { Config['server'] } params.config
  * @param { AuthConfig } [params.authConfig]
+ * @param {ImportsConfig} [params.importsConfig]
  * @param { Logger } params.logger
  */
-const createHonoApp = ({ application, authConfig, config, logger }) => {
+const createHonoApp = ({ application, authConfig, importsConfig, config, logger }) => {
   const app = new Hono();
   const isAuthEnabled = authConfig?.enabled ?? false;
+  const authRateLimit = authConfig?.rateLimit ?? {
+    windowMs: 60_000,
+    maxRequests: 10,
+  };
+  const uploadRateLimit = importsConfig?.uploadRateLimit ?? {
+    windowMs: 60_000,
+    maxRequests: 10,
+  };
 
   const { healthRouter, booksRouter, importsRouter, progressRouter, shelvesRouter } = createRouters(
     {
@@ -56,6 +131,29 @@ const createHonoApp = ({ application, authConfig, config, logger }) => {
     .use(requestLogger(logger.info))
     .use(timeout(config.http.timeoutMs));
 
+  app.use(
+    "/imports",
+    createRateLimitMiddleware({
+      logger,
+      code: "upload_rate_limit_exceeded",
+      message: "Upload rate limit exceeded",
+      details: {
+        area: "imports",
+      },
+      maxRequests: uploadRateLimit.maxRequests,
+      windowMs: uploadRateLimit.windowMs,
+      skip: (context) => {
+        if (context.req.method !== "POST") {
+          return true;
+        }
+
+        const contentType = context.req.header("content-type") || "";
+
+        return !contentType.startsWith("multipart/form-data");
+      },
+    }),
+  );
+
   if (isAuthEnabled && authConfig) {
     app.use(
       "*",
@@ -70,6 +168,20 @@ const createHonoApp = ({ application, authConfig, config, logger }) => {
         OIDC_COOKIE_NAME: authConfig.sessionCookieName,
         OIDC_COOKIE_PATH: "/",
         OIDC_AUTH_EXTERNAL_URL: config.http.address,
+      }),
+    );
+
+    app.use(
+      "/auth/*",
+      createRateLimitMiddleware({
+        logger,
+        code: "auth_rate_limit_exceeded",
+        message: "Authentication rate limit exceeded",
+        details: {
+          area: "auth",
+        },
+        maxRequests: authRateLimit.maxRequests,
+        windowMs: authRateLimit.windowMs,
       }),
     );
   }

@@ -23,6 +23,10 @@ interface ImportsConfig {
   maxFileSizeInBytes: number;
   allowedFileExtensions: string[];
   duplicateCheckEnabled: boolean;
+  uploadRateLimit: {
+    windowMs: number;
+    maxRequests: number;
+  };
 }
 
 interface DatabaseConfig {
@@ -46,6 +50,10 @@ interface AuthConfig {
   sessionTtlMs: number;
   sessionCookieName: string;
   sessionCookieSecure: boolean;
+  rateLimit: {
+    windowMs: number;
+    maxRequests: number;
+  };
   oidc: {
     issuerUrl: string;
     clientId: string;
@@ -76,4 +84,4 @@ interface Config {
 
 type CreateConfig = () => Config;
 
-export type { AuthConfig, Config, CreateConfig, DatabaseConfig };
+export type { AuthConfig, Config, CreateConfig, DatabaseConfig, ImportsConfig };

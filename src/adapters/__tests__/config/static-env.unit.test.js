@@ -31,6 +31,8 @@ describe("static env config adapter", () => {
     delete process.env.IMPORTS__MAX_FILE_SIZE_IN_BYTES;
     delete process.env.IMPORTS__ALLOWED_FILE_EXTENSIONS;
     delete process.env.IMPORTS__DUPLICATE_CHECK_ENABLED;
+    delete process.env.IMPORTS__UPLOAD_RATE_LIMIT__WINDOW_MS;
+    delete process.env.IMPORTS__UPLOAD_RATE_LIMIT__MAX_REQUESTS;
     delete process.env.DATABASE__HOST;
     delete process.env.DATABASE__PORT;
     delete process.env.DATABASE__USER;
@@ -48,6 +50,8 @@ describe("static env config adapter", () => {
     delete process.env.AUTH__SESSION_TTL_MS;
     delete process.env.AUTH__SESSION_COOKIE_NAME;
     delete process.env.AUTH__SESSION_COOKIE_SECURE;
+    delete process.env.AUTH__RATE_LIMIT__WINDOW_MS;
+    delete process.env.AUTH__RATE_LIMIT__MAX_REQUESTS;
     delete process.env.AUTH__OIDC__ISSUER_URL;
     delete process.env.AUTH__OIDC__CLIENT_ID;
     delete process.env.AUTH__OIDC__CLIENT_SECRET;
@@ -83,6 +87,10 @@ describe("static env config adapter", () => {
         maxFileSizeInBytes: 100_000_000,
         allowedFileExtensions: ["epub", "pdf", "cbz", "cbr"],
         duplicateCheckEnabled: true,
+        uploadRateLimit: {
+          windowMs: 60_000,
+          maxRequests: 10,
+        },
       },
       database: {
         host: "localhost",
@@ -104,6 +112,10 @@ describe("static env config adapter", () => {
         sessionTtlMs: 86_400_000,
         sessionCookieName: "litlocker-session",
         sessionCookieSecure: false,
+        rateLimit: {
+          windowMs: 60_000,
+          maxRequests: 10,
+        },
         oidc: {
           issuerUrl: "",
           clientId: "",
@@ -134,6 +146,8 @@ describe("static env config adapter", () => {
     process.env.IMPORTS__MAX_FILE_SIZE_IN_BYTES = "250000000";
     process.env.IMPORTS__ALLOWED_FILE_EXTENSIONS = "epub,pdf";
     process.env.IMPORTS__DUPLICATE_CHECK_ENABLED = "false";
+    process.env.IMPORTS__UPLOAD_RATE_LIMIT__WINDOW_MS = "120000";
+    process.env.IMPORTS__UPLOAD_RATE_LIMIT__MAX_REQUESTS = "3";
     process.env.DATABASE__HOST = "postgres.internal";
     process.env.DATABASE__PORT = "25432";
     process.env.DATABASE__USER = "litlocker";
@@ -151,6 +165,8 @@ describe("static env config adapter", () => {
     process.env.AUTH__SESSION_TTL_MS = "7200000";
     process.env.AUTH__SESSION_COOKIE_NAME = "litlocker-auth";
     process.env.AUTH__SESSION_COOKIE_SECURE = "true";
+    process.env.AUTH__RATE_LIMIT__WINDOW_MS = "90000";
+    process.env.AUTH__RATE_LIMIT__MAX_REQUESTS = "5";
     process.env.AUTH__OIDC__ISSUER_URL = "https://id.example.com";
     process.env.AUTH__OIDC__CLIENT_ID = "litlocker-web";
     process.env.AUTH__OIDC__CLIENT_SECRET = "top-secret";
@@ -186,6 +202,10 @@ describe("static env config adapter", () => {
         maxFileSizeInBytes: 250_000_000,
         allowedFileExtensions: ["epub", "pdf"],
         duplicateCheckEnabled: false,
+        uploadRateLimit: {
+          windowMs: 120_000,
+          maxRequests: 3,
+        },
       },
       database: {
         host: "postgres.internal",
@@ -207,6 +227,10 @@ describe("static env config adapter", () => {
         sessionTtlMs: 7_200_000,
         sessionCookieName: "litlocker-auth",
         sessionCookieSecure: true,
+        rateLimit: {
+          windowMs: 90_000,
+          maxRequests: 5,
+        },
         oidc: {
           issuerUrl: "https://id.example.com",
           clientId: "litlocker-web",

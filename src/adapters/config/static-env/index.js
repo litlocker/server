@@ -107,6 +107,16 @@ const createConfigStaticEnv = () => {
         name: "IMPORTS__DUPLICATE_CHECK_ENABLED",
         defaultValue: true,
       }),
+      uploadRateLimit: {
+        windowMs: getEnvNumber({
+          name: "IMPORTS__UPLOAD_RATE_LIMIT__WINDOW_MS",
+          defaultValue: 60_000,
+        }),
+        maxRequests: getEnvNumber({
+          name: "IMPORTS__UPLOAD_RATE_LIMIT__MAX_REQUESTS",
+          defaultValue: 10,
+        }),
+      },
     },
     database: {
       host: process.env.DATABASE__HOST || "localhost",
@@ -152,6 +162,16 @@ const createConfigStaticEnv = () => {
         name: "AUTH__SESSION_COOKIE_SECURE",
         defaultValue: false,
       }),
+      rateLimit: {
+        windowMs: getEnvNumber({
+          name: "AUTH__RATE_LIMIT__WINDOW_MS",
+          defaultValue: 60_000,
+        }),
+        maxRequests: getEnvNumber({
+          name: "AUTH__RATE_LIMIT__MAX_REQUESTS",
+          defaultValue: 10,
+        }),
+      },
       oidc: {
         issuerUrl: process.env.AUTH__OIDC__ISSUER_URL || "",
         clientId: process.env.AUTH__OIDC__CLIENT_ID || "",

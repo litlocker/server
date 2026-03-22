@@ -37,6 +37,10 @@ const runServerUnitTests = (createServer) => {
         maxFileSizeInBytes: 50_000_000,
         allowedFileExtensions: ["epub", "pdf", "cbz", "cbr"],
         duplicateCheckEnabled: true,
+        uploadRateLimit: {
+          windowMs: 60_000,
+          maxRequests: 10,
+        },
       },
       database: {
         host: "localhost",
@@ -58,6 +62,10 @@ const runServerUnitTests = (createServer) => {
         sessionTtlMs: 86_400_000,
         sessionCookieName: "litlocker-session",
         sessionCookieSecure: false,
+        rateLimit: {
+          windowMs: 60_000,
+          maxRequests: 10,
+        },
         oidc: {
           issuerUrl: "",
           clientId: "",
@@ -87,6 +95,7 @@ const runServerUnitTests = (createServer) => {
         config: {
           server: config.server,
           auth: config.auth,
+          imports: config.imports,
         },
         logger,
       });
@@ -111,6 +120,7 @@ const runServerUnitTests = (createServer) => {
               config: {
                 server: config.server,
                 auth: config.auth,
+                imports: config.imports,
               },
               logger,
             });
@@ -131,6 +141,7 @@ const runServerUnitTests = (createServer) => {
               config: {
                 server: config.server,
                 auth: config.auth,
+                imports: config.imports,
               },
               logger,
             });
@@ -152,6 +163,7 @@ const runServerUnitTests = (createServer) => {
               config: {
                 server: config.server,
                 auth: config.auth,
+                imports: config.imports,
               },
               logger,
             });
@@ -172,6 +184,7 @@ const runServerUnitTests = (createServer) => {
               config: {
                 server: config.server,
                 auth: config.auth,
+                imports: config.imports,
               },
               logger,
             });
@@ -193,6 +206,7 @@ const runServerUnitTests = (createServer) => {
             config: {
               server: config.server,
               auth: config.auth,
+              imports: config.imports,
             },
             logger,
           });

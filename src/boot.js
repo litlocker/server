@@ -34,6 +34,7 @@ const boot = async () => {
     config: {
       server: config.server,
       auth: config.auth,
+      imports: config.imports,
     },
     logger,
   });

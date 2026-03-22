@@ -15,6 +15,15 @@ describe("http hono import routes", () => {
     },
   };
   const logger = createLoggerMock();
+  const importsConfig = {
+    maxFileSizeInBytes: 100_000_000,
+    allowedFileExtensions: ["epub", "pdf", "cbz", "cbr"],
+    duplicateCheckEnabled: true,
+    uploadRateLimit: {
+      windowMs: 60_000,
+      maxRequests: 10,
+    },
+  };
 
   const createImportJob = () => {
     return {
@@ -260,6 +269,73 @@ describe("http hono import routes", () => {
     await expect(response.json()).resolves.toEqual({
       importJobs,
     });
+  });
+
+  it("should rate limit multipart uploads", async () => {
+    const importJob = createImportJob();
+    const application = createApplicationMock({
+      ingestImportUpload: vi.fn().mockReturnValue(importJob),
+    });
+    const app = createHonoApp({
+      application,
+      config,
+      importsConfig: {
+        ...importsConfig,
+        uploadRateLimit: {
+          windowMs: 60_000,
+          maxRequests: 1,
+        },
+      },
+      logger,
+    });
+    const firstFormData = new FormData();
+    const secondFormData = new FormData();
+
+    firstFormData.set(
+      "file",
+      new File([new Uint8Array([1, 2, 3])], "left-hand.epub", {
+        type: "application/epub+zip",
+      }),
+    );
+    secondFormData.set(
+      "file",
+      new File([new Uint8Array([4, 5, 6])], "dispossessed.epub", {
+        type: "application/epub+zip",
+      }),
+    );
+
+    const firstResponse = await app.request(
+      new Request("http://localhost/imports", {
+        method: "POST",
+        headers: {
+          "x-forwarded-for": "127.0.0.1",
+        },
+        body: firstFormData,
+      }),
+    );
+    const secondResponse = await app.request(
+      new Request("http://localhost/imports", {
+        method: "POST",
+        headers: {
+          "x-forwarded-for": "127.0.0.1",
+        },
+        body: secondFormData,
+      }),
+    );
+
+    expect(firstResponse.status).toBe(201);
+    expect(secondResponse.status).toBe(429);
+    await expect(secondResponse.json()).resolves.toEqual(
+      createExpectedErrorResponse({
+        code: "upload_rate_limit_exceeded",
+        message: "Upload rate limit exceeded",
+        details: {
+          area: "imports",
+          maxRequests: 1,
+          windowMs: 60_000,
+        },
+      }),
+    );
   });
 
   it("should fetch an import job through GET /imports/:id", async () => {

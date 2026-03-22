@@ -79,7 +79,12 @@ const validateConfig = (config) => {
       },
       imports: {
         type: "object",
-        required: ["maxFileSizeInBytes", "allowedFileExtensions", "duplicateCheckEnabled"],
+        required: [
+          "maxFileSizeInBytes",
+          "allowedFileExtensions",
+          "duplicateCheckEnabled",
+          "uploadRateLimit",
+        ],
         properties: {
           maxFileSizeInBytes: { type: "number", minimum: 1 },
           allowedFileExtensions: {
@@ -87,6 +92,14 @@ const validateConfig = (config) => {
             items: { type: "string", minLength: 1 },
           },
           duplicateCheckEnabled: { type: "boolean" },
+          uploadRateLimit: {
+            type: "object",
+            required: ["windowMs", "maxRequests"],
+            properties: {
+              windowMs: { type: "number", minimum: 1 },
+              maxRequests: { type: "number", minimum: 1 },
+            },
+          },
         },
       },
       database: {
@@ -126,6 +139,7 @@ const validateConfig = (config) => {
           "sessionTtlMs",
           "sessionCookieName",
           "sessionCookieSecure",
+          "rateLimit",
           "oidc",
         ],
         properties: {
@@ -136,6 +150,14 @@ const validateConfig = (config) => {
           sessionTtlMs: { type: "number", minimum: 1 },
           sessionCookieName: { type: "string", minLength: 1 },
           sessionCookieSecure: { type: "boolean" },
+          rateLimit: {
+            type: "object",
+            required: ["windowMs", "maxRequests"],
+            properties: {
+              windowMs: { type: "number", minimum: 1 },
+              maxRequests: { type: "number", minimum: 1 },
+            },
+          },
           oidc: {
             type: "object",
             required: [

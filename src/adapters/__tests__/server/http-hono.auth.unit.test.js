@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createHonoApp } from "../../server/http-hono/app.js";
-import { createApplicationMock, createLoggerMock } from "./test-helpers.js";
+import {
+  createApplicationMock,
+  createExpectedErrorResponse,
+  createLoggerMock,
+} from "./test-helpers.js";
 
 const {
   initOidcAuthMiddlewareMock,
@@ -48,6 +52,10 @@ const authConfig = {
   sessionTtlMs: 86_400_000,
   sessionCookieName: "litlocker-session",
   sessionCookieSecure: false,
+  rateLimit: {
+    windowMs: 60_000,
+    maxRequests: 10,
+  },
   oidc: {
     issuerUrl: "https://id.example.com",
     clientId: "litlocker-web",
@@ -290,6 +298,76 @@ describe("hono auth middleware", () => {
       operation: "logout_request",
       path: "/auth/logout",
       statusCode: 200,
+    });
+  });
+
+  it("should rate limit auth routes", async () => {
+    initOidcAuthMiddlewareMock.mockReturnValue(
+      /**
+       * @param {any} _c
+       * @param {() => Promise<Response>|Promise<Response>|Response|undefined} next
+       */
+      async (_c, next) => next(),
+    );
+    oidcAuthMiddlewareMock.mockReturnValue(
+      /**
+       * @param {any} _c
+       * @param {() => Promise<Response>|Promise<Response>|Response|undefined} next
+       */
+      async (_c, next) => next(),
+    );
+    processOAuthCallbackMock.mockResolvedValue(new Response(null, { status: 302 }));
+
+    const logger = createLoggerMock();
+    const app = createHonoApp({
+      application: createApplicationMock(),
+      authConfig: {
+        ...authConfig,
+        rateLimit: {
+          windowMs: 60_000,
+          maxRequests: 1,
+        },
+      },
+      config: serverConfig,
+      logger,
+    });
+
+    const firstResponse = await app.request(
+      "http://localhost/auth/callback?code=test&state=state-1",
+      {
+        headers: {
+          "x-forwarded-for": "127.0.0.1",
+        },
+      },
+    );
+    const secondResponse = await app.request(
+      "http://localhost/auth/callback?code=test&state=state-2",
+      {
+        headers: {
+          "x-forwarded-for": "127.0.0.1",
+        },
+      },
+    );
+
+    expect(firstResponse.status).toBe(302);
+    expect(secondResponse.status).toBe(429);
+    await expect(secondResponse.json()).resolves.toEqual(
+      createExpectedErrorResponse({
+        code: "auth_rate_limit_exceeded",
+        message: "Authentication rate limit exceeded",
+        details: {
+          area: "auth",
+          maxRequests: 1,
+          windowMs: 60_000,
+        },
+      }),
+    );
+    expect(logger.warn).toHaveBeenCalledWith("HTTP rate limit exceeded", {
+      domain: "http",
+      operation: "rate_limit",
+      path: "/auth/callback",
+      method: "GET",
+      area: "auth",
     });
   });
 });

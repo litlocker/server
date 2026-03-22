@@ -32,6 +32,10 @@ const authConfig = {
   sessionTtlMs: 86_400_000,
   sessionCookieName: "litlocker-session",
   sessionCookieSecure: false,
+  rateLimit: {
+    windowMs: 60_000,
+    maxRequests: 10,
+  },
   oidc: {
     issuerUrl: "https://id.example.com",
     clientId: "litlocker-web",

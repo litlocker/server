@@ -30,6 +30,10 @@ describe("http hono health route integration", () => {
       maxFileSizeInBytes: 50_000_000,
       allowedFileExtensions: ["epub", "pdf", "cbz", "cbr"],
       duplicateCheckEnabled: true,
+      uploadRateLimit: {
+        windowMs: 60_000,
+        maxRequests: 10,
+      },
     },
     database: {
       host: "localhost",
@@ -51,6 +55,10 @@ describe("http hono health route integration", () => {
       sessionTtlMs: 86_400_000,
       sessionCookieName: "litlocker-session",
       sessionCookieSecure: false,
+      rateLimit: {
+        windowMs: 60_000,
+        maxRequests: 10,
+      },
       oidc: {
         issuerUrl: "",
         clientId: "",

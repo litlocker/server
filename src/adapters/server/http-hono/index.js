@@ -10,6 +10,7 @@ const createServerHttpHono = ({ application, config, logger }) => {
   const app = createHonoApp({
     application,
     authConfig: config.auth,
+    importsConfig: config.imports,
     config: config.server,
     logger,
   });
