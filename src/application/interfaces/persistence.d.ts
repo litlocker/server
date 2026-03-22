@@ -9,6 +9,7 @@ interface BooksPersistence {
   create: ({ record }: { record: Book }) => Book;
   update: ({ id, updates }: { id: string; updates: Partial<Book> }) => Book | null;
   list: () => Book[];
+  search: ({ query }: { query: string }) => Book[];
   get: ({ id }: { id: string }) => Book | null;
   checkHealth: CheckHealth;
 }

@@ -267,7 +267,7 @@ describe("http hono book routes integration", () => {
     );
 
     const response = await app.request(
-      `http://localhost/books?author=ursula&tag=science-fiction&shelfId=${shelf.id}`,
+      `http://localhost/books?search=darkness&author=ursula&tag=science-fiction&shelfId=${shelf.id}`,
     );
 
     expect(response.status).toBe(200);
@@ -279,6 +279,13 @@ describe("http hono book routes integration", () => {
 
     expect(titleResponse.status).toBe(200);
     await expect(titleResponse.json()).resolves.toEqual({
+      books: [secondBook],
+    });
+
+    const identifierSearchResponse = await app.request("http://localhost/books?search=earthsea");
+
+    expect(identifierSearchResponse.status).toBe(200);
+    await expect(identifierSearchResponse.json()).resolves.toEqual({
       books: [secondBook],
     });
   });

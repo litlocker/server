@@ -12,10 +12,13 @@ const createHealthResult = () => {
   };
 };
 
-const createRecordStore = () => {
-  const records = new Map();
+const normalizeSearchValue = (value) => {
+  return value.trim().toLocaleLowerCase();
+};
 
-  return {
+const createRecordStore = ({ searchRecord } = {}) => {
+  const records = new Map();
+  const store = {
     create: ({ record }) => {
       records.set(record.id, record);
 
@@ -51,6 +54,36 @@ const createRecordStore = () => {
     },
     checkHealth: createHealthResult,
   };
+
+  if (searchRecord) {
+    store.search = ({ query }) => {
+      const normalizedQuery = normalizeSearchValue(query);
+
+      if (!normalizedQuery) {
+        return store.list();
+      }
+
+      return store.list().filter((record) => searchRecord(record, normalizedQuery));
+    };
+  }
+
+  return store;
+};
+
+const doesBookMatchSearchQuery = (book, normalizedQuery) => {
+  const searchableValues = [
+    book.title,
+    book.subtitle,
+    book.description,
+    book.language,
+    ...book.authors,
+    ...book.tags,
+    book.seriesName,
+    book.seriesNumber,
+    ...Object.values(book.identifiers),
+  ];
+
+  return searchableValues.some((value) => value.toLocaleLowerCase().includes(normalizedQuery));
 };
 
 const createReadingProgressStore = () => {
@@ -71,7 +104,9 @@ const createReadingProgressStore = () => {
 
 /** @type { CreatePersistence } */
 const createPersistenceInMemory = () => {
-  const books = createRecordStore();
+  const books = createRecordStore({
+    searchRecord: doesBookMatchSearchQuery,
+  });
   const shelves = createRecordStore();
   const users = createRecordStore();
   const importJobs = createRecordStore();

@@ -189,7 +189,7 @@ describe("http hono book routes", () => {
     const app = createHonoApp({ application, config, logger });
 
     const response = await app.request(
-      "http://localhost/books?title=darkness&author=ursula&tag=science-fiction&shelfId=shelf-1",
+      "http://localhost/books?search=hainish&title=darkness&author=ursula&tag=science-fiction&shelfId=shelf-1",
     );
 
     expect(response.status).toBe(200);
@@ -198,6 +198,7 @@ describe("http hono book routes", () => {
     });
     expect(application.listBooks).toHaveBeenCalledWith({
       filters: {
+        search: "hainish",
         title: "darkness",
         author: "ursula",
         tag: "science-fiction",

@@ -54,13 +54,15 @@ const createRouters = ({ application }) => {
   });
 
   booksRouter.get("/", (c) => {
+    const search = c.req.query("search");
     const title = c.req.query("title");
     const author = c.req.query("author");
     const tag = c.req.query("tag");
     const shelfId = c.req.query("shelfId");
     const filters =
-      title || author || tag || shelfId
+      search || title || author || tag || shelfId
         ? {
+            ...(search ? { search } : {}),
             ...(title ? { title } : {}),
             ...(author ? { author } : {}),
             ...(tag ? { tag } : {}),

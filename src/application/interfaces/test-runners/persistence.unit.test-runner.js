@@ -25,6 +25,7 @@ const runPersistenceUnitTests = (createPersistence) => {
         expect(persistence.books).toHaveProperty("create");
         expect(persistence.books).toHaveProperty("update");
         expect(persistence.books).toHaveProperty("list");
+        expect(persistence.books).toHaveProperty("search");
         expect(persistence.books).toHaveProperty("get");
         expect(persistence.books).toHaveProperty("checkHealth");
 
@@ -131,6 +132,69 @@ const runPersistenceUnitTests = (createPersistence) => {
             userId: user.id,
           }),
         ).toEqual(readingProgress);
+      });
+
+      it("should search books by basic metadata fields", () => {
+        const persistence = createPersistence();
+
+        const firstBook = persistence.books.create({
+          record: {
+            id: "book-1",
+            title: "The Left Hand of Darkness",
+            subtitle: "Hainish Cycle",
+            description: "A landmark science fiction novel",
+            language: "en",
+            authors: ["Ursula K. Le Guin"],
+            tags: ["science-fiction"],
+            seriesName: "Hainish Cycle",
+            seriesNumber: "4",
+            cover: {
+              sourcePath: "",
+              thumbnailPath: "",
+              mimeType: "",
+              dominantColor: "",
+            },
+            identifiers: {
+              isbn10: "",
+              isbn13: "9780441478125",
+              asin: "",
+              goodreadsId: "",
+              googleBooksId: "",
+            },
+            status: "draft",
+          },
+        });
+        const secondBook = persistence.books.create({
+          record: {
+            id: "book-2",
+            title: "Kindred",
+            subtitle: "",
+            description: "A time-travel novel",
+            language: "en",
+            authors: ["Octavia E. Butler"],
+            tags: ["historical-fiction"],
+            seriesName: "",
+            seriesNumber: "",
+            cover: {
+              sourcePath: "",
+              thumbnailPath: "",
+              mimeType: "",
+              dominantColor: "",
+            },
+            identifiers: {
+              isbn10: "",
+              isbn13: "",
+              asin: "",
+              goodreadsId: "",
+              googleBooksId: "",
+            },
+            status: "draft",
+          },
+        });
+
+        expect(persistence.books.search({ query: "ursula" })).toEqual([firstBook]);
+        expect(persistence.books.search({ query: "time-travel" })).toEqual([secondBook]);
+        expect(persistence.books.search({ query: "9780441478125" })).toEqual([firstBook]);
       });
 
       it("should expose health status", () => {

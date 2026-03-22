@@ -1,6 +1,7 @@
 import { Book, CreateBookInput, UpdateBookInput } from "../entities/book.d.ts";
 
 interface ListBooksInput {
+  search?: string;
   title?: string;
   author?: string;
   tag?: string;

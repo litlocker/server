@@ -357,6 +357,79 @@ describe("application", () => {
       ).toEqual([secondBook]);
     });
 
+    it("should search books across basic metadata fields and combine search with filters", () => {
+      const application = createApplication({
+        clock: createClockSystem(),
+        config,
+        persistence: createPersistenceInMemory(),
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+
+      const firstBook = application.createBook({
+        book: {
+          title: "The Left Hand of Darkness",
+          subtitle: "Hainish Cycle",
+          description: "A landmark science fiction novel",
+          authors: ["Ursula K. Le Guin"],
+          tags: ["science-fiction"],
+          seriesName: "Hainish Cycle",
+          identifiers: {
+            isbn13: "9780441478125",
+          },
+        },
+      });
+      const secondBook = application.createBook({
+        book: {
+          title: "Kindred",
+          description: "A time-travel novel",
+          authors: ["Octavia E. Butler"],
+          tags: ["historical-fiction"],
+        },
+      });
+      const shelf = application.createShelf({
+        shelf: {
+          name: "Favorites",
+        },
+      });
+
+      application.addBookToShelf({
+        shelfId: shelf.id,
+        bookId: firstBook.id,
+      });
+
+      expect(
+        application.listBooks({
+          filters: {
+            search: "hainish",
+          },
+        }),
+      ).toEqual([firstBook]);
+      expect(
+        application.listBooks({
+          filters: {
+            search: "9780441478125",
+          },
+        }),
+      ).toEqual([firstBook]);
+      expect(
+        application.listBooks({
+          filters: {
+            search: "novel",
+            shelfId: shelf.id,
+          },
+        }),
+      ).toEqual([firstBook]);
+      expect(
+        application.listBooks({
+          filters: {
+            search: "novel",
+            author: "octavia",
+          },
+        }),
+      ).toEqual([secondBook]);
+    });
+
     it("should fetch a book by id", () => {
       const application = createApplication({
         clock: createClockSystem(),

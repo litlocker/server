@@ -176,6 +176,25 @@ const normalizeSearchValue = (value) => {
  * @returns { boolean }
  */
 const doesBookMatchFilters = (book, filters, shelf) => {
+  if (filters.search) {
+    const normalizedSearch = normalizeSearchValue(filters.search);
+    const matchesSearch = [
+      book.title,
+      book.subtitle,
+      book.description,
+      book.language,
+      ...book.authors,
+      ...book.tags,
+      book.seriesName,
+      book.seriesNumber,
+      ...Object.values(book.identifiers),
+    ].some((value) => value.toLocaleLowerCase().includes(normalizedSearch));
+
+    if (!matchesSearch) {
+      return false;
+    }
+  }
+
   if (filters.title) {
     const normalizedTitle = normalizeSearchValue(filters.title);
 
@@ -258,7 +277,9 @@ const createApplication = ({ clock, config: _config, persistence, idGenerator, l
       });
     },
     listBooks: ({ filters } = {}) => {
-      const books = persistence.books.list();
+      const books = filters?.search
+        ? persistence.books.search({ query: filters.search })
+        : persistence.books.list();
 
       if (!filters) {
         return books;
