@@ -4,8 +4,25 @@
 
 import { describe, expect, it } from "vitest";
 
-/** @param { CreateFileStorage } createFileStorage */
-const runFileStorageUnitTests = (createFileStorage) => {
+/**
+ * @param { CreateFileStorage } createFileStorage
+ * @param { object } [options]
+ * @param { { inbox: string, books: string } } [options.paths]
+ */
+const runFileStorageUnitTests = (
+  createFileStorage,
+  options = {
+    paths: {
+      inbox: "/library/inbox/test-book.epub",
+      books: "/library/books/test-book.epub",
+    },
+  },
+) => {
+  const paths = options.paths ?? {
+    inbox: "/library/inbox/test-book.epub",
+    books: "/library/books/test-book.epub",
+  };
+
   describe("file storage", () => {
     describe("interface", () => {
       it("should have all functions", () => {
@@ -27,7 +44,7 @@ const runFileStorageUnitTests = (createFileStorage) => {
 
         const savedFile = fileStorage.saveFile({
           file: {
-            path: "/library/inbox/test-book.epub",
+            path: paths.inbox,
             name: "test-book.epub",
             mimeType: "application/epub+zip",
             contents,
@@ -35,7 +52,7 @@ const runFileStorageUnitTests = (createFileStorage) => {
         });
 
         expect(savedFile).toEqual({
-          path: "/library/inbox/test-book.epub",
+          path: paths.inbox,
           name: "test-book.epub",
           mimeType: "application/epub+zip",
           sizeInBytes: 3,
@@ -46,11 +63,11 @@ const runFileStorageUnitTests = (createFileStorage) => {
         const movedFile = fileStorage.moveFile({
           file: {
             fromPath: savedFile.path,
-            toPath: "/library/books/test-book.epub",
+            toPath: paths.books,
           },
         });
 
-        expect(movedFile.path).toBe("/library/books/test-book.epub");
+        expect(movedFile.path).toBe(paths.books);
         expect(fileStorage.fileExists({ file: { path: savedFile.path } })).toBe(false);
         expect(fileStorage.fileExists({ file: { path: movedFile.path } })).toBe(true);
 
