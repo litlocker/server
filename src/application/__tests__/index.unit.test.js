@@ -1,3 +1,11 @@
+/**
+ * @import { Config } from "../interfaces/config.js"
+ * @import { FileStorage } from "../interfaces/file-storage.js"
+ * @import { Logger } from "../interfaces/logger.js"
+ * @import { MetadataProvider } from "../interfaces/metadata-provider.js"
+ * @import { HealthStatus, SuccessResult } from "../interfaces/result.js"
+ */
+
 import { describe, expect, it } from "vitest";
 import { createClockSystem } from "../../adapters/clock/system/index.js";
 import { createIdGeneratorSystem } from "../../adapters/id-generator/system/index.js";
@@ -5,6 +13,20 @@ import { createPersistenceInMemory } from "../../adapters/persistence/in-memory/
 import { createApplication } from "../index.js";
 
 describe("application", () => {
+  /**
+   * @returns {SuccessResult<HealthStatus>}
+   */
+  const createHealthSuccessResult = () => {
+    return {
+      success: true,
+      data: {
+        status: "ok",
+        details: {},
+      },
+    };
+  };
+
+  /** @type {Config} */
   const config = {
     logger: {
       debugLogsEnabled: true,
@@ -41,19 +63,18 @@ describe("application", () => {
       defaultLanguage: "en",
     },
   };
+  /** @type {Logger} */
   const logger = {
     debug: () => {},
     info: () => {},
     warn: () => {},
     error: () => {},
-    checkHealth: () => ({
-      success: true,
-      data: {
-        status: "ok",
-        details: {},
-      },
-    }),
+    checkHealth: () => createHealthSuccessResult(),
   };
+
+  /**
+   * @returns {FileStorage}
+   */
   const createTestFileStorage = () => {
     const files = new Map();
 
@@ -102,26 +123,21 @@ describe("application", () => {
         };
       },
       fileExists: ({ file }) => files.has(file.path),
-      checkHealth: () => ({
-        success: true,
-        data: {
-          status: "ok",
-          details: {},
-        },
-      }),
+      checkHealth: () => createHealthSuccessResult(),
     };
   };
+
+  /**
+   * @param {object} [params]
+   * @param {ReturnType<MetadataProvider["extractMetadata"]>} [params.embeddedMetadata]
+   * @param {ReturnType<MetadataProvider["lookupMetadata"]>} [params.lookupResults]
+   * @returns {MetadataProvider}
+   */
   const createTestMetadataProvider = ({ embeddedMetadata = null, lookupResults = [] } = {}) => {
     return {
       extractMetadata: () => embeddedMetadata,
       lookupMetadata: () => lookupResults,
-      checkHealth: () => ({
-        success: true,
-        data: {
-          status: "ok",
-          details: {},
-        },
-      }),
+      checkHealth: () => createHealthSuccessResult(),
     };
   };
 
@@ -768,8 +784,10 @@ describe("application", () => {
 
     it("should return null when updating a missing book", () => {
       const application = createApplication({
+        clock: createClockSystem(),
         config,
         persistence: createPersistenceInMemory(),
+        idGenerator: createIdGeneratorSystem(),
         logger,
       });
 

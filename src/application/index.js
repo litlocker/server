@@ -2,14 +2,19 @@
  * @import { CreateApplication } from './interface.js'
  * @import { BookCover, BookIdentifiers, CreateBookInput, UpdateBookInput } from './entities/book.js'
  * @import { Book } from './entities/book.js'
- * @import { ImportJobDuplicateDetection, ImportJobErrorDetails, ImportJobMetadataCandidate, ImportJobSource, CreateImportJobInput } from './interfaces/import-job.js'
+ * @import { ImportJob, ImportJobDuplicateDetection, ImportJobErrorDetails, ImportJobMetadataCandidate, ImportJobSource, CreateImportJobInput } from './interfaces/import-job.js'
  * @import { ListBooksInput } from './interfaces/book.js'
  * @import { CreateShelfInput, Shelf, UpdateShelfInput } from './interfaces/shelf.js'
+ * @import { FailureResult, HealthStatus, SuccessResult } from './interfaces/result.js'
  */
 
 import { createHash } from "node:crypto";
 import { join } from "node:path";
 
+/**
+ * @param {Record<string, unknown>} details
+ * @returns {SuccessResult<HealthStatus>}
+ */
 const createHealthSuccessResult = (details) => {
   return {
     success: true,
@@ -20,6 +25,10 @@ const createHealthSuccessResult = (details) => {
   };
 };
 
+/**
+ * @param {Record<string, unknown>} details
+ * @returns {FailureResult}
+ */
 const createHealthFailureResult = (details) => {
   return {
     success: false,
@@ -31,6 +40,9 @@ const createHealthFailureResult = (details) => {
   };
 };
 
+/**
+ * @returns {import('./interfaces/file-storage.js').FileStorage}
+ */
 const createDefaultFileStorage = () => {
   return {
     saveFile: () => {
@@ -52,6 +64,9 @@ const createDefaultFileStorage = () => {
   };
 };
 
+/**
+ * @returns {import('./interfaces/metadata-provider.js').MetadataProvider}
+ */
 const createDefaultMetadataProvider = () => {
   return {
     extractMetadata: () => null,
@@ -149,6 +164,10 @@ const normalizeImportJobMetadataCandidate = (metadataCandidate) => {
   };
 };
 
+/**
+ * @param {Exclude<ReturnType<import('./interfaces/metadata-provider.js').MetadataProvider['extractMetadata']>, null>} metadataRecord
+ * @returns {ImportJobMetadataCandidate}
+ */
 const createImportJobMetadataCandidateFromRecord = (metadataRecord) => {
   return normalizeImportJobMetadataCandidate({
     ...metadataRecord,
@@ -156,6 +175,10 @@ const createImportJobMetadataCandidateFromRecord = (metadataRecord) => {
   });
 };
 
+/**
+ * @param {ReturnType<import('./interfaces/metadata-provider.js').MetadataProvider['lookupMetadata']>[number]} metadataRecord
+ * @returns {ImportJobMetadataCandidate}
+ */
 const createImportJobMetadataCandidateFromLookupRecord = (metadataRecord) => {
   return normalizeImportJobMetadataCandidate({
     ...metadataRecord,
@@ -172,7 +195,7 @@ const normalizeImportJobMetadataCandidates = (metadataCandidates) => {
 };
 
 /**
- * @param { Partial<ImportJobErrorDetails> | undefined } error
+ * @param { Partial<ImportJobErrorDetails> } [error]
  * @returns { ImportJobErrorDetails }
  */
 const normalizeImportJobError = (error) => {
@@ -184,7 +207,7 @@ const normalizeImportJobError = (error) => {
 };
 
 /**
- * @param { Partial<ImportJobDuplicateDetection> | undefined } duplicateDetection
+ * @param { Partial<ImportJobDuplicateDetection> } [duplicateDetection]
  * @returns { ImportJobDuplicateDetection }
  */
 const normalizeImportJobDuplicateDetection = (duplicateDetection) => {
@@ -201,6 +224,7 @@ const normalizeImportJobDuplicateDetection = (duplicateDetection) => {
 
 /**
  * @param { CreateImportJobInput } job
+ * @returns { Omit<ImportJob, "id"> }
  */
 const normalizeImportJob = (job) => {
   return {
@@ -214,14 +238,28 @@ const normalizeImportJob = (job) => {
   };
 };
 
+/**
+ * @param {BookIdentifiers} identifiers
+ * @returns {[string, string][]}
+ */
 const getNonEmptyIdentifierEntries = (identifiers) => {
   return Object.entries(identifiers).filter(([, value]) => value !== "");
 };
 
+/**
+ * @param {Uint8Array} contents
+ * @returns {string}
+ */
 const createFileHash = (contents) => {
   return createHash("sha256").update(Buffer.from(contents)).digest("hex");
 };
 
+/**
+ * @param {object} params
+ * @param {string} params.fileHash
+ * @param {ImportJob[]} params.importJobs
+ * @returns {string[]}
+ */
 const findDuplicateImportJobIds = ({ fileHash, importJobs }) => {
   if (!fileHash) {
     return [];
@@ -232,6 +270,12 @@ const findDuplicateImportJobIds = ({ fileHash, importJobs }) => {
     .map((importJob) => importJob.id);
 };
 
+/**
+ * @param {object} params
+ * @param {Book[]} params.books
+ * @param {ImportJobMetadataCandidate[]} params.metadataCandidates
+ * @returns {string[]}
+ */
 const findDuplicateBookIds = ({ books, metadataCandidates }) => {
   if (metadataCandidates.length === 0) {
     return [];
@@ -266,6 +310,14 @@ const findDuplicateBookIds = ({ books, metadataCandidates }) => {
   return Array.from(duplicateBookIds);
 };
 
+/**
+ * @param {object} params
+ * @param {boolean} params.duplicateCheckEnabled
+ * @param {string} params.fileHash
+ * @param {ImportJobMetadataCandidate[]} params.metadataCandidates
+ * @param {import('./interfaces/persistence.js').Persistence} params.persistence
+ * @returns {ImportJobDuplicateDetection}
+ */
 const createDuplicateDetection = ({
   duplicateCheckEnabled,
   fileHash,
@@ -289,6 +341,13 @@ const createDuplicateDetection = ({
   });
 };
 
+/**
+ * @param {object} params
+ * @param {import('./interfaces/metadata-provider.js').MetadataProvider} params.metadataProvider
+ * @param {string} params.filePath
+ * @param {string} params.fileType
+ * @returns {ImportJobMetadataCandidate[]}
+ */
 const createEmbeddedMetadataCandidates = ({ metadataProvider, filePath, fileType }) => {
   if (!filePath || !fileType) {
     return [];
@@ -308,6 +367,12 @@ const createEmbeddedMetadataCandidates = ({ metadataProvider, filePath, fileType
   return [createImportJobMetadataCandidateFromRecord(metadataRecord)];
 };
 
+/**
+ * @param {object} params
+ * @param {import('./interfaces/metadata-provider.js').MetadataProvider} params.metadataProvider
+ * @param {ImportJobMetadataCandidate[]} params.metadataCandidates
+ * @returns {ImportJobMetadataCandidate[]}
+ */
 const createExternalMetadataCandidates = ({ metadataProvider, metadataCandidates }) => {
   const [primaryMetadataCandidate] = metadataCandidates;
 
@@ -370,6 +435,10 @@ const createStoredCoverPath = ({ coversPath, importJobId, sourceCoverPath }) => 
   return join(coversPath, `${importJobId}${fileExtension}`);
 };
 
+/**
+ * @param {string} filePath
+ * @returns {string}
+ */
 const createMimeTypeFromFilePath = (filePath) => {
   const normalizedPath = filePath.toLocaleLowerCase();
 
@@ -388,6 +457,13 @@ const createMimeTypeFromFilePath = (filePath) => {
   return "";
 };
 
+/**
+ * @param {object} params
+ * @param {ImportJobMetadataCandidate[]} params.metadataCandidates
+ * @param {number} params.metadataCandidateIndex
+ * @param {Partial<ImportJobMetadataCandidate>} params.updates
+ * @returns {ImportJobMetadataCandidate[]}
+ */
 const updateMetadataCandidateAtIndex = ({
   metadataCandidates,
   metadataCandidateIndex,
@@ -405,6 +481,13 @@ const updateMetadataCandidateAtIndex = ({
   });
 };
 
+/**
+ * @param {object} params
+ * @param {import('./interfaces/config.js').Config} params.config
+ * @param {import('./interfaces/file-storage.js').FileStorage} params.fileStorage
+ * @param {ImportJob} params.importJob
+ * @returns {ImportJob}
+ */
 const storeSelectedMetadataCandidateCover = ({ config, fileStorage, importJob }) => {
   if (importJob.selectedMetadataCandidateIndex < 0) {
     return importJob;
@@ -499,6 +582,7 @@ const normalizeBookUpdates = ({ currentBook, updates }) => {
 
 /**
  * @param { CreateShelfInput } shelf
+ * @returns { Omit<Shelf, "id"> }
  */
 const normalizeShelf = (shelf) => {
   return {

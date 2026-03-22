@@ -2,6 +2,10 @@
  * @import { CreateMetadataProvider } from "../../../application/interfaces/metadata-provider.js";
  */
 
+/**
+ * @param {object} params
+ * @param {string} params.source
+ */
 const createMetadataRecord = ({ source }) => {
   return {
     title: "Test Book",

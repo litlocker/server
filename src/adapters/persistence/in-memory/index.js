@@ -1,7 +1,13 @@
 /**
- * @import { CreatePersistence } from "../../../application/interfaces/persistence.js";
+ * @import { CreatePersistence, Persistence } from "../../../application/interfaces/persistence.js";
+ * @import { Book } from "../../../application/entities/book.js";
+ * @import { ReadingProgress } from "../../../application/interfaces/reading-progress.js";
+ * @import { HealthStatus, SuccessResult } from "../../../application/interfaces/result.js";
  */
 
+/**
+ * @returns {SuccessResult<HealthStatus>}
+ */
 const createHealthResult = () => {
   return {
     success: true,
@@ -12,12 +18,33 @@ const createHealthResult = () => {
   };
 };
 
+/**
+ * @param {string} value
+ * @returns {string}
+ */
 const normalizeSearchValue = (value) => {
   return value.trim().toLocaleLowerCase();
 };
 
+/**
+ * @template {{ id: string }} TRecord
+ * @param {object} [params]
+ * @param {(record: TRecord, normalizedQuery: string) => boolean} [params.searchRecord]
+ */
 const createRecordStore = ({ searchRecord } = {}) => {
+  /** @type {Map<string, TRecord>} */
   const records = new Map();
+  /**
+   * @type {{
+   *   create: ({ record }: { record: TRecord }) => TRecord;
+   *   update: ({ id, updates }: { id: string; updates: Partial<TRecord> }) => TRecord | null;
+   *   list: () => TRecord[];
+   *   get: ({ id }: { id: string }) => TRecord | null;
+   *   delete: ({ id }: { id: string }) => { success: boolean };
+   *   checkHealth: typeof createHealthResult;
+   *   search?: ({ query }: { query: string }) => TRecord[];
+   * }}
+   */
   const store = {
     create: ({ record }) => {
       records.set(record.id, record);
@@ -70,6 +97,11 @@ const createRecordStore = ({ searchRecord } = {}) => {
   return store;
 };
 
+/**
+ * @param {Book} book
+ * @param {string} normalizedQuery
+ * @returns {boolean}
+ */
 const doesBookMatchSearchQuery = (book, normalizedQuery) => {
   const searchableValues = [
     book.title,
@@ -86,15 +118,21 @@ const doesBookMatchSearchQuery = (book, normalizedQuery) => {
   return searchableValues.some((value) => value.toLocaleLowerCase().includes(normalizedQuery));
 };
 
+/**
+ * @returns {Persistence["readingProgress"]}
+ */
 const createReadingProgressStore = () => {
+  /** @type {Map<string, ReadingProgress>} */
   const records = new Map();
 
   return {
+    /** @param {{ record: ReadingProgress }} params */
     save: ({ record }) => {
       records.set(`${record.bookId}:${record.userId}`, record);
 
       return record;
     },
+    /** @param {{ bookId: string; userId: string }} params */
     get: ({ bookId, userId }) => {
       return records.get(`${bookId}:${userId}`) ?? null;
     },
@@ -104,11 +142,17 @@ const createReadingProgressStore = () => {
 
 /** @type { CreatePersistence } */
 const createPersistenceInMemory = () => {
-  const books = createRecordStore({
-    searchRecord: doesBookMatchSearchQuery,
-  });
+  const books =
+    /** @type {Persistence["books"]} */ (
+      createRecordStore({
+        searchRecord: doesBookMatchSearchQuery,
+      })
+    );
+  /** @type {Persistence["shelves"]} */
   const shelves = createRecordStore();
+  /** @type {Persistence["users"]} */
   const users = createRecordStore();
+  /** @type {Persistence["importJobs"]} */
   const importJobs = createRecordStore();
   const readingProgress = createReadingProgressStore();
 

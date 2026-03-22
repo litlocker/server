@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createHonoApp } from "../../server/http-hono/app.js";
+import { createApplicationMock, createLoggerMock } from "./test-helpers.js";
 
 describe("http hono book routes", () => {
   const config = {
@@ -9,9 +10,7 @@ describe("http hono book routes", () => {
       timeoutMs: 1000,
     },
   };
-  const logger = {
-    info: () => {},
-  };
+  const logger = createLoggerMock();
 
   it("should create a book through POST /books", async () => {
     const createdBook = {
@@ -39,12 +38,9 @@ describe("http hono book routes", () => {
       },
       status: "draft",
     };
-    const application = {
+    const application = createApplicationMock({
       createBook: vi.fn().mockReturnValue(createdBook),
-      updateBook: vi.fn(),
-      listBooks: vi.fn(),
-      getBook: vi.fn(),
-    };
+    });
     const app = createHonoApp({ application, config, logger });
 
     const response = await app.request(
@@ -71,12 +67,7 @@ describe("http hono book routes", () => {
   });
 
   it("should reject an invalid book payload through POST /books", async () => {
-    const application = {
-      createBook: vi.fn(),
-      updateBook: vi.fn(),
-      listBooks: vi.fn(),
-      getBook: vi.fn(),
-    };
+    const application = createApplicationMock();
     const app = createHonoApp({ application, config, logger });
 
     const response = await app.request(
@@ -127,12 +118,9 @@ describe("http hono book routes", () => {
         status: "draft",
       },
     ];
-    const application = {
-      createBook: vi.fn(),
-      updateBook: vi.fn(),
+    const application = createApplicationMock({
       listBooks: vi.fn().mockReturnValue(books),
-      getBook: vi.fn(),
-    };
+    });
     const app = createHonoApp({ application, config, logger });
 
     const response = await app.request("http://localhost/books");
@@ -174,18 +162,9 @@ describe("http hono book routes", () => {
         status: "draft",
       },
     ];
-    const application = {
-      createBook: vi.fn(),
-      updateBook: vi.fn(),
+    const application = createApplicationMock({
       listBooks: vi.fn().mockReturnValue(books),
-      getBook: vi.fn(),
-      createShelf: vi.fn(),
-      updateShelf: vi.fn(),
-      listShelves: vi.fn(),
-      deleteShelf: vi.fn(),
-      addBookToShelf: vi.fn(),
-      removeBookFromShelf: vi.fn(),
-    };
+    });
     const app = createHonoApp({ application, config, logger });
 
     const response = await app.request(
@@ -233,12 +212,9 @@ describe("http hono book routes", () => {
       },
       status: "draft",
     };
-    const application = {
-      createBook: vi.fn(),
+    const application = createApplicationMock({
       updateBook: vi.fn().mockReturnValue(updatedBook),
-      listBooks: vi.fn(),
-      getBook: vi.fn(),
-    };
+    });
     const app = createHonoApp({ application, config, logger });
 
     const response = await app.request(
@@ -268,12 +244,7 @@ describe("http hono book routes", () => {
   });
 
   it("should reject an invalid book payload through PATCH /books/:id", async () => {
-    const application = {
-      createBook: vi.fn(),
-      updateBook: vi.fn(),
-      listBooks: vi.fn(),
-      getBook: vi.fn(),
-    };
+    const application = createApplicationMock();
     const app = createHonoApp({ application, config, logger });
 
     const response = await app.request(
@@ -295,12 +266,9 @@ describe("http hono book routes", () => {
   });
 
   it("should return 404 when PATCH /books/:id cannot find a book", async () => {
-    const application = {
-      createBook: vi.fn(),
+    const application = createApplicationMock({
       updateBook: vi.fn().mockReturnValue(null),
-      listBooks: vi.fn(),
-      getBook: vi.fn(),
-    };
+    });
     const app = createHonoApp({ application, config, logger });
 
     const response = await app.request(
@@ -353,12 +321,9 @@ describe("http hono book routes", () => {
       },
       status: "draft",
     };
-    const application = {
-      createBook: vi.fn(),
-      updateBook: vi.fn(),
-      listBooks: vi.fn(),
+    const application = createApplicationMock({
       getBook: vi.fn().mockReturnValue(book),
-    };
+    });
     const app = createHonoApp({ application, config, logger });
 
     const response = await app.request("http://localhost/books/book-1");
@@ -371,12 +336,9 @@ describe("http hono book routes", () => {
   });
 
   it("should return 404 when GET /books/:id cannot find a book", async () => {
-    const application = {
-      createBook: vi.fn(),
-      updateBook: vi.fn(),
-      listBooks: vi.fn(),
+    const application = createApplicationMock({
       getBook: vi.fn().mockReturnValue(null),
-    };
+    });
     const app = createHonoApp({ application, config, logger });
 
     const response = await app.request("http://localhost/books/missing-book-id");

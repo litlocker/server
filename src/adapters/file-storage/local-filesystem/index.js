@@ -1,6 +1,7 @@
 /**
- * @import { Config } from "../../../../application/interfaces/config.js";
- * @import { FileStorage } from "../../../../application/interfaces/file-storage.js";
+ * @import { Config } from "../../../application/interfaces/config.js";
+ * @import { FileStorage, FileStorageEntry } from "../../../application/interfaces/file-storage.js";
+ * @import { FailureResult, SuccessResult, HealthStatus } from "../../../application/interfaces/result.js";
  */
 
 import {
@@ -14,6 +15,10 @@ import {
 } from "node:fs";
 import { basename, dirname, resolve, sep } from "node:path";
 
+/**
+ * @param {Record<string, unknown>} details
+ * @returns {SuccessResult<HealthStatus>}
+ */
 const createHealthSuccessResult = (details) => {
   return {
     success: true,
@@ -24,6 +29,10 @@ const createHealthSuccessResult = (details) => {
   };
 };
 
+/**
+ * @param {Record<string, unknown>} error
+ * @returns {FailureResult}
+ */
 const createHealthFailureResult = (error) => {
   return {
     success: false,
@@ -35,10 +44,20 @@ const createHealthFailureResult = (error) => {
   };
 };
 
+/**
+ * @param {object} params
+ * @param {string} params.path
+ * @param {string} params.root
+ * @returns {boolean}
+ */
 const isPathInsideRoot = ({ path, root }) => {
   return path === root || path.startsWith(`${root}${sep}`);
 };
 
+/**
+ * @param {Pick<Config, "storage">} config
+ * @returns {string[]}
+ */
 const createAllowedRoots = (config) => {
   return [
     resolve(config.storage.paths.library),
@@ -47,6 +66,14 @@ const createAllowedRoots = (config) => {
   ];
 };
 
+/**
+ * @param {object} params
+ * @param {string} params.path
+ * @param {string} params.name
+ * @param {string} params.mimeType
+ * @param {number} params.sizeInBytes
+ * @returns {FileStorageEntry}
+ */
 const createMetadataEntry = ({ path, name, mimeType, sizeInBytes }) => {
   return {
     path,
@@ -86,7 +113,7 @@ const ensureParentDirectory = ({ path, allowedRoots }) => {
 
 /**
  * @param { object } params
- * @param { Config } params.config
+ * @param { Pick<Config, "storage"> } params.config
  * @returns { FileStorage }
  */
 const createFileStorageLocalFilesystem = ({ config }) => {

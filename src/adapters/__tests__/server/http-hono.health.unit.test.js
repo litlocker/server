@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createHonoApp } from "../../server/http-hono/app.js";
+import { createApplicationMock, createLoggerMock } from "./test-helpers.js";
 
 describe("http hono health route", () => {
   const config = {
@@ -9,12 +10,10 @@ describe("http hono health route", () => {
       timeoutMs: 1000,
     },
   };
-  const logger = {
-    info: () => {},
-  };
+  const logger = createLoggerMock();
 
   it("should return the application health status through GET /health", async () => {
-    const application = {
+    const application = createApplicationMock({
       health: vi.fn().mockReturnValue({
         success: true,
         data: {
@@ -53,11 +52,7 @@ describe("http hono health route", () => {
           },
         },
       }),
-      createBook: vi.fn(),
-      updateBook: vi.fn(),
-      listBooks: vi.fn(),
-      getBook: vi.fn(),
-    };
+    });
     const app = createHonoApp({ application, config, logger });
 
     const response = await app.request("http://localhost/health");
@@ -102,7 +97,7 @@ describe("http hono health route", () => {
   });
 
   it("should return 503 when the application health check fails", async () => {
-    const application = {
+    const application = createApplicationMock({
       health: vi.fn().mockReturnValue({
         success: false,
         error: {
@@ -113,11 +108,7 @@ describe("http hono health route", () => {
           },
         },
       }),
-      createBook: vi.fn(),
-      updateBook: vi.fn(),
-      listBooks: vi.fn(),
-      getBook: vi.fn(),
-    };
+    });
     const app = createHonoApp({ application, config, logger });
 
     const response = await app.request("http://localhost/health");

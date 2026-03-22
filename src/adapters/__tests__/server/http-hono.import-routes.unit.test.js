@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { createHonoApp } from "../../server/http-hono/app.js";
+import { createApplicationMock, createLoggerMock } from "./test-helpers.js";
 
 describe("http hono import routes", () => {
   const config = {
@@ -9,9 +10,7 @@ describe("http hono import routes", () => {
       timeoutMs: 1000,
     },
   };
-  const logger = {
-    info: () => {},
-  };
+  const logger = createLoggerMock();
 
   const createImportJob = () => {
     return {
@@ -38,6 +37,12 @@ describe("http hono import routes", () => {
     };
   };
 
+  /**
+   * @param {object} params
+   * @param {string} params.code
+   * @param {string} params.message
+   * @param {string} params.details
+   */
   const createFailedImportJob = ({ code, message, details }) => {
     return {
       ...createImportJob(),
@@ -52,13 +57,9 @@ describe("http hono import routes", () => {
 
   it("should create an import job through POST /imports with JSON", async () => {
     const importJob = createImportJob();
-    const application = {
+    const application = createApplicationMock({
       createImportJob: vi.fn().mockReturnValue(importJob),
-      ingestImportUpload: vi.fn(),
-      listImportJobs: vi.fn(),
-      getImportJob: vi.fn(),
-      finalizeImportJob: vi.fn(),
-    };
+    });
     const app = createHonoApp({ application, config, logger });
 
     const response = await app.request(
@@ -96,13 +97,9 @@ describe("http hono import routes", () => {
 
   it("should ingest an upload through POST /imports multipart", async () => {
     const importJob = createImportJob();
-    const application = {
-      createImportJob: vi.fn(),
+    const application = createApplicationMock({
       ingestImportUpload: vi.fn().mockReturnValue(importJob),
-      listImportJobs: vi.fn(),
-      getImportJob: vi.fn(),
-      finalizeImportJob: vi.fn(),
-    };
+    });
     const app = createHonoApp({ application, config, logger });
     const formData = new FormData();
 
@@ -134,13 +131,7 @@ describe("http hono import routes", () => {
   });
 
   it("should return 400 when POST /imports multipart is missing the file", async () => {
-    const application = {
-      createImportJob: vi.fn(),
-      ingestImportUpload: vi.fn(),
-      listImportJobs: vi.fn(),
-      getImportJob: vi.fn(),
-      finalizeImportJob: vi.fn(),
-    };
+    const application = createApplicationMock();
     const app = createHonoApp({ application, config, logger });
 
     const response = await app.request(
@@ -163,13 +154,9 @@ describe("http hono import routes", () => {
       message: "Unsupported file type",
       details: "txt is not an allowed import file type",
     });
-    const application = {
-      createImportJob: vi.fn(),
+    const application = createApplicationMock({
       ingestImportUpload: vi.fn().mockReturnValue(importJob),
-      listImportJobs: vi.fn(),
-      getImportJob: vi.fn(),
-      finalizeImportJob: vi.fn(),
-    };
+    });
     const app = createHonoApp({ application, config, logger });
     const formData = new FormData();
 
@@ -199,13 +186,9 @@ describe("http hono import routes", () => {
       message: "Metadata could not be parsed",
       details: "Embedded metadata was malformed",
     });
-    const application = {
+    const application = createApplicationMock({
       createImportJob: vi.fn().mockReturnValue(importJob),
-      ingestImportUpload: vi.fn(),
-      listImportJobs: vi.fn(),
-      getImportJob: vi.fn(),
-      finalizeImportJob: vi.fn(),
-    };
+    });
     const app = createHonoApp({ application, config, logger });
 
     const response = await app.request(
@@ -232,15 +215,11 @@ describe("http hono import routes", () => {
   });
 
   it("should propagate storage failures from the application during upload ingestion", async () => {
-    const application = {
-      createImportJob: vi.fn(),
+    const application = createApplicationMock({
       ingestImportUpload: vi.fn().mockImplementation(() => {
         throw new Error("Storage unavailable");
       }),
-      listImportJobs: vi.fn(),
-      getImportJob: vi.fn(),
-      finalizeImportJob: vi.fn(),
-    };
+    });
     const app = createHonoApp({ application, config, logger });
     const formData = new FormData();
 
@@ -263,13 +242,9 @@ describe("http hono import routes", () => {
 
   it("should list import jobs through GET /imports", async () => {
     const importJobs = [createImportJob()];
-    const application = {
-      createImportJob: vi.fn(),
-      ingestImportUpload: vi.fn(),
+    const application = createApplicationMock({
       listImportJobs: vi.fn().mockReturnValue(importJobs),
-      getImportJob: vi.fn(),
-      finalizeImportJob: vi.fn(),
-    };
+    });
     const app = createHonoApp({ application, config, logger });
 
     const response = await app.request("http://localhost/imports");
@@ -282,13 +257,9 @@ describe("http hono import routes", () => {
 
   it("should fetch an import job through GET /imports/:id", async () => {
     const importJob = createImportJob();
-    const application = {
-      createImportJob: vi.fn(),
-      ingestImportUpload: vi.fn(),
-      listImportJobs: vi.fn(),
+    const application = createApplicationMock({
       getImportJob: vi.fn().mockReturnValue(importJob),
-      finalizeImportJob: vi.fn(),
-    };
+    });
     const app = createHonoApp({ application, config, logger });
 
     const response = await app.request("http://localhost/imports/import-job-1");
@@ -303,13 +274,9 @@ describe("http hono import routes", () => {
   });
 
   it("should return 404 for a missing import job through GET /imports/:id", async () => {
-    const application = {
-      createImportJob: vi.fn(),
-      ingestImportUpload: vi.fn(),
-      listImportJobs: vi.fn(),
+    const application = createApplicationMock({
       getImportJob: vi.fn().mockReturnValue(null),
-      finalizeImportJob: vi.fn(),
-    };
+    });
     const app = createHonoApp({ application, config, logger });
 
     const response = await app.request("http://localhost/imports/missing-import-job-id");
@@ -325,13 +292,9 @@ describe("http hono import routes", () => {
       ...createImportJob(),
       status: "completed",
     };
-    const application = {
-      createImportJob: vi.fn(),
-      ingestImportUpload: vi.fn(),
-      listImportJobs: vi.fn(),
-      getImportJob: vi.fn(),
+    const application = createApplicationMock({
       finalizeImportJob: vi.fn().mockReturnValue(importJob),
-    };
+    });
     const app = createHonoApp({ application, config, logger });
 
     const response = await app.request(
@@ -350,13 +313,9 @@ describe("http hono import routes", () => {
   });
 
   it("should return 404 when an import job cannot be finalized", async () => {
-    const application = {
-      createImportJob: vi.fn(),
-      ingestImportUpload: vi.fn(),
-      listImportJobs: vi.fn(),
-      getImportJob: vi.fn(),
+    const application = createApplicationMock({
       finalizeImportJob: vi.fn().mockReturnValue(null),
-    };
+    });
     const app = createHonoApp({ application, config, logger });
 
     const response = await app.request(

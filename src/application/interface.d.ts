@@ -25,7 +25,7 @@ import {
 type Health = () => Result<HealthStatus>;
 type CreateBook = ({ book }: { book: CreateBookInput }) => Book;
 type UpdateBook = ({ id, updates }: { id: string; updates: UpdateBookInput }) => Book | null;
-type ListBooks = ({ filters }: { filters?: ListBooksInput }) => Book[];
+type ListBooks = (input?: { filters?: ListBooksInput }) => Book[];
 type GetBook = ({ id }: { id: string }) => Book | null;
 type CreateShelf = ({ shelf }: { shelf: CreateShelfInput }) => Shelf;
 type UpdateShelf = ({ id, updates }: { id: string; updates: UpdateShelfInput }) => Shelf | null;
@@ -63,9 +63,9 @@ interface Application {
 interface Deps {
   clock: Clock;
   config: Config;
-  fileStorage: FileStorage;
+  fileStorage?: FileStorage;
   logger: Logger;
-  metadataProvider: MetadataProvider;
+  metadataProvider?: MetadataProvider;
   persistence: Persistence;
   idGenerator: IdGenerator;
 }

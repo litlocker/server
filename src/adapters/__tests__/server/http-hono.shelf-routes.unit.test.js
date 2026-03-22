@@ -1,5 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { createHonoApp } from "../../server/http-hono/app.js";
+import { createApplicationMock, createLoggerMock } from "./test-helpers.js";
 
 describe("http hono shelf routes", () => {
   const config = {
@@ -9,23 +10,7 @@ describe("http hono shelf routes", () => {
       timeoutMs: 1000,
     },
   };
-  const logger = {
-    info: () => {},
-  };
-
-  const createApplication = () => ({
-    health: vi.fn(),
-    createBook: vi.fn(),
-    updateBook: vi.fn(),
-    listBooks: vi.fn(),
-    getBook: vi.fn(),
-    createShelf: vi.fn(),
-    updateShelf: vi.fn(),
-    listShelves: vi.fn(),
-    deleteShelf: vi.fn(),
-    addBookToShelf: vi.fn(),
-    removeBookFromShelf: vi.fn(),
-  });
+  const logger = createLoggerMock();
 
   it("should create a shelf through POST /shelves", async () => {
     const shelf = {
@@ -35,7 +20,7 @@ describe("http hono shelf routes", () => {
       description: "",
       bookIds: [],
     };
-    const application = createApplication();
+    const application = createApplicationMock();
     application.createShelf.mockReturnValue(shelf);
     const app = createHonoApp({ application, config, logger });
 
@@ -63,7 +48,7 @@ describe("http hono shelf routes", () => {
   });
 
   it("should reject an invalid shelf payload through POST /shelves", async () => {
-    const application = createApplication();
+    const application = createApplicationMock();
     const app = createHonoApp({ application, config, logger });
 
     const response = await app.request(
@@ -96,7 +81,7 @@ describe("http hono shelf routes", () => {
         bookIds: [],
       },
     ];
-    const application = createApplication();
+    const application = createApplicationMock();
     application.listShelves.mockReturnValue(shelves);
     const app = createHonoApp({ application, config, logger });
 
@@ -117,7 +102,7 @@ describe("http hono shelf routes", () => {
       description: "",
       bookIds: [],
     };
-    const application = createApplication();
+    const application = createApplicationMock();
     application.updateShelf.mockReturnValue(shelf);
     const app = createHonoApp({ application, config, logger });
 
@@ -146,7 +131,7 @@ describe("http hono shelf routes", () => {
   });
 
   it("should reject an invalid shelf payload through PATCH /shelves/:id", async () => {
-    const application = createApplication();
+    const application = createApplicationMock();
     const app = createHonoApp({ application, config, logger });
 
     const response = await app.request(
@@ -168,7 +153,7 @@ describe("http hono shelf routes", () => {
   });
 
   it("should return 404 when PATCH /shelves/:id cannot find a shelf", async () => {
-    const application = createApplication();
+    const application = createApplicationMock();
     application.updateShelf.mockReturnValue(null);
     const app = createHonoApp({ application, config, logger });
 
@@ -191,7 +176,7 @@ describe("http hono shelf routes", () => {
   });
 
   it("should delete a shelf through DELETE /shelves/:id", async () => {
-    const application = createApplication();
+    const application = createApplicationMock();
     application.deleteShelf.mockReturnValue({ success: true });
     const app = createHonoApp({ application, config, logger });
 
@@ -211,7 +196,7 @@ describe("http hono shelf routes", () => {
   });
 
   it("should return 404 when DELETE /shelves/:id cannot find a shelf", async () => {
-    const application = createApplication();
+    const application = createApplicationMock();
     application.deleteShelf.mockReturnValue({ success: false });
     const app = createHonoApp({ application, config, logger });
 
@@ -235,7 +220,7 @@ describe("http hono shelf routes", () => {
       description: "",
       bookIds: ["book-1"],
     };
-    const application = createApplication();
+    const application = createApplicationMock();
     application.addBookToShelf.mockReturnValue(shelf);
     const app = createHonoApp({ application, config, logger });
 
@@ -256,7 +241,7 @@ describe("http hono shelf routes", () => {
   });
 
   it("should return 404 when POST /shelves/:id/books/:bookId cannot find a shelf or book", async () => {
-    const application = createApplication();
+    const application = createApplicationMock();
     application.addBookToShelf.mockReturnValue(null);
     const app = createHonoApp({ application, config, logger });
 
@@ -280,7 +265,7 @@ describe("http hono shelf routes", () => {
       description: "",
       bookIds: [],
     };
-    const application = createApplication();
+    const application = createApplicationMock();
     application.removeBookFromShelf.mockReturnValue(shelf);
     const app = createHonoApp({ application, config, logger });
 
@@ -301,7 +286,7 @@ describe("http hono shelf routes", () => {
   });
 
   it("should return 404 when DELETE /shelves/:id/books/:bookId cannot find a shelf", async () => {
-    const application = createApplication();
+    const application = createApplicationMock();
     application.removeBookFromShelf.mockReturnValue(null);
     const app = createHonoApp({ application, config, logger });
 
