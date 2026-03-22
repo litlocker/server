@@ -553,7 +553,8 @@ const normalizeBook = (book) => {
     cover: normalizeBookCover(book.cover),
     identifiers: normalizeBookIdentifiers(book.identifiers),
     filePath: book.filePath ?? "",
-    status: book.status ?? "draft",
+    libraryStatus: book.libraryStatus ?? "draft",
+    readingStatus: book.readingStatus ?? "unread",
   };
 };
 
@@ -579,7 +580,8 @@ const normalizeBookUpdates = ({ currentBook, updates }) => {
       ? normalizeBookIdentifiers({ ...currentBook.identifiers, ...updates.identifiers })
       : currentBook.identifiers,
     filePath: updates.filePath ?? currentBook.filePath ?? "",
-    status: updates.status ?? currentBook.status,
+    libraryStatus: updates.libraryStatus ?? currentBook.libraryStatus,
+    readingStatus: updates.readingStatus ?? currentBook.readingStatus,
   };
 };
 
@@ -697,6 +699,39 @@ const normalizeReadingProgress = (progress, timestamp) => {
     createdAt: timestamp,
     updatedAt: timestamp,
   };
+};
+
+/**
+ * @param {string} percentage
+ * @returns {number}
+ */
+const parseProgressPercentage = (percentage) => {
+  const parsedPercentage = Number.parseFloat(percentage);
+
+  if (Number.isNaN(parsedPercentage)) {
+    return 0;
+  }
+
+  return parsedPercentage;
+};
+
+/**
+ * @param {Book} book
+ * @param {string} percentage
+ * @returns {import('./entities/book.js').BookReadingStatus}
+ */
+const createBookReadingStatusFromProgress = (book, percentage) => {
+  const normalizedPercentage = parseProgressPercentage(percentage);
+
+  if (normalizedPercentage >= 1) {
+    return "finished";
+  }
+
+  if (normalizedPercentage > 0) {
+    return "started";
+  }
+
+  return book.readingStatus;
 };
 
 /**
@@ -1045,21 +1080,39 @@ const createApplication = ({
         userId: progress.userId,
       });
       const timestamp = clock.now().toISOString();
-
-      return persistence.readingProgress.save({
+      const nextPercentage = progress.percentage ?? currentReadingProgress?.percentage ?? "";
+      const savedReadingProgress = persistence.readingProgress.save({
         record: currentReadingProgress
           ? {
               ...currentReadingProgress,
               format: progress.format,
               locator: progress.locator ?? currentReadingProgress.locator,
-              percentage: progress.percentage ?? currentReadingProgress.percentage,
+              percentage: nextPercentage,
               updatedAt: timestamp,
             }
           : {
               id: idGenerator.generate(),
-              ...normalizeReadingProgress(progress, timestamp),
+              ...normalizeReadingProgress(
+                {
+                  ...progress,
+                  percentage: nextPercentage,
+                },
+                timestamp,
+              ),
             },
       });
+
+      persistence.books.update({
+        id: currentBook.id,
+        updates: {
+          readingStatus:
+            currentBook.libraryStatus === "archived"
+              ? currentBook.readingStatus
+              : createBookReadingStatusFromProgress(currentBook, savedReadingProgress.percentage),
+        },
+      });
+
+      return savedReadingProgress;
     },
     getReadingProgress: ({ bookId, userId }) => {
       return persistence.readingProgress.get({ bookId, userId });

@@ -358,7 +358,8 @@ describe("application", () => {
           googleBooksId: "",
         },
         filePath: "",
-        status: "draft",
+        libraryStatus: "draft",
+        readingStatus: "unread",
       });
       expect(firstBook.id).toEqual(expect.any(String));
       expect(secondBook).toEqual({
@@ -385,7 +386,8 @@ describe("application", () => {
           googleBooksId: "",
         },
         filePath: "",
-        status: "draft",
+        libraryStatus: "draft",
+        readingStatus: "unread",
       });
       expect(application.listBooks()).toEqual([firstBook, secondBook]);
     });
@@ -601,7 +603,7 @@ describe("application", () => {
           identifiers: {
             isbn13: "9780689845360",
           },
-          status: "ready",
+          libraryStatus: "ready",
         },
       });
 
@@ -645,7 +647,8 @@ describe("application", () => {
           googleBooksId: "google-books-id",
         },
         filePath: "",
-        status: "ready",
+        libraryStatus: "ready",
+        readingStatus: "unread",
       });
       expect(application.getBook({ id: book.id })).toEqual(updatedBook);
     });
@@ -689,7 +692,8 @@ describe("application", () => {
           googleBooksId: "",
         },
         filePath: "",
-        status: "draft",
+        libraryStatus: "draft",
+        readingStatus: "unread",
       });
     });
 
@@ -735,7 +739,8 @@ describe("application", () => {
           googleBooksId: "",
         },
         filePath: "",
-        status: "draft",
+        libraryStatus: "draft",
+        readingStatus: "unread",
       });
     });
 
@@ -785,7 +790,8 @@ describe("application", () => {
           googleBooksId: "",
         },
         filePath: "",
-        status: "draft",
+        libraryStatus: "draft",
+        readingStatus: "unread",
       });
     });
 
@@ -2131,7 +2137,8 @@ describe("application", () => {
             googleBooksId: "",
           },
           filePath: "",
-          status: "draft",
+          libraryStatus: "draft",
+          readingStatus: "unread",
         },
       });
       const user = persistence.users.create({
@@ -2176,6 +2183,10 @@ describe("application", () => {
           userId: user.id,
         }),
       ).toEqual(readingProgress);
+      expect(application.getBook({ id: book.id })).toEqual({
+        ...book,
+        readingStatus: "started",
+      });
     });
 
     it("should update existing reading progress while preserving createdAt", () => {
@@ -2212,7 +2223,8 @@ describe("application", () => {
             googleBooksId: "",
           },
           filePath: "",
-          status: "draft",
+          libraryStatus: "draft",
+          readingStatus: "unread",
         },
       });
       persistence.users.create({
@@ -2256,6 +2268,156 @@ describe("application", () => {
         percentage: "0.75",
         updatedAt: "2026-03-22T12:15:00.000Z",
       });
+      expect(application.getBook({ id: "book-1" })).toEqual({
+        id: "book-1",
+        title: "The Left Hand of Darkness",
+        subtitle: "",
+        description: "",
+        language: "",
+        authors: [],
+        tags: [],
+        seriesName: "",
+        seriesNumber: "",
+        cover: {
+          sourcePath: "",
+          thumbnailPath: "",
+          mimeType: "",
+          dominantColor: "",
+        },
+        identifiers: {
+          isbn10: "",
+          isbn13: "",
+          asin: "",
+          goodreadsId: "",
+          googleBooksId: "",
+        },
+        filePath: "",
+        libraryStatus: "draft",
+        readingStatus: "started",
+      });
+    });
+
+    it("should mark a book as finished when progress reaches 100 percent", () => {
+      const persistence = createPersistenceInMemory();
+
+      persistence.books.create({
+        record: {
+          id: "book-1",
+          title: "The Left Hand of Darkness",
+          subtitle: "",
+          description: "",
+          language: "",
+          authors: [],
+          tags: [],
+          seriesName: "",
+          seriesNumber: "",
+          cover: {
+            sourcePath: "",
+            thumbnailPath: "",
+            mimeType: "",
+            dominantColor: "",
+          },
+          identifiers: {
+            isbn10: "",
+            isbn13: "",
+            asin: "",
+            goodreadsId: "",
+            googleBooksId: "",
+          },
+          filePath: "",
+          libraryStatus: "ready",
+          readingStatus: "unread",
+        },
+      });
+      persistence.users.create({
+        record: {
+          id: "user-1",
+          email: "reader@example.com",
+          displayName: "Reader",
+          role: "admin",
+        },
+      });
+      const application = createApplication({
+        clock: createClockSystem(),
+        config,
+        persistence,
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+
+      application.saveReadingProgress({
+        progress: {
+          bookId: "book-1",
+          userId: "user-1",
+          format: "epub",
+          locator: "epubcfi(/6/18!/4/2:10)",
+          percentage: "1",
+        },
+      });
+
+      expect(application.getBook({ id: "book-1" })?.readingStatus).toBe("finished");
+    });
+
+    it("should leave archived books archived when progress is saved", () => {
+      const persistence = createPersistenceInMemory();
+
+      persistence.books.create({
+        record: {
+          id: "book-1",
+          title: "The Left Hand of Darkness",
+          subtitle: "",
+          description: "",
+          language: "",
+          authors: [],
+          tags: [],
+          seriesName: "",
+          seriesNumber: "",
+          cover: {
+            sourcePath: "",
+            thumbnailPath: "",
+            mimeType: "",
+            dominantColor: "",
+          },
+          identifiers: {
+            isbn10: "",
+            isbn13: "",
+            asin: "",
+            goodreadsId: "",
+            googleBooksId: "",
+          },
+          filePath: "",
+          libraryStatus: "archived",
+          readingStatus: "unread",
+        },
+      });
+      persistence.users.create({
+        record: {
+          id: "user-1",
+          email: "reader@example.com",
+          displayName: "Reader",
+          role: "admin",
+        },
+      });
+      const application = createApplication({
+        clock: createClockSystem(),
+        config,
+        persistence,
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+
+      application.saveReadingProgress({
+        progress: {
+          bookId: "book-1",
+          userId: "user-1",
+          format: "epub",
+          locator: "epubcfi(/6/8!/4/2:10)",
+          percentage: "0.75",
+        },
+      });
+
+      expect(application.getBook({ id: "book-1" })?.libraryStatus).toBe("archived");
+      expect(application.getBook({ id: "book-1" })?.readingStatus).toBe("unread");
     });
 
     it("should return null when saving progress for a missing book", () => {
@@ -2318,7 +2480,8 @@ describe("application", () => {
             googleBooksId: "",
           },
           filePath: "",
-          status: "draft",
+          libraryStatus: "draft",
+          readingStatus: "unread",
         },
       });
       const application = createApplication({

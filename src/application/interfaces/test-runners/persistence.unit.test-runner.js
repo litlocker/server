@@ -83,7 +83,8 @@ const runPersistenceUnitTests = (createPersistence) => {
               googleBooksId: "",
             },
             filePath: "",
-            status: "draft",
+            libraryStatus: "draft",
+            readingStatus: "unread",
           },
         });
         const shelf = persistence.shelves.create({
@@ -201,7 +202,8 @@ const runPersistenceUnitTests = (createPersistence) => {
               googleBooksId: "",
             },
             filePath: "",
-            status: "draft",
+            libraryStatus: "draft",
+            readingStatus: "unread",
           },
         });
         const secondBook = persistence.books.create({
@@ -229,7 +231,8 @@ const runPersistenceUnitTests = (createPersistence) => {
               googleBooksId: "",
             },
             filePath: "",
-            status: "draft",
+            libraryStatus: "draft",
+            readingStatus: "unread",
           },
         });
 

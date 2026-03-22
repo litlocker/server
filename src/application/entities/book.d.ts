@@ -1,4 +1,5 @@
-type BookStatus = "draft" | "ready" | "archived";
+type BookLibraryStatus = "draft" | "ready" | "archived";
+type BookReadingStatus = "unread" | "started" | "finished";
 
 interface BookIdentifiers {
   isbn10: string;
@@ -28,7 +29,8 @@ interface Book {
   cover: BookCover;
   identifiers: BookIdentifiers;
   filePath: string;
-  status: BookStatus;
+  libraryStatus: BookLibraryStatus;
+  readingStatus: BookReadingStatus;
 }
 
 interface CreateBookInput {
@@ -43,7 +45,8 @@ interface CreateBookInput {
   cover?: Partial<BookCover>;
   identifiers?: Partial<BookIdentifiers>;
   filePath?: string;
-  status?: BookStatus;
+  libraryStatus?: BookLibraryStatus;
+  readingStatus?: BookReadingStatus;
 }
 
 interface UpdateBookInput {
@@ -58,7 +61,16 @@ interface UpdateBookInput {
   cover?: Partial<BookCover>;
   identifiers?: Partial<BookIdentifiers>;
   filePath?: string;
-  status?: BookStatus;
+  libraryStatus?: BookLibraryStatus;
+  readingStatus?: BookReadingStatus;
 }
 
-export type { BookStatus, BookIdentifiers, BookCover, Book, CreateBookInput, UpdateBookInput };
+export type {
+  BookLibraryStatus,
+  BookReadingStatus,
+  BookIdentifiers,
+  BookCover,
+  Book,
+  CreateBookInput,
+  UpdateBookInput,
+};

@@ -102,7 +102,8 @@ describe("http hono book routes integration", () => {
         googleBooksId: "",
       },
       filePath: "",
-      status: "draft",
+      libraryStatus: "draft",
+      readingStatus: "unread",
     });
 
     const listResponse = await app.request("http://localhost/books");

@@ -37,7 +37,8 @@ describe("http hono book routes", () => {
         googleBooksId: "",
       },
       filePath: "",
-      status: "draft",
+      libraryStatus: "draft",
+      readingStatus: "unread",
     };
     const application = createApplicationMock({
       createBook: vi.fn().mockReturnValue(createdBook),
@@ -117,7 +118,8 @@ describe("http hono book routes", () => {
           googleBooksId: "",
         },
         filePath: "",
-        status: "draft",
+        libraryStatus: "draft",
+        readingStatus: "unread",
       },
     ];
     const application = createApplicationMock({
@@ -162,7 +164,8 @@ describe("http hono book routes", () => {
           googleBooksId: "",
         },
         filePath: "",
-        status: "draft",
+        libraryStatus: "draft",
+        readingStatus: "unread",
       },
     ];
     const application = createApplicationMock({
@@ -214,7 +217,8 @@ describe("http hono book routes", () => {
         googleBooksId: "",
       },
       filePath: "",
-      status: "draft",
+      libraryStatus: "draft",
+      readingStatus: "unread",
     };
     const application = createApplicationMock({
       updateBook: vi.fn().mockReturnValue(updatedBook),
@@ -324,7 +328,8 @@ describe("http hono book routes", () => {
         googleBooksId: "",
       },
       filePath: "",
-      status: "draft",
+      libraryStatus: "draft",
+      readingStatus: "unread",
     };
     const application = createApplicationMock({
       getBook: vi.fn().mockReturnValue(book),

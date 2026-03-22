@@ -2,9 +2,14 @@ import Ajv from "ajv";
 
 const ajv = new Ajv.default();
 
-const bookStatusSchema = {
+const bookLibraryStatusSchema = {
   type: "string",
   enum: ["draft", "ready", "archived"],
+};
+
+const bookReadingStatusSchema = {
+  type: "string",
+  enum: ["unread", "started", "finished"],
 };
 
 const bookIdentifiersSchema = {
@@ -49,9 +54,11 @@ const createBookPayloadSchema = {
     },
     seriesName: { type: "string" },
     seriesNumber: { type: "string" },
+    filePath: { type: "string" },
     cover: bookCoverSchema,
     identifiers: bookIdentifiersSchema,
-    status: bookStatusSchema,
+    libraryStatus: bookLibraryStatusSchema,
+    readingStatus: bookReadingStatusSchema,
   },
 };
 
@@ -74,9 +81,11 @@ const updateBookPayloadSchema = {
     },
     seriesName: { type: "string" },
     seriesNumber: { type: "string" },
+    filePath: { type: "string" },
     cover: bookCoverSchema,
     identifiers: bookIdentifiersSchema,
-    status: bookStatusSchema,
+    libraryStatus: bookLibraryStatusSchema,
+    readingStatus: bookReadingStatusSchema,
   },
 };
 

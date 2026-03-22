@@ -18,7 +18,8 @@ describe("http hono book payload validation", () => {
           identifiers: {
             isbn13: "9780441478125",
           },
-          status: "draft",
+          libraryStatus: "draft",
+          readingStatus: "unread",
         }),
       ).toEqual({
         success: true,
