@@ -30,6 +30,18 @@ interface AuthConfig {
   bootstrapAdminEmail: string;
   bootstrapAdminPassword: string;
   sessionTtlMs: number;
+  sessionCookieName: string;
+  sessionCookieSecure: boolean;
+  oidc: {
+    issuerUrl: string;
+    clientId: string;
+    clientSecret: string;
+    redirectUrl: string;
+    postLogoutRedirectUrl: string;
+    scopes: string[];
+    requirePkce: boolean;
+    discoveryTimeoutMs: number;
+  };
 }
 
 interface MetadataProvidersConfig {

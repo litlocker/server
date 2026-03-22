@@ -56,6 +56,18 @@ describe("application", () => {
       bootstrapAdminEmail: "",
       bootstrapAdminPassword: "",
       sessionTtlMs: 86_400_000,
+      sessionCookieName: "litlocker-session",
+      sessionCookieSecure: false,
+      oidc: {
+        issuerUrl: "",
+        clientId: "",
+        clientSecret: "",
+        redirectUrl: "",
+        postLogoutRedirectUrl: "",
+        scopes: ["openid", "profile", "email"],
+        requirePkce: true,
+        discoveryTimeoutMs: 5_000,
+      },
     },
     metadataProviders: {
       enabledProviders: ["open-library"],

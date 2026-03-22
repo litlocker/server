@@ -35,6 +35,16 @@ describe("static env config adapter", () => {
     delete process.env.AUTH__BOOTSTRAP_ADMIN_EMAIL;
     delete process.env.AUTH__BOOTSTRAP_ADMIN_PASSWORD;
     delete process.env.AUTH__SESSION_TTL_MS;
+    delete process.env.AUTH__SESSION_COOKIE_NAME;
+    delete process.env.AUTH__SESSION_COOKIE_SECURE;
+    delete process.env.AUTH__OIDC__ISSUER_URL;
+    delete process.env.AUTH__OIDC__CLIENT_ID;
+    delete process.env.AUTH__OIDC__CLIENT_SECRET;
+    delete process.env.AUTH__OIDC__REDIRECT_URL;
+    delete process.env.AUTH__OIDC__POST_LOGOUT_REDIRECT_URL;
+    delete process.env.AUTH__OIDC__SCOPES;
+    delete process.env.AUTH__OIDC__REQUIRE_PKCE;
+    delete process.env.AUTH__OIDC__DISCOVERY_TIMEOUT_MS;
     delete process.env.METADATA_PROVIDERS__ENABLED_PROVIDERS;
     delete process.env.METADATA_PROVIDERS__LOOKUP_TIMEOUT_MS;
     delete process.env.METADATA_PROVIDERS__DEFAULT_LANGUAGE;
@@ -68,6 +78,18 @@ describe("static env config adapter", () => {
         bootstrapAdminEmail: "",
         bootstrapAdminPassword: "",
         sessionTtlMs: 86_400_000,
+        sessionCookieName: "litlocker-session",
+        sessionCookieSecure: false,
+        oidc: {
+          issuerUrl: "",
+          clientId: "",
+          clientSecret: "",
+          redirectUrl: "",
+          postLogoutRedirectUrl: "",
+          scopes: ["openid", "profile", "email"],
+          requirePkce: true,
+          discoveryTimeoutMs: 5_000,
+        },
       },
       metadataProviders: {
         enabledProviders: ["open-library"],
@@ -92,6 +114,16 @@ describe("static env config adapter", () => {
     process.env.AUTH__BOOTSTRAP_ADMIN_EMAIL = "admin@example.com";
     process.env.AUTH__BOOTSTRAP_ADMIN_PASSWORD = "super-secret";
     process.env.AUTH__SESSION_TTL_MS = "7200000";
+    process.env.AUTH__SESSION_COOKIE_NAME = "litlocker-auth";
+    process.env.AUTH__SESSION_COOKIE_SECURE = "true";
+    process.env.AUTH__OIDC__ISSUER_URL = "https://id.example.com";
+    process.env.AUTH__OIDC__CLIENT_ID = "litlocker-web";
+    process.env.AUTH__OIDC__CLIENT_SECRET = "top-secret";
+    process.env.AUTH__OIDC__REDIRECT_URL = "https://library.example.com/auth/callback";
+    process.env.AUTH__OIDC__POST_LOGOUT_REDIRECT_URL = "https://library.example.com";
+    process.env.AUTH__OIDC__SCOPES = "openid,profile,email,offline_access";
+    process.env.AUTH__OIDC__REQUIRE_PKCE = "false";
+    process.env.AUTH__OIDC__DISCOVERY_TIMEOUT_MS = "9000";
     process.env.METADATA_PROVIDERS__ENABLED_PROVIDERS = "open-library,google-books";
     process.env.METADATA_PROVIDERS__LOOKUP_TIMEOUT_MS = "8000";
     process.env.METADATA_PROVIDERS__DEFAULT_LANGUAGE = "sv";
@@ -125,6 +157,18 @@ describe("static env config adapter", () => {
         bootstrapAdminEmail: "admin@example.com",
         bootstrapAdminPassword: "super-secret",
         sessionTtlMs: 7_200_000,
+        sessionCookieName: "litlocker-auth",
+        sessionCookieSecure: true,
+        oidc: {
+          issuerUrl: "https://id.example.com",
+          clientId: "litlocker-web",
+          clientSecret: "top-secret",
+          redirectUrl: "https://library.example.com/auth/callback",
+          postLogoutRedirectUrl: "https://library.example.com",
+          scopes: ["openid", "profile", "email", "offline_access"],
+          requirePkce: false,
+          discoveryTimeoutMs: 9_000,
+        },
       },
       metadataProviders: {
         enabledProviders: ["open-library", "google-books"],
@@ -134,11 +178,19 @@ describe("static env config adapter", () => {
     });
   });
 
-  it("should throw when env values produce an invalid config", () => {
-    process.env.AUTH__ENABLED = "maybe";
+  it("should throw when auth is enabled without the required oidc settings", () => {
+    process.env.AUTH__ENABLED = "true";
 
     expect(() => createConfigStaticEnv()).toThrow(
-      "Invalid configuration: /auth/enabled must be boolean",
+      "Invalid configuration: /auth/oidc/issuerUrl must NOT have fewer than 1 characters",
+    );
+  });
+
+  it("should throw when env values produce an invalid config type", () => {
+    process.env.AUTH__SESSION_COOKIE_SECURE = "maybe";
+
+    expect(() => createConfigStaticEnv()).toThrow(
+      "Invalid configuration: /auth/sessionCookieSecure must be boolean",
     );
   });
 });

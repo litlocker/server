@@ -119,6 +119,30 @@ const createConfigStaticEnv = () => {
         name: "AUTH__SESSION_TTL_MS",
         defaultValue: 86_400_000,
       }),
+      sessionCookieName: process.env.AUTH__SESSION_COOKIE_NAME || "litlocker-session",
+      sessionCookieSecure: getEnvBoolean({
+        name: "AUTH__SESSION_COOKIE_SECURE",
+        defaultValue: false,
+      }),
+      oidc: {
+        issuerUrl: process.env.AUTH__OIDC__ISSUER_URL || "",
+        clientId: process.env.AUTH__OIDC__CLIENT_ID || "",
+        clientSecret: process.env.AUTH__OIDC__CLIENT_SECRET || "",
+        redirectUrl: process.env.AUTH__OIDC__REDIRECT_URL || "",
+        postLogoutRedirectUrl: process.env.AUTH__OIDC__POST_LOGOUT_REDIRECT_URL || "",
+        scopes: getEnvStringArray({
+          name: "AUTH__OIDC__SCOPES",
+          defaultValue: ["openid", "profile", "email"],
+        }),
+        requirePkce: getEnvBoolean({
+          name: "AUTH__OIDC__REQUIRE_PKCE",
+          defaultValue: true,
+        }),
+        discoveryTimeoutMs: getEnvNumber({
+          name: "AUTH__OIDC__DISCOVERY_TIMEOUT_MS",
+          defaultValue: 5_000,
+        }),
+      },
     },
     metadataProviders: {
       enabledProviders: getEnvStringArray({

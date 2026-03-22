@@ -9,6 +9,30 @@ import Ajv from "ajv";
  */
 const validateConfig = (config) => {
   const ajv = new Ajv.default();
+  const authEnabledRequirement = {
+    properties: {
+      enabled: { const: true },
+    },
+  };
+  const authOidcSettingsRequirement = {
+    properties: {
+      oidc: {
+        properties: {
+          issuerUrl: { minLength: 1 },
+          clientId: { minLength: 1 },
+          clientSecret: { minLength: 1 },
+          redirectUrl: { minLength: 1 },
+          postLogoutRedirectUrl: { minLength: 1 },
+        },
+      },
+    },
+  };
+  const authEnabledOidcValidation = Object.fromEntries([
+    ["if", authEnabledRequirement],
+    // oxlint-disable-next-line unicorn/no-thenable
+    ["then", authOidcSettingsRequirement],
+  ]);
+
   const schema = {
     type: "object",
     required: ["logger", "server", "storage", "imports", "auth", "metadataProviders"],
@@ -65,13 +89,51 @@ const validateConfig = (config) => {
       },
       auth: {
         type: "object",
-        required: ["enabled", "bootstrapAdminEmail", "bootstrapAdminPassword", "sessionTtlMs"],
+        required: [
+          "enabled",
+          "bootstrapAdminEmail",
+          "bootstrapAdminPassword",
+          "sessionTtlMs",
+          "sessionCookieName",
+          "sessionCookieSecure",
+          "oidc",
+        ],
         properties: {
           enabled: { type: "boolean" },
           bootstrapAdminEmail: { type: "string" },
           bootstrapAdminPassword: { type: "string" },
           sessionTtlMs: { type: "number", minimum: 1 },
+          sessionCookieName: { type: "string", minLength: 1 },
+          sessionCookieSecure: { type: "boolean" },
+          oidc: {
+            type: "object",
+            required: [
+              "issuerUrl",
+              "clientId",
+              "clientSecret",
+              "redirectUrl",
+              "postLogoutRedirectUrl",
+              "scopes",
+              "requirePkce",
+              "discoveryTimeoutMs",
+            ],
+            properties: {
+              issuerUrl: { type: "string" },
+              clientId: { type: "string" },
+              clientSecret: { type: "string" },
+              redirectUrl: { type: "string" },
+              postLogoutRedirectUrl: { type: "string" },
+              scopes: {
+                type: "array",
+                items: { type: "string", minLength: 1 },
+                minItems: 1,
+              },
+              requirePkce: { type: "boolean" },
+              discoveryTimeoutMs: { type: "number", minimum: 1 },
+            },
+          },
         },
+        allOf: [authEnabledOidcValidation],
       },
       metadataProviders: {
         type: "object",
