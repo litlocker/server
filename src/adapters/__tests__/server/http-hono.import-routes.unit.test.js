@@ -38,6 +38,18 @@ describe("http hono import routes", () => {
     };
   };
 
+  const createFailedImportJob = ({ code, message, details }) => {
+    return {
+      ...createImportJob(),
+      status: "failed",
+      error: {
+        code,
+        message,
+        details,
+      },
+    };
+  };
+
   it("should create an import job through POST /imports with JSON", async () => {
     const importJob = createImportJob();
     const application = {
@@ -143,6 +155,110 @@ describe("http hono import routes", () => {
       message: "Import file not found",
     });
     expect(application.ingestImportUpload).not.toHaveBeenCalled();
+  });
+
+  it("should surface unsupported upload failures from the application", async () => {
+    const importJob = createFailedImportJob({
+      code: "unsupported_file_type",
+      message: "Unsupported file type",
+      details: "txt is not an allowed import file type",
+    });
+    const application = {
+      createImportJob: vi.fn(),
+      ingestImportUpload: vi.fn().mockReturnValue(importJob),
+      listImportJobs: vi.fn(),
+      getImportJob: vi.fn(),
+      finalizeImportJob: vi.fn(),
+    };
+    const app = createHonoApp({ application, config, logger });
+    const formData = new FormData();
+
+    formData.set(
+      "file",
+      new File([new Uint8Array([1, 2, 3])], "notes.txt", {
+        type: "text/plain",
+      }),
+    );
+
+    const response = await app.request(
+      new Request("http://localhost/imports", {
+        method: "POST",
+        body: formData,
+      }),
+    );
+
+    expect(response.status).toBe(201);
+    await expect(response.json()).resolves.toEqual({
+      importJob,
+    });
+  });
+
+  it("should surface malformed metadata failures from the application", async () => {
+    const importJob = createFailedImportJob({
+      code: "malformed_metadata",
+      message: "Metadata could not be parsed",
+      details: "Embedded metadata was malformed",
+    });
+    const application = {
+      createImportJob: vi.fn().mockReturnValue(importJob),
+      ingestImportUpload: vi.fn(),
+      listImportJobs: vi.fn(),
+      getImportJob: vi.fn(),
+      finalizeImportJob: vi.fn(),
+    };
+    const app = createHonoApp({ application, config, logger });
+
+    const response = await app.request(
+      new Request("http://localhost/imports", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          source: {
+            kind: "filesystem",
+            path: "/library/inbox/bad-book.epub",
+            originalFileName: "bad-book.epub",
+          },
+          detectedFileType: "epub",
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(201);
+    await expect(response.json()).resolves.toEqual({
+      importJob,
+    });
+  });
+
+  it("should propagate storage failures from the application during upload ingestion", async () => {
+    const application = {
+      createImportJob: vi.fn(),
+      ingestImportUpload: vi.fn().mockImplementation(() => {
+        throw new Error("Storage unavailable");
+      }),
+      listImportJobs: vi.fn(),
+      getImportJob: vi.fn(),
+      finalizeImportJob: vi.fn(),
+    };
+    const app = createHonoApp({ application, config, logger });
+    const formData = new FormData();
+
+    formData.set(
+      "file",
+      new File([new Uint8Array([1, 2, 3])], "left-hand.epub", {
+        type: "application/epub+zip",
+      }),
+    );
+
+    const response = await app.request(
+      new Request("http://localhost/imports", {
+        method: "POST",
+        body: formData,
+      }),
+    );
+
+    expect(response.status).toBe(500);
   });
 
   it("should list import jobs through GET /imports", async () => {

@@ -230,4 +230,105 @@ describe("http hono import routes integration", () => {
       message: "Import job not found or cannot be finalized",
     });
   });
+
+  it("should flag duplicate uploads through the API", async () => {
+    const app = createTestApp();
+    const firstUploadFormData = new FormData();
+    const secondUploadFormData = new FormData();
+
+    firstUploadFormData.set(
+      "file",
+      new File([new Uint8Array([1, 2, 3])], "first-copy.epub", {
+        type: "application/epub+zip",
+      }),
+    );
+    secondUploadFormData.set(
+      "file",
+      new File([new Uint8Array([1, 2, 3])], "second-copy.epub", {
+        type: "application/epub+zip",
+      }),
+    );
+
+    const firstUploadResponse = await app.request(
+      new Request("http://localhost/imports", {
+        method: "POST",
+        body: firstUploadFormData,
+      }),
+    );
+    const { importJob: firstImportJob } = await firstUploadResponse.json();
+
+    const secondUploadResponse = await app.request(
+      new Request("http://localhost/imports", {
+        method: "POST",
+        body: secondUploadFormData,
+      }),
+    );
+
+    expect(secondUploadResponse.status).toBe(201);
+    await expect(secondUploadResponse.json()).resolves.toEqual({
+      importJob: {
+        id: expect.any(String),
+        status: "queued",
+        source: {
+          kind: "upload",
+          path: expect.stringContaining(`${config.storage.paths.imports}/`),
+          originalFileName: "second-copy.epub",
+        },
+        detectedFileType: "epub",
+        metadataCandidates: [
+          {
+            title: "Test Book",
+            subtitle: "",
+            description: "",
+            language: "en",
+            authors: ["Test Author"],
+            tags: [],
+            seriesName: "",
+            seriesNumber: "",
+            identifiers: {
+              isbn10: "",
+              isbn13: "",
+              asin: "",
+              goodreadsId: "",
+              googleBooksId: "",
+            },
+            coverPath: "",
+            source: "embedded",
+            confidence: "1.00",
+          },
+          {
+            title: "Test Book",
+            subtitle: "",
+            description: "",
+            language: "en",
+            authors: ["Test Author"],
+            tags: [],
+            seriesName: "",
+            seriesNumber: "",
+            identifiers: {
+              isbn10: "",
+              isbn13: "",
+              asin: "",
+              goodreadsId: "",
+              googleBooksId: "",
+            },
+            coverPath: "",
+            source: "external",
+            confidence: "0.80",
+          },
+        ],
+        selectedMetadataCandidateIndex: -1,
+        duplicateDetection: {
+          fileHash: "039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81",
+          duplicateImportJobIds: [firstImportJob.id],
+          duplicateBookIds: [],
+        },
+        error: {
+          code: "",
+          message: "",
+          details: "",
+        },
+      },
+    });
+  });
 });
