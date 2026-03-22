@@ -105,11 +105,40 @@ const runPersistenceUnitTests = (createPersistence) => {
         const importJob = persistence.importJobs.create({
           record: {
             id: "import-job-1",
-            sourcePath: "/library/inbox/test-book.epub",
-            fileType: "epub",
             status: "queued",
-            metadataCandidates: [],
-            errorMessage: "",
+            source: {
+              kind: "filesystem",
+              path: "/library/inbox/test-book.epub",
+              originalFileName: "test-book.epub",
+            },
+            detectedFileType: "epub",
+            metadataCandidates: [
+              {
+                title: "Test Book",
+                subtitle: "",
+                description: "",
+                language: "en",
+                authors: ["Test Author"],
+                tags: [],
+                seriesName: "",
+                seriesNumber: "",
+                identifiers: {
+                  isbn10: "",
+                  isbn13: "",
+                  asin: "",
+                  goodreadsId: "",
+                  googleBooksId: "",
+                },
+                coverPath: "",
+                source: "embedded",
+                confidence: "0.90",
+              },
+            ],
+            error: {
+              code: "",
+              message: "",
+              details: "",
+            },
           },
         });
         const readingProgress = persistence.readingProgress.save({

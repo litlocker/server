@@ -1,24 +1,19 @@
-type ImportJobStatus = "queued" | "processing" | "review" | "completed" | "failed";
-
-interface MetadataCandidate {
-  title: string;
-  authors: string[];
-  source: string;
-  confidence: string;
-}
-
-interface ImportJob {
-  id: string;
-  sourcePath: string;
-  fileType: string;
-  status: ImportJobStatus;
-  metadataCandidates: MetadataCandidate[];
-  errorMessage: string;
-}
+import {
+  ImportJob,
+  ImportJobErrorDetails,
+  ImportJobMetadataCandidate,
+  ImportJobSource,
+  ImportJobSourceKind,
+  ImportJobStatus,
+} from "../entities/import-job.d.ts";
 
 interface CreateImportJobInput {
-  sourcePath: string;
-  fileType?: string;
+  source: {
+    kind: ImportJobSourceKind;
+    path: string;
+    originalFileName?: string;
+  };
+  detectedFileType?: string;
 }
 
 type CreateImportJob = ({ job }: { job: CreateImportJobInput }) => ImportJob;
@@ -33,9 +28,12 @@ type ListImportJobs = () => ImportJob[];
 type GetImportJob = ({ id }: { id: string }) => ImportJob | null;
 
 export type {
-  ImportJobStatus,
-  MetadataCandidate,
   ImportJob,
+  ImportJobStatus,
+  ImportJobSourceKind,
+  ImportJobSource,
+  ImportJobMetadataCandidate,
+  ImportJobErrorDetails,
   CreateImportJobInput,
   CreateImportJob,
   UpdateImportJob,
