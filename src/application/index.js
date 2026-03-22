@@ -356,6 +356,104 @@ const createImportUploadPath = ({ importsPath, importJobId, originalFileName }) 
 };
 
 /**
+ * @param { object } params
+ * @param { string } params.coversPath
+ * @param { string } params.importJobId
+ * @param { string } params.sourceCoverPath
+ * @returns { string }
+ */
+const createStoredCoverPath = ({ coversPath, importJobId, sourceCoverPath }) => {
+  const extensionIndex = sourceCoverPath.lastIndexOf(".");
+  const fileExtension =
+    extensionIndex >= 0 ? sourceCoverPath.slice(extensionIndex).toLocaleLowerCase() : "";
+
+  return join(coversPath, `${importJobId}${fileExtension}`);
+};
+
+const createMimeTypeFromFilePath = (filePath) => {
+  const normalizedPath = filePath.toLocaleLowerCase();
+
+  if (normalizedPath.endsWith(".jpg") || normalizedPath.endsWith(".jpeg")) {
+    return "image/jpeg";
+  }
+
+  if (normalizedPath.endsWith(".png")) {
+    return "image/png";
+  }
+
+  if (normalizedPath.endsWith(".webp")) {
+    return "image/webp";
+  }
+
+  return "";
+};
+
+const updateMetadataCandidateAtIndex = ({
+  metadataCandidates,
+  metadataCandidateIndex,
+  updates,
+}) => {
+  return metadataCandidates.map((metadataCandidate, index) => {
+    if (index !== metadataCandidateIndex) {
+      return metadataCandidate;
+    }
+
+    return normalizeImportJobMetadataCandidate({
+      ...metadataCandidate,
+      ...updates,
+    });
+  });
+};
+
+const storeSelectedMetadataCandidateCover = ({ config, fileStorage, importJob }) => {
+  if (importJob.selectedMetadataCandidateIndex < 0) {
+    return importJob;
+  }
+
+  const selectedMetadataCandidate =
+    importJob.metadataCandidates[importJob.selectedMetadataCandidateIndex] ?? null;
+
+  if (!selectedMetadataCandidate?.coverPath) {
+    return importJob;
+  }
+
+  if (!fileStorage.fileExists({ file: { path: selectedMetadataCandidate.coverPath } })) {
+    return importJob;
+  }
+
+  const storedCoverPath = createStoredCoverPath({
+    coversPath: config.storage.paths.covers,
+    importJobId: importJob.id,
+    sourceCoverPath: selectedMetadataCandidate.coverPath,
+  });
+  const coverContents = fileStorage.readFile({
+    file: {
+      path: selectedMetadataCandidate.coverPath,
+    },
+  });
+
+  fileStorage.saveFile({
+    file: {
+      path: storedCoverPath,
+      name: storedCoverPath.split("/").pop() ?? "",
+      mimeType: createMimeTypeFromFilePath(storedCoverPath),
+      contents: coverContents,
+    },
+  });
+
+  return {
+    ...importJob,
+    metadataCandidates: updateMetadataCandidateAtIndex({
+      metadataCandidates: importJob.metadataCandidates,
+      metadataCandidateIndex: importJob.selectedMetadataCandidateIndex,
+      updates: {
+        coverPath: storedCoverPath,
+      },
+    }),
+  };
+};
+
+/**
  * @param { CreateBookInput } book
  */
 const normalizeBook = (book) => {
@@ -773,9 +871,16 @@ const createApplication = ({
         return null;
       }
 
+      const importJobWithStoredCover = storeSelectedMetadataCandidateCover({
+        config,
+        fileStorage,
+        importJob: currentImportJob,
+      });
+
       return persistence.importJobs.update({
         id,
         updates: {
+          metadataCandidates: importJobWithStoredCover.metadataCandidates,
           status: "completed",
           error: normalizeImportJobError(),
         },

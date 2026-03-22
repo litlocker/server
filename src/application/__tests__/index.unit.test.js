@@ -1894,6 +1894,169 @@ describe("application", () => {
       });
     });
 
+    it("should store the selected metadata candidate cover during import finalization", () => {
+      const fileStorage = createTestFileStorage();
+      const coverContents = new Uint8Array([9, 8, 7]);
+
+      fileStorage.saveFile({
+        file: {
+          path: "/tmp/litlocker/imports/embedded-cover.jpg",
+          name: "embedded-cover.jpg",
+          mimeType: "image/jpeg",
+          contents: coverContents,
+        },
+      });
+
+      const application = createApplication({
+        clock: createClockSystem(),
+        config,
+        fileStorage,
+        persistence: createPersistenceInMemory(),
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+      const importJob = application.createImportJob({
+        job: {
+          source: {
+            kind: "filesystem",
+            path: "/library/inbox/left-hand.epub",
+            originalFileName: "left-hand.epub",
+          },
+          detectedFileType: "epub",
+          metadataCandidates: [
+            {
+              title: "Embedded Match",
+              subtitle: "",
+              description: "",
+              language: "en",
+              authors: ["Ursula K. Le Guin"],
+              tags: [],
+              seriesName: "",
+              seriesNumber: "",
+              identifiers: {
+                isbn10: "",
+                isbn13: "9780441478125",
+                asin: "",
+                goodreadsId: "",
+                googleBooksId: "",
+              },
+              coverPath: "/tmp/litlocker/imports/embedded-cover.jpg",
+              source: "embedded",
+              confidence: "1.00",
+            },
+          ],
+        },
+      });
+
+      application.reviewImportJob({
+        id: importJob.id,
+        metadataCandidateIndex: 0,
+      });
+
+      const finalizedImportJob = application.finalizeImportJob({
+        id: importJob.id,
+      });
+
+      expect(finalizedImportJob).toEqual({
+        ...importJob,
+        status: "completed",
+        selectedMetadataCandidateIndex: 0,
+        metadataCandidates: [
+          {
+            title: "Embedded Match",
+            subtitle: "",
+            description: "",
+            language: "en",
+            authors: ["Ursula K. Le Guin"],
+            tags: [],
+            seriesName: "",
+            seriesNumber: "",
+            identifiers: {
+              isbn10: "",
+              isbn13: "9780441478125",
+              asin: "",
+              goodreadsId: "",
+              googleBooksId: "",
+            },
+            coverPath: `/tmp/litlocker/covers/${importJob.id}.jpg`,
+            source: "embedded",
+            confidence: "1.00",
+          },
+        ],
+      });
+      expect(
+        fileStorage.fileExists({
+          file: {
+            path: `/tmp/litlocker/covers/${importJob.id}.jpg`,
+          },
+        }),
+      ).toBe(true);
+      expect(
+        fileStorage.readFile({
+          file: {
+            path: `/tmp/litlocker/covers/${importJob.id}.jpg`,
+          },
+        }),
+      ).toEqual(coverContents);
+    });
+
+    it("should leave metadata unchanged when the selected candidate has no cover to store", () => {
+      const application = createApplication({
+        clock: createClockSystem(),
+        config,
+        persistence: createPersistenceInMemory(),
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+      const importJob = application.createImportJob({
+        job: {
+          source: {
+            kind: "filesystem",
+            path: "/library/inbox/left-hand.epub",
+            originalFileName: "left-hand.epub",
+          },
+          detectedFileType: "epub",
+          metadataCandidates: [
+            {
+              title: "Embedded Match",
+              subtitle: "",
+              description: "",
+              language: "en",
+              authors: ["Ursula K. Le Guin"],
+              tags: [],
+              seriesName: "",
+              seriesNumber: "",
+              identifiers: {
+                isbn10: "",
+                isbn13: "9780441478125",
+                asin: "",
+                goodreadsId: "",
+                googleBooksId: "",
+              },
+              coverPath: "",
+              source: "embedded",
+              confidence: "1.00",
+            },
+          ],
+        },
+      });
+
+      application.reviewImportJob({
+        id: importJob.id,
+        metadataCandidateIndex: 0,
+      });
+
+      expect(
+        application.finalizeImportJob({
+          id: importJob.id,
+        }),
+      ).toEqual({
+        ...importJob,
+        status: "completed",
+        selectedMetadataCandidateIndex: 0,
+      });
+    });
+
     it("should return null when finalizing a missing import job", () => {
       const application = createApplication({
         clock: createClockSystem(),
