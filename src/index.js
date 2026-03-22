@@ -1,11 +1,11 @@
 import { boot } from "./boot.js";
 
-const { server } = boot();
-
-server.start().catch((/** @type { unknown } */ error) => {
-  console.error("Failed to start the server:", error);
-  process.exit(1);
-});
+boot()
+  .then(({ server }) => server.start())
+  .catch((/** @type { unknown } */ error) => {
+    console.error("Failed to start the server:", error);
+    process.exit(1);
+  });
 
 process.on("unhandledRejection", (reason, promise) => {
   console.error("Unhandled Rejection at:", promise, "reason:", reason);

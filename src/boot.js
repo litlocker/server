@@ -5,14 +5,16 @@ import { createIdGeneratorSystem } from "./adapters/id-generator/system/index.js
 import { createLoggerPino } from "./adapters/logger/pino/index.js";
 import { createMetadataProviderStatic } from "./adapters/metadata-provider/static/index.js";
 import { createPersistenceInMemory } from "./adapters/persistence/in-memory/index.js";
+import { runPendingPostgresMigrations } from "./adapters/persistence/postgres/migrations/index.js";
 import { createServerHttpHono } from "./adapters/server/http-hono/index.js";
 import { createApplication } from "./application/index.js";
 
-const boot = () => {
+const boot = async () => {
   const clock = createClockSystem();
   const config = createConfigStaticEnv();
-  const fileStorage = createFileStorageLocalFilesystem({ config });
   const logger = createLoggerPino({ config: config.logger });
+  await runPendingPostgresMigrations({ config, logger });
+  const fileStorage = createFileStorageLocalFilesystem({ config });
   const metadataProvider = createMetadataProviderStatic();
   const persistence = createPersistenceInMemory();
   const idGenerator = createIdGeneratorSystem();

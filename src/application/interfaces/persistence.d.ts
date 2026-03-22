@@ -11,7 +11,6 @@ interface BooksPersistence {
   list: () => Awaitable<Book[]>;
   search: ({ query }: { query: string }) => Awaitable<Book[]>;
   get: ({ id }: { id: string }) => Awaitable<Book | null>;
-  checkHealth: CheckHealth;
 }
 
 interface ShelvesPersistence {
@@ -20,7 +19,6 @@ interface ShelvesPersistence {
   list: () => Awaitable<Shelf[]>;
   get: ({ id }: { id: string }) => Awaitable<Shelf | null>;
   delete: ({ id }: { id: string }) => Awaitable<{ success: boolean }>;
-  checkHealth: CheckHealth;
 }
 
 interface UsersPersistence {
@@ -35,7 +33,6 @@ interface UsersPersistence {
     authIssuer: string;
     authSubject: string;
   }) => Awaitable<User | null>;
-  checkHealth: CheckHealth;
 }
 
 interface ImportJobsPersistence {
@@ -49,7 +46,6 @@ interface ImportJobsPersistence {
   }) => Awaitable<ImportJob | null>;
   list: () => Awaitable<ImportJob[]>;
   get: ({ id }: { id: string }) => Awaitable<ImportJob | null>;
-  checkHealth: CheckHealth;
 }
 
 interface ReadingProgressPersistence {
@@ -61,7 +57,6 @@ interface ReadingProgressPersistence {
     bookId: string;
     userId: string;
   }) => Awaitable<ReadingProgress | null>;
-  checkHealth: CheckHealth;
 }
 
 interface Persistence {

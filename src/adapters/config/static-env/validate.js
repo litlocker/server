@@ -15,14 +15,16 @@ const validateConfig = (config) => {
     },
   };
   const authOidcSettingsRequirement = {
+    type: "object",
     properties: {
       oidc: {
+        type: "object",
         properties: {
-          issuerUrl: { minLength: 1 },
-          clientId: { minLength: 1 },
-          clientSecret: { minLength: 1 },
-          redirectUrl: { minLength: 1 },
-          postLogoutRedirectUrl: { minLength: 1 },
+          issuerUrl: { type: "string", minLength: 1 },
+          clientId: { type: "string", minLength: 1 },
+          clientSecret: { type: "string", minLength: 1 },
+          redirectUrl: { type: "string", minLength: 1 },
+          postLogoutRedirectUrl: { type: "string", minLength: 1 },
         },
       },
     },

@@ -27,31 +27,26 @@ const runPersistenceUnitTests = (createPersistence) => {
         expect(persistence.books).toHaveProperty("list");
         expect(persistence.books).toHaveProperty("search");
         expect(persistence.books).toHaveProperty("get");
-        expect(persistence.books).toHaveProperty("checkHealth");
 
         expect(persistence.shelves).toHaveProperty("create");
         expect(persistence.shelves).toHaveProperty("update");
         expect(persistence.shelves).toHaveProperty("list");
         expect(persistence.shelves).toHaveProperty("get");
         expect(persistence.shelves).toHaveProperty("delete");
-        expect(persistence.shelves).toHaveProperty("checkHealth");
 
         expect(persistence.users).toHaveProperty("create");
         expect(persistence.users).toHaveProperty("update");
         expect(persistence.users).toHaveProperty("list");
         expect(persistence.users).toHaveProperty("get");
         expect(persistence.users).toHaveProperty("getByAuthIdentity");
-        expect(persistence.users).toHaveProperty("checkHealth");
 
         expect(persistence.importJobs).toHaveProperty("create");
         expect(persistence.importJobs).toHaveProperty("update");
         expect(persistence.importJobs).toHaveProperty("list");
         expect(persistence.importJobs).toHaveProperty("get");
-        expect(persistence.importJobs).toHaveProperty("checkHealth");
 
         expect(persistence.readingProgress).toHaveProperty("save");
         expect(persistence.readingProgress).toHaveProperty("get");
-        expect(persistence.readingProgress).toHaveProperty("checkHealth");
       });
     });
 
@@ -272,21 +267,6 @@ const runPersistenceUnitTests = (createPersistence) => {
         const persistence = createPersistence();
 
         await expect(Promise.resolve(persistence.checkHealth())).resolves.toHaveProperty("success");
-        await expect(Promise.resolve(persistence.books.checkHealth())).resolves.toHaveProperty(
-          "success",
-        );
-        await expect(Promise.resolve(persistence.shelves.checkHealth())).resolves.toHaveProperty(
-          "success",
-        );
-        await expect(Promise.resolve(persistence.users.checkHealth())).resolves.toHaveProperty(
-          "success",
-        );
-        await expect(Promise.resolve(persistence.importJobs.checkHealth())).resolves.toHaveProperty(
-          "success",
-        );
-        await expect(
-          Promise.resolve(persistence.readingProgress.checkHealth()),
-        ).resolves.toHaveProperty("success");
       });
     });
   });
