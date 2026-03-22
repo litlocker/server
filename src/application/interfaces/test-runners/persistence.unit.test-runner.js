@@ -40,6 +40,7 @@ const runPersistenceUnitTests = (createPersistence) => {
         expect(persistence.users).toHaveProperty("update");
         expect(persistence.users).toHaveProperty("list");
         expect(persistence.users).toHaveProperty("get");
+        expect(persistence.users).toHaveProperty("getByAuthIdentity");
         expect(persistence.users).toHaveProperty("checkHealth");
 
         expect(persistence.importJobs).toHaveProperty("create");
@@ -171,6 +172,12 @@ const runPersistenceUnitTests = (createPersistence) => {
         expect(persistence.books.get({ id: book.id })).toEqual(book);
         expect(persistence.shelves.get({ id: shelf.id })).toEqual(shelf);
         expect(persistence.users.get({ id: user.id })).toEqual(user);
+        expect(
+          persistence.users.getByAuthIdentity({
+            authIssuer: user.authIssuer,
+            authSubject: user.authSubject,
+          }),
+        ).toEqual(user);
         expect(persistence.importJobs.get({ id: importJob.id })).toEqual(importJob);
         expect(
           persistence.readingProgress.get({

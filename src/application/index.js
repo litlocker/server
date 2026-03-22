@@ -4,9 +4,15 @@
  * @import { Book } from './entities/book.js'
  * @import { ImportJob, ImportJobDuplicateDetection, ImportJobErrorDetails, ImportJobMetadataCandidate, ImportJobSource, CreateImportJobInput } from './interfaces/import-job.js'
  * @import { ListBooksInput } from './interfaces/book.js'
- * @import { ReadingProgress, SaveReadingProgressInput } from './interfaces/reading-progress.js'
+ * @import {
+ *   GetCurrentUserReadingProgress,
+ *   ReadingProgress,
+ *   SaveCurrentUserReadingProgress,
+ *   SaveReadingProgressInput,
+ * } from './interfaces/reading-progress.js'
  * @import { CreateShelfInput, Shelf, UpdateShelfInput } from './interfaces/shelf.js'
  * @import { FailureResult, HealthStatus, SuccessResult } from './interfaces/result.js'
+ * @import { CurrentUserInput } from './interfaces/user.js'
  */
 
 import { createHash } from "node:crypto";
@@ -702,6 +708,125 @@ const normalizeReadingProgress = (progress, timestamp) => {
 };
 
 /**
+ * @param {CurrentUserInput} currentUser
+ * @param {string} timestamp
+ * @returns {import("./entities/user.js").User}
+ */
+const createUserFromCurrentUser = (currentUser, timestamp) => {
+  return {
+    id: "",
+    authIssuer: currentUser.authIssuer,
+    authSubject: currentUser.authSubject,
+    email: currentUser.email,
+    emailVerified: currentUser.emailVerified,
+    displayName: currentUser.displayName,
+    avatarUrl: currentUser.avatarUrl,
+    role: "member",
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  };
+};
+
+/**
+ * @param {object} params
+ * @param {CurrentUserInput} params.currentUser
+ * @param {import("./interfaces/persistence.js").Persistence} params.persistence
+ * @param {import("./interfaces/id-generator.js").IdGenerator} params.idGenerator
+ * @param {import("./interfaces/clock.js").Clock} params.clock
+ * @returns {import("./entities/user.js").User}
+ */
+const resolveCurrentUser = ({ currentUser, persistence, idGenerator, clock }) => {
+  const timestamp = clock.now().toISOString();
+  const existingUser = persistence.users.getByAuthIdentity({
+    authIssuer: currentUser.authIssuer,
+    authSubject: currentUser.authSubject,
+  });
+
+  if (existingUser) {
+    return (
+      persistence.users.update({
+        id: existingUser.id,
+        updates: {
+          email: currentUser.email,
+          emailVerified: currentUser.emailVerified,
+          displayName: currentUser.displayName,
+          avatarUrl: currentUser.avatarUrl,
+          updatedAt: timestamp,
+        },
+      }) ?? existingUser
+    );
+  }
+
+  return persistence.users.create({
+    record: {
+      ...createUserFromCurrentUser(currentUser, timestamp),
+      id: idGenerator.generate(),
+    },
+  });
+};
+
+/**
+ * @param {object} params
+ * @param {import("./interfaces/persistence.js").Persistence} params.persistence
+ * @param {import("./interfaces/clock.js").Clock} params.clock
+ * @param {import("./interfaces/id-generator.js").IdGenerator} params.idGenerator
+ * @param {SaveReadingProgressInput} params.progress
+ * @returns {ReadingProgress | null}
+ */
+const saveReadingProgressRecord = ({ persistence, clock, idGenerator, progress }) => {
+  const currentBook = persistence.books.get({ id: progress.bookId });
+
+  if (!currentBook) {
+    return null;
+  }
+
+  const currentUser = persistence.users.get({ id: progress.userId });
+
+  if (!currentUser) {
+    return null;
+  }
+
+  const currentReadingProgress = persistence.readingProgress.get({
+    bookId: progress.bookId,
+    userId: progress.userId,
+  });
+  const timestamp = clock.now().toISOString();
+  const nextPercentage = progress.percentage ?? currentReadingProgress?.percentage ?? "";
+  const savedReadingProgress = persistence.readingProgress.save({
+    record: currentReadingProgress
+      ? {
+          ...currentReadingProgress,
+          format: progress.format,
+          locator: progress.locator ?? currentReadingProgress.locator,
+          percentage: nextPercentage,
+          updatedAt: timestamp,
+        }
+      : {
+          id: idGenerator.generate(),
+          ...normalizeReadingProgress(
+            {
+              ...progress,
+              percentage: nextPercentage,
+            },
+            timestamp,
+          ),
+        },
+  });
+
+  persistence.books.update({
+    id: currentBook.id,
+    updates: {
+      readingStatus:
+        currentBook.libraryStatus === "archived"
+          ? currentBook.readingStatus
+          : createBookReadingStatusFromProgress(currentBook, savedReadingProgress.percentage),
+    },
+  });
+
+  return savedReadingProgress;
+};
+
+/**
  * @param {string} percentage
  * @returns {number}
  */
@@ -1063,59 +1188,46 @@ const createApplication = ({
       return persistence.importJobs.get({ id });
     },
     saveReadingProgress: ({ progress }) => {
-      const currentBook = persistence.books.get({ id: progress.bookId });
-
-      if (!currentBook) {
-        return null;
-      }
-
-      const currentUser = persistence.users.get({ id: progress.userId });
-
-      if (!currentUser) {
-        return null;
-      }
-
-      const currentReadingProgress = persistence.readingProgress.get({
-        bookId: progress.bookId,
-        userId: progress.userId,
+      return saveReadingProgressRecord({
+        persistence,
+        clock,
+        idGenerator,
+        progress,
       });
-      const timestamp = clock.now().toISOString();
-      const nextPercentage = progress.percentage ?? currentReadingProgress?.percentage ?? "";
-      const savedReadingProgress = persistence.readingProgress.save({
-        record: currentReadingProgress
-          ? {
-              ...currentReadingProgress,
-              format: progress.format,
-              locator: progress.locator ?? currentReadingProgress.locator,
-              percentage: nextPercentage,
-              updatedAt: timestamp,
-            }
-          : {
-              id: idGenerator.generate(),
-              ...normalizeReadingProgress(
-                {
-                  ...progress,
-                  percentage: nextPercentage,
-                },
-                timestamp,
-              ),
-            },
-      });
-
-      persistence.books.update({
-        id: currentBook.id,
-        updates: {
-          readingStatus:
-            currentBook.libraryStatus === "archived"
-              ? currentBook.readingStatus
-              : createBookReadingStatusFromProgress(currentBook, savedReadingProgress.percentage),
-        },
-      });
-
-      return savedReadingProgress;
     },
     getReadingProgress: ({ bookId, userId }) => {
       return persistence.readingProgress.get({ bookId, userId });
+    },
+    saveCurrentUserReadingProgress: ({ currentUser, progress }) => {
+      const resolvedUser = resolveCurrentUser({
+        currentUser,
+        persistence,
+        idGenerator,
+        clock,
+      });
+
+      return saveReadingProgressRecord({
+        persistence,
+        clock,
+        idGenerator,
+        progress: {
+          ...progress,
+          userId: resolvedUser.id,
+        },
+      });
+    },
+    getCurrentUserReadingProgress: ({ currentUser, bookId }) => {
+      const resolvedUser = resolveCurrentUser({
+        currentUser,
+        persistence,
+        idGenerator,
+        clock,
+      });
+
+      return persistence.readingProgress.get({
+        bookId,
+        userId: resolvedUser.id,
+      });
     },
     finalizeImportJob: ({ id }) => {
       const currentImportJob = persistence.importJobs.get({ id });

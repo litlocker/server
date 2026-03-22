@@ -2547,6 +2547,203 @@ describe("application", () => {
         }),
       ).toBeNull();
     });
+
+    it("should save reading progress for the current authenticated user", () => {
+      const clock = {
+        now: () => new Date("2026-03-22T12:00:00.000Z"),
+        checkHealth: () => createHealthSuccessResult(),
+      };
+      const persistence = createPersistenceInMemory();
+
+      persistence.books.create({
+        record: {
+          id: "book-1",
+          title: "The Left Hand of Darkness",
+          subtitle: "",
+          description: "",
+          language: "",
+          authors: [],
+          tags: [],
+          seriesName: "",
+          seriesNumber: "",
+          cover: {
+            sourcePath: "",
+            thumbnailPath: "",
+            mimeType: "",
+            dominantColor: "",
+          },
+          identifiers: {
+            isbn10: "",
+            isbn13: "",
+            asin: "",
+            goodreadsId: "",
+            googleBooksId: "",
+          },
+          filePath: "",
+          libraryStatus: "draft",
+          readingStatus: "unread",
+        },
+      });
+      const application = createApplication({
+        clock,
+        config,
+        persistence,
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+
+      const readingProgress = application.saveCurrentUserReadingProgress({
+        currentUser: {
+          authIssuer: "https://id.example.com",
+          authSubject: "reader-123",
+          email: "reader@example.com",
+          emailVerified: true,
+          displayName: "Reader",
+          avatarUrl: "https://id.example.com/avatar/reader-123",
+        },
+        progress: {
+          bookId: "book-1",
+          format: "epub",
+          locator: "epubcfi(/6/2[cover]!/4/1:0)",
+          percentage: "0.25",
+        },
+      });
+
+      const savedUser = persistence.users.getByAuthIdentity({
+        authIssuer: "https://id.example.com",
+        authSubject: "reader-123",
+      });
+
+      expect(savedUser).toEqual({
+        id: savedUser?.id,
+        authIssuer: "https://id.example.com",
+        authSubject: "reader-123",
+        email: "reader@example.com",
+        emailVerified: true,
+        displayName: "Reader",
+        avatarUrl: "https://id.example.com/avatar/reader-123",
+        role: "member",
+        createdAt: "2026-03-22T12:00:00.000Z",
+        updatedAt: "2026-03-22T12:00:00.000Z",
+      });
+      expect(readingProgress).toEqual({
+        id: readingProgress?.id,
+        bookId: "book-1",
+        userId: savedUser?.id,
+        format: "epub",
+        locator: "epubcfi(/6/2[cover]!/4/1:0)",
+        percentage: "0.25",
+        createdAt: "2026-03-22T12:00:00.000Z",
+        updatedAt: "2026-03-22T12:00:00.000Z",
+      });
+      expect(
+        application.getCurrentUserReadingProgress({
+          currentUser: {
+            authIssuer: "https://id.example.com",
+            authSubject: "reader-123",
+            email: "reader@example.com",
+            emailVerified: true,
+            displayName: "Reader",
+            avatarUrl: "https://id.example.com/avatar/reader-123",
+          },
+          bookId: "book-1",
+        }),
+      ).toEqual(readingProgress);
+    });
+
+    it("should refresh stored current-user details when saving reading progress", () => {
+      const clock = {
+        now: () => new Date("2026-03-22T12:30:00.000Z"),
+        checkHealth: () => createHealthSuccessResult(),
+      };
+      const persistence = createPersistenceInMemory();
+
+      persistence.books.create({
+        record: {
+          id: "book-1",
+          title: "The Left Hand of Darkness",
+          subtitle: "",
+          description: "",
+          language: "",
+          authors: [],
+          tags: [],
+          seriesName: "",
+          seriesNumber: "",
+          cover: {
+            sourcePath: "",
+            thumbnailPath: "",
+            mimeType: "",
+            dominantColor: "",
+          },
+          identifiers: {
+            isbn10: "",
+            isbn13: "",
+            asin: "",
+            goodreadsId: "",
+            googleBooksId: "",
+          },
+          filePath: "",
+          libraryStatus: "draft",
+          readingStatus: "unread",
+        },
+      });
+      persistence.users.create({
+        record: {
+          id: "user-1",
+          authIssuer: "https://id.example.com",
+          authSubject: "reader-123",
+          email: "old@example.com",
+          emailVerified: false,
+          displayName: "Old Name",
+          avatarUrl: "",
+          role: "admin",
+          createdAt: "2026-03-22T00:00:00.000Z",
+          updatedAt: "2026-03-22T00:00:00.000Z",
+        },
+      });
+      const application = createApplication({
+        clock,
+        config,
+        persistence,
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+
+      application.saveCurrentUserReadingProgress({
+        currentUser: {
+          authIssuer: "https://id.example.com",
+          authSubject: "reader-123",
+          email: "reader@example.com",
+          emailVerified: true,
+          displayName: "Reader",
+          avatarUrl: "https://id.example.com/avatar/reader-123",
+        },
+        progress: {
+          bookId: "book-1",
+          format: "epub",
+          locator: "epubcfi(/6/2[cover]!/4/1:0)",
+          percentage: "0.25",
+        },
+      });
+
+      expect(
+        persistence.users.getByAuthIdentity({
+          authIssuer: "https://id.example.com",
+          authSubject: "reader-123",
+        }),
+      ).toEqual({
+        id: "user-1",
+        authIssuer: "https://id.example.com",
+        authSubject: "reader-123",
+        email: "reader@example.com",
+        emailVerified: true,
+        displayName: "Reader",
+        avatarUrl: "https://id.example.com/avatar/reader-123",
+        role: "admin",
+        createdAt: "2026-03-22T00:00:00.000Z",
+        updatedAt: "2026-03-22T12:30:00.000Z",
+      });
+    });
   });
 
   describe("book file access functions", () => {

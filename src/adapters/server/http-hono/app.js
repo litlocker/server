@@ -28,13 +28,15 @@ import { createRouters } from "./router/index.js";
  */
 const createHonoApp = ({ application, authConfig, config, logger }) => {
   const app = new Hono();
+  const isAuthEnabled = authConfig?.enabled ?? false;
 
   const { healthRouter, booksRouter, importsRouter, progressRouter, shelvesRouter } = createRouters(
     {
       application,
+      authEnabled: isAuthEnabled,
+      authIssuer: authConfig?.oidc.issuerUrl ?? "",
     },
   );
-  const isAuthEnabled = authConfig?.enabled ?? false;
 
   app
     .use(cors({ origin: "*" }))

@@ -28,6 +28,13 @@ interface UsersPersistence {
   update: ({ id, updates }: { id: string; updates: Partial<User> }) => User | null;
   list: () => User[];
   get: ({ id }: { id: string }) => User | null;
+  getByAuthIdentity: ({
+    authIssuer,
+    authSubject,
+  }: {
+    authIssuer: string;
+    authSubject: string;
+  }) => User | null;
   checkHealth: CheckHealth;
 }
 

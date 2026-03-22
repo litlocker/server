@@ -15,7 +15,9 @@ import { MetadataProvider } from "./interfaces/metadata-provider.d.ts";
 import { Persistence } from "./interfaces/persistence.d.ts";
 import {
   GetReadingProgress as GetReadingProgressFn,
+  GetCurrentUserReadingProgress as GetCurrentUserReadingProgressFn,
   SaveReadingProgress as SaveReadingProgressFn,
+  SaveCurrentUserReadingProgress as SaveCurrentUserReadingProgressFn,
 } from "./interfaces/reading-progress.d.ts";
 import { Result, HealthStatus } from "./interfaces/result.d.ts";
 import {
@@ -46,6 +48,8 @@ type GetImportJob = ({ id }: { id: string }) => ImportJob | null;
 type FinalizeImportJob = ({ id }: { id: string }) => ImportJob | null;
 type SaveReadingProgress = SaveReadingProgressFn;
 type GetReadingProgress = GetReadingProgressFn;
+type SaveCurrentUserReadingProgress = SaveCurrentUserReadingProgressFn;
+type GetCurrentUserReadingProgress = GetCurrentUserReadingProgressFn;
 
 interface Application {
   health: Health;
@@ -68,6 +72,8 @@ interface Application {
   finalizeImportJob: FinalizeImportJob;
   saveReadingProgress: SaveReadingProgress;
   getReadingProgress: GetReadingProgress;
+  saveCurrentUserReadingProgress: SaveCurrentUserReadingProgress;
+  getCurrentUserReadingProgress: GetCurrentUserReadingProgress;
 }
 
 interface Deps {

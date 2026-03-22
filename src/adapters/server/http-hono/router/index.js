@@ -2,6 +2,7 @@
  * @import { Application } from '../../../../application/interface.js'
  */
 
+import { getAuth } from "@hono/oidc-auth";
 import { Hono } from "hono";
 import { validateCreateBookPayload, validateUpdateBookPayload } from "./validate-book-payload.js";
 import { validateCreateProgressPayload } from "./validate-progress-payload.js";
@@ -13,8 +14,10 @@ import {
 /**
  * @param { object } params
  * @param { Application } params.application
+ * @param { boolean } [params.authEnabled]
+ * @param { string } [params.authIssuer]
  */
-const createRouters = ({ application }) => {
+const createRouters = ({ application, authEnabled = false, authIssuer = "" }) => {
   const healthRouter = new Hono();
   const booksRouter = new Hono();
   const importsRouter = new Hono();
@@ -168,13 +171,30 @@ const createRouters = ({ application }) => {
     return c.json({ importJob: result });
   });
 
-  progressRouter.get("/:bookId", (c) => {
+  progressRouter.get("/:bookId", async (c) => {
     const { bookId } = c.req.param();
-    const userId = c.req.query("userId") ?? "";
-    const result = application.getReadingProgress({
-      bookId,
-      userId,
-    });
+    const result = authEnabled
+      ? await getAuth(c).then((auth) => {
+          if (!auth?.sub) {
+            return null;
+          }
+
+          return application.getCurrentUserReadingProgress({
+            bookId,
+            currentUser: {
+              authIssuer,
+              authSubject: auth.sub,
+              email: auth.email ?? "",
+              emailVerified: auth.email_verified === true,
+              displayName: String(auth.name ?? auth.email ?? auth.sub),
+              avatarUrl: String(auth.picture ?? ""),
+            },
+          });
+        })
+      : application.getReadingProgress({
+          bookId,
+          userId: c.req.query("userId") ?? "",
+        });
 
     if (!result) {
       return c.json({ message: "Reading progress not found" }, 404);
@@ -185,7 +205,14 @@ const createRouters = ({ application }) => {
 
   progressRouter.post("/", async (c) => {
     const progress = await c.req.json();
-    const validationResult = validateCreateProgressPayload(progress);
+    const validationResult = validateCreateProgressPayload(
+      authEnabled
+        ? {
+            ...progress,
+            userId: "current-user",
+          }
+        : progress,
+    );
 
     if (!validationResult.success) {
       return c.json(
@@ -197,7 +224,25 @@ const createRouters = ({ application }) => {
       );
     }
 
-    const result = application.saveReadingProgress({ progress });
+    const result = authEnabled
+      ? await getAuth(c).then((auth) => {
+          if (!auth?.sub) {
+            return null;
+          }
+
+          return application.saveCurrentUserReadingProgress({
+            currentUser: {
+              authIssuer,
+              authSubject: auth.sub,
+              email: auth.email ?? "",
+              emailVerified: auth.email_verified === true,
+              displayName: String(auth.name ?? auth.email ?? auth.sub),
+              avatarUrl: String(auth.picture ?? ""),
+            },
+            progress,
+          });
+        })
+      : application.saveReadingProgress({ progress });
 
     if (!result) {
       return c.json({ message: "Book or user not found" }, 404);

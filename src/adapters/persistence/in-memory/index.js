@@ -150,8 +150,22 @@ const createPersistenceInMemory = () => {
     );
   /** @type {Persistence["shelves"]} */
   const shelves = createRecordStore();
+  const usersRecordStore =
+    /** @type {Pick<Persistence["users"], "create" | "update" | "list" | "get" | "checkHealth">} */ (
+      createRecordStore()
+    );
   /** @type {Persistence["users"]} */
-  const users = createRecordStore();
+  const users = {
+    ...usersRecordStore,
+    getByAuthIdentity: ({ authIssuer, authSubject }) => {
+      return (
+        usersRecordStore
+          .list()
+          .find((user) => user.authIssuer === authIssuer && user.authSubject === authSubject) ??
+        null
+      );
+    },
+  };
   /** @type {Persistence["importJobs"]} */
   const importJobs = createRecordStore();
   const readingProgress = createReadingProgressStore();

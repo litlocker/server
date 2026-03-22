@@ -28,6 +28,8 @@ import { vi } from "vitest";
  *   finalizeImportJob: Mock;
  *   saveReadingProgress: Mock;
  *   getReadingProgress: Mock;
+ *   saveCurrentUserReadingProgress: Mock;
+ *   getCurrentUserReadingProgress: Mock;
  * }} ApplicationMock
  */
 
@@ -85,6 +87,8 @@ const createApplicationMock = (overrides = {}) => {
     finalizeImportJob: vi.fn(),
     saveReadingProgress: vi.fn(),
     getReadingProgress: vi.fn(),
+    saveCurrentUserReadingProgress: vi.fn(),
+    getCurrentUserReadingProgress: vi.fn(),
     ...overrides,
   };
 };
