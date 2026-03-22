@@ -2,66 +2,276 @@
 
 LitLocker is a self-hosted digital library project inspired by BookLore.
 
-This repository currently contains the server/API. The goal is to build a web-first library manager for EPUB, PDF, and comic formats with a clean reader experience, reliable metadata workflows, and a ports-and-adapters architecture that stays easy to evolve over time.
+This repository contains the server/API for the project. It is designed as a web-first backend for managing EPUB, PDF, and comic libraries with a clean ports-and-adapters architecture, explicit contracts, and deployment paths that stay understandable for self-hosters.
 
-## Status
+## What It Does Today
 
-This project is still in an early foundation stage.
+The current server can:
 
-What exists today:
+- manage books with metadata, authors, tags, series, cover data, and file references
+- manage manual shelves and shelf membership
+- ingest uploads into an import pipeline
+- extract and enrich import metadata through a metadata-provider seam
+- detect duplicate imports
+- store reading progress
+- persist data in Postgres
+- protect API routes with OIDC-backed auth when enabled
+- expose structured logs, health checks, rate limits, upload validation, and shutdown gracefully
 
-- Hono-based HTTP server
-- Config, logger, and server boot wiring
-- Postgres `persistence` adapter using `pg`
-- `node-pg-migrate` setup with app-start migration execution
-- `/health` endpoint
-- Application-level book CRUD functions
-- Application-level shelf CRUD and membership functions
-- Application-level import job and reading progress functions
-- `Book` entity with metadata, authors, tags, series, and cover fields
-- Book, shelf, import, and reading-progress route validation
-- Basic book routes:
+Current implemented route groups:
+
+- `GET /health`
+- books:
   - `POST /books`
   - `GET /books`
-  - `PATCH /books/:id`
   - `GET /books/:id`
-- Unit and integration coverage for the current API flow
+  - `PATCH /books/:id`
+- shelves:
+  - `POST /shelves`
+  - `GET /shelves`
+  - `PATCH /shelves/:id`
+  - `DELETE /shelves/:id`
+  - `POST /shelves/:id/books/:bookId`
+  - `DELETE /shelves/:id/books/:bookId`
+- imports:
+  - `POST /imports`
+  - `GET /imports`
+  - `GET /imports/:id`
+  - `POST /imports/:id/finalize`
+- reading progress:
+  - `GET /progress/:bookId`
+  - `POST /progress`
 
-What is not done yet:
+## Project Status
 
-- Richer reader file delivery
-- Operational hardening
+This is still an early server-first foundation, but it is not a toy skeleton. The project now has:
 
-## Architecture
+- real Postgres persistence
+- migrations with `node-pg-migrate`
+- self-hosting with docker
+- health checks and structured logging
+- import, browse, and reading-progress flows
 
-The codebase follows a ports-and-adapters code org with a strong separation of concerns.
+Still intentionally not finished but planned:
 
-- `src/application`
-  - application behavior
-  - entity definitions
-  - interface contracts
-- `src/adapters`
-  - infrastructure implementations such as HTTP, config, logging, and data storage
-- `src/boot.js`
-  - wiring dependencies together
+- richer reader delivery flows
+- OPDS and device sync
+- broader ecosystem features
+- more polished contributor and operator tooling
 
-Project conventions:
-
-- JavaScript source with `.d.ts` contracts
-- dependency injection through `createX` factories
-- entity definitions live under `src/application/entities`
-- application contracts live under `src/application/interfaces`
-- no `null` values in entities; use concrete defaults such as `""` or `[]`
-- no distinction between "driving" and "driven" ports
-
-## Quick Start
+## Self-Hosting
 
 ### Requirements
 
 - Node.js `24`
 - `pnpm` `10`
+- Postgres `15+` or Docker
 
-### Setup
+### Recommended: Docker Compose
+
+The repository includes:
+
+- [Dockerfile](./Dockerfile)
+- [docker-compose.yaml](./docker-compose.yaml)
+
+Quick start:
+
+```bash
+cp .env.example .env
+docker compose up --build
+```
+
+Expected result:
+
+- `litlocker-server` is available on `http://localhost:3000`
+- `litlocker-postgres` is available on `localhost:15432`
+- both containers have health checks
+- the app runs pending migrations automatically on startup
+
+Persistent volumes in the compose stack:
+
+- Postgres data
+- library files
+- import staging files
+- cover files
+
+### Local Development / Local Self-Hosting
+
+If you want to run directly on the host:
+
+```bash
+cp .env.example .env
+pnpm install
+pnpm run start
+```
+
+The default local database values are:
+
+- host: `localhost`
+- port: `15432`
+- user: `devdb`
+- password: `devpass`
+- database: `devdb`
+- schema: `litlocker`
+
+The app will:
+
+- validate env configuration at startup
+- run pending migrations
+- start serving on `http://localhost:3000` by default
+
+## Configuration
+
+All current environment variables are shown in [.env.example](./.env.example).
+
+### Server
+
+- `SERVER__HTTP__ADDRESS`
+- `SERVER__HTTP__PORT`
+- `SERVER__HTTP__TIMEOUT_MS`
+
+### Storage
+
+- `STORAGE__PATHS__LIBRARY`
+- `STORAGE__PATHS__IMPORTS`
+- `STORAGE__PATHS__COVERS`
+
+These paths are used for:
+
+- finalized library files
+- temporary import staging
+- stored cover assets
+
+### Imports
+
+- `IMPORTS__MAX_FILE_SIZE_IN_BYTES`
+- `IMPORTS__ALLOWED_FILE_EXTENSIONS`
+- `IMPORTS__DUPLICATE_CHECK_ENABLED`
+- `IMPORTS__UPLOAD_RATE_LIMIT__WINDOW_MS`
+- `IMPORTS__UPLOAD_RATE_LIMIT__MAX_REQUESTS`
+
+### Database
+
+- `DATABASE__HOST`
+- `DATABASE__PORT`
+- `DATABASE__USER`
+- `DATABASE__PASSWORD`
+- `DATABASE__DATABASE`
+- `DATABASE__SCHEMA`
+- `DATABASE__SSL_ENABLED`
+- `DATABASE__POOL_MAX_CONNECTIONS`
+- `DATABASE__POOL_IDLE_TIMEOUT_MS`
+- `DATABASE__CONNECTION_TIMEOUT_MS`
+
+Important implementation details:
+
+- the app uses the `litlocker` Postgres schema by default
+- the project uses handwritten SQL via `pg`
+- no ORM is used
+- no database-native foreign keys are used
+
+### Auth
+
+- `AUTH__ENABLED`
+- `AUTH__SESSION_SECRET`
+- `AUTH__SESSION_TTL_MS`
+- `AUTH__SESSION_COOKIE_NAME`
+- `AUTH__SESSION_COOKIE_SECURE`
+- `AUTH__RATE_LIMIT__WINDOW_MS`
+- `AUTH__RATE_LIMIT__MAX_REQUESTS`
+- `AUTH__OIDC__ISSUER_URL`
+- `AUTH__OIDC__CLIENT_ID`
+- `AUTH__OIDC__CLIENT_SECRET`
+- `AUTH__OIDC__REDIRECT_URL`
+- `AUTH__OIDC__POST_LOGOUT_REDIRECT_URL`
+- `AUTH__OIDC__SCOPES`
+- `AUTH__OIDC__REQUIRE_PKCE`
+- `AUTH__OIDC__DISCOVERY_TIMEOUT_MS`
+
+When auth is enabled:
+
+- `/health` stays public
+- the rest of the API is protected
+- OIDC is used so self-hosters can rely on an existing IdP
+
+### Metadata Providers
+
+- `METADATA_PROVIDERS__ENABLED_PROVIDERS`
+- `METADATA_PROVIDERS__LOOKUP_TIMEOUT_MS`
+- `METADATA_PROVIDERS__DEFAULT_LANGUAGE`
+
+## Migrations And Persistence
+
+Migration scripts:
+
+- `pnpm run migrate:up`
+- `pnpm run migrate:down`
+- `pnpm run migrate:create <name>`
+
+At runtime, the app also runs pending migrations automatically during boot.
+
+## Scripts
+
+- `pnpm run dev`
+  - start the server in watch mode
+- `pnpm run start`
+  - start the server once
+- `pnpm run start:debug`
+  - start with the Node inspector
+- `pnpm run migrate:up`
+  - apply pending migrations
+- `pnpm run migrate:down`
+  - roll back migrations
+- `pnpm run migrate:create <name>`
+  - create a migration file
+- `pnpm run test:unit`
+  - run unit tests
+- `pnpm run test:integration`
+  - run integration tests
+- `pnpm run lint:check`
+  - run oxlint
+- `pnpm run lint:ts`
+  - run `tsc --noEmit`
+- `pnpm run fmt:check`
+  - verify formatting
+
+## Operations
+
+- Backup and restore guide: [BACKUP_RESTORE.md](./BACKUP_RESTORE.md)
+- Manual smoke checks: [SMOKE_TESTS.md](./SMOKE_TESTS.md)
+- Contributor guide: [CONTRIBUTING.md](./CONTRIBUTING.md)
+
+## Architecture
+
+The codebase follows a ports-and-adapters structure with explicit dependency injection.
+
+Top-level layout:
+
+- `src/application`
+  - application behavior, entity definitions, and interface contracts
+- `src/adapters`
+  - infrastructure implementations such as HTTP, auth, config, logging, storage, and persistence
+- `src/runtime`
+  - runtime-only boot and shutdown behavior
+- `src/boot.js`
+  - dependency wiring
+- `src/index.js`
+  - process entrypoint
+
+Important conventions:
+
+- JavaScript source with `.d.ts` contracts
+- entity definitions live under `src/application/entities`
+- interfaces live under `src/application/interfaces`
+- adapters depend on application contracts, not the other way around
+- `createX` factories and dependency injection
+- do not split ports into separate “driving” and “driven” taxonomies
+
+## Development
+
+For contributor-facing guidance, see [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+If you only want a fast local developer loop:
 
 ```bash
 cp .env.example .env
@@ -69,97 +279,9 @@ pnpm install
 pnpm run dev
 ```
 
-The server will start on `http://localhost:3000` by default.
+To sanity-check the app manually after changes:
 
-### Docker
-
-```bash
-cp .env.example .env
-docker compose up --build
-```
-
-The compose stack starts:
-
-- `litlocker-server` on `http://localhost:3000`
-- `litlocker-postgres` on `localhost:15432`
-
-The app container still runs migrations on startup, so the schema is brought up before the server begins serving requests.
-
-## Environment Variables
-
-Defined in [.env.example](/Users/curamet/development/oss/litlocker/server/.env.example):
-
-- `LOGGER__DEBUG_LOGS_ENABLED`
-- `SERVER__HTTP__ADDRESS`
-- `SERVER__HTTP__TIMEOUT_MS`
-- `SERVER__HTTP__PORT`
-
-## Scripts
-
-- `pnpm run dev` - start the server in watch mode
-- `pnpm run start` - start the server once
-- `pnpm run migrate:up` - apply pending Postgres migrations
-- `pnpm run migrate:down` - roll back the latest Postgres migration
-- `pnpm run migrate:create <name>` - create a new Postgres migration file
-- `pnpm run test:unit` - run unit tests
-- `pnpm run test:integration` - run integration tests
-- `pnpm run test` - run all tests
-- `pnpm run lint:check` - run lint checks
-- `pnpm run lint:ts` - run `tsc --noEmit`
-- `pnpm run fmt:check` - check formatting
-
-## Operations
-
-- Backup and restore guide: [BACKUP_RESTORE.md](/Users/curamet/development/oss/litlocker/server/BACKUP_RESTORE.md)
-- Manual smoke checks: [SMOKE_TESTS.md](/Users/curamet/development/oss/litlocker/server/SMOKE_TESTS.md)
-- Docker stack: [docker-compose.yaml](/Users/curamet/development/oss/litlocker/server/docker-compose.yaml)
-- Container image: [Dockerfile](/Users/curamet/development/oss/litlocker/server/Dockerfile)
-
-## Current API
-
-### `POST /books`
-
-Creates a book.
-
-Example request body:
-
-```json
-{
-  "title": "The Left Hand of Darkness",
-  "authors": ["Ursula K. Le Guin"],
-  "tags": ["science-fiction"],
-  "seriesName": "",
-  "seriesNumber": ""
-}
-```
-
-### `GET /books`
-
-Returns all books currently stored.
-
-### `PATCH /books/:id`
-
-Updates an existing book by id.
-
-### `GET /books/:id`
-
-Returns a single book by id or `404` if it does not exist.
-
-## Near-Term Implementation Goals
-
-- [ ] Finish foundation work so the application has stable shared contracts for time, ids, persistence, storage, metadata lookup, and background work.
-- [ ] Introduce a real persistence layer so books survive process restarts and the in-memory adapter becomes a development-only implementation.
-- [ ] Add shelves as a first-class library organization feature, starting with manual shelves and book membership management.
-- [ ] Add library filtering and search so readers can browse by title, author, tag, series, and shelf membership.
-- [ ] Build the first import workflow so books can enter the system through upload and move through a visible import lifecycle.
-- [ ] Add metadata enrichment and review so imported books can be matched, corrected, and finalized before entering the main library.
-- [ ] Add cover extraction and storage workflows so books have stable cover metadata and image references.
-- [ ] Introduce reading-progress APIs and the book-file access flow needed to support real reading clients.
-- [ ] Build the first reader-facing backend capabilities for EPUB, PDF, and comic reading flows.
-- [ ] Add single-admin authentication and route protection so the server is usable as a private self-hosted application.
-- [ ] Harden the server for self-hosting with better error handling, upload limits, structured logging, graceful shutdown, and Docker support.
-- [ ] Expand the library model with shelves, tags, search, and import workflows into a coherent end-to-end v1 library experience.
-- [ ] Prepare the server for ecosystem features such as OPDS and device sync once the core library, import, and progress flows are stable.
+- use [SMOKE_TESTS.md](./SMOKE_TESTS.md)
 
 ## License
 

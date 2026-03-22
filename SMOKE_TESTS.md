@@ -6,7 +6,7 @@ This guide is for quick human verification that the current server is usable in 
 
 ### 1. Start dependencies
 
-Make sure Postgres is available with the values from [.env.example](/Users/curamet/development/oss/litlocker/server/.env.example), or update `.env` for your local database.
+Make sure Postgres is available with the values from [.env.example](./.env.example), or update `.env` for your local database.
 
 ### 2. Start the server
 
