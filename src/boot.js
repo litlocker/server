@@ -8,6 +8,7 @@ import { createPersistencePostgres } from "./adapters/persistence/postgres/index
 import { runPendingPostgresMigrations } from "./adapters/persistence/postgres/migrations/index.js";
 import { createServerHttpHono } from "./adapters/server/http-hono/index.js";
 import { createApplication } from "./application/index.js";
+import { createRuntimeShutdown } from "./runtime/shutdown.js";
 
 const boot = async () => {
   const clock = createClockSystem();
@@ -38,6 +39,11 @@ const boot = async () => {
     },
     logger,
   });
+  const shutdown = createRuntimeShutdown({
+    logger,
+    server,
+    persistence,
+  });
 
   return {
     clock,
@@ -49,6 +55,7 @@ const boot = async () => {
     logger,
     application,
     server,
+    shutdown,
   };
 };
 

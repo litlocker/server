@@ -39,14 +39,26 @@ const createServerHttpHono = ({ application, config, logger }) => {
       if (!server) {
         return { success: true };
       }
-      server.close((error) => {
-        if (error) {
-          logger.error("Error while stopping the server:", { reasonForStop: reason, error });
-          return { success: false };
-        }
+
+      const result = await new Promise((resolve) => {
+        server?.close((error) => {
+          if (error) {
+            logger.error("Error while stopping the server:", { reasonForStop: reason, error });
+            resolve({ success: false });
+            return;
+          }
+
+          resolve({ success: true });
+        });
       });
-      logger.info("Server has been stopped", { reasonForStop: reason });
-      return { success: true };
+
+      server = null;
+
+      if (result.success) {
+        logger.info("Server has been stopped", { reasonForStop: reason });
+      }
+
+      return result;
     },
     checkHealth: () => ({
       success: true,
