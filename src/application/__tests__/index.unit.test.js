@@ -54,6 +54,63 @@ describe("application", () => {
       },
     }),
   };
+  const createTestFileStorage = () => {
+    const files = new Map();
+
+    return {
+      saveFile: ({ file }) => {
+        const entry = {
+          path: file.path,
+          name: file.name ?? "",
+          mimeType: file.mimeType ?? "",
+          sizeInBytes: file.contents.byteLength,
+        };
+
+        files.set(file.path, {
+          ...entry,
+          contents: file.contents,
+        });
+
+        return entry;
+      },
+      readFile: ({ file }) => {
+        return files.get(file.path)?.contents ?? new Uint8Array();
+      },
+      deleteFile: ({ file }) => {
+        return {
+          success: files.delete(file.path),
+        };
+      },
+      moveFile: ({ file }) => {
+        const currentFile = files.get(file.fromPath);
+
+        if (!currentFile) {
+          throw new Error("File not found");
+        }
+
+        files.delete(file.fromPath);
+        files.set(file.toPath, {
+          ...currentFile,
+          path: file.toPath,
+        });
+
+        return {
+          path: file.toPath,
+          name: currentFile.name,
+          mimeType: currentFile.mimeType,
+          sizeInBytes: currentFile.sizeInBytes,
+        };
+      },
+      fileExists: ({ file }) => files.has(file.path),
+      checkHealth: () => ({
+        success: true,
+        data: {
+          status: "ok",
+          details: {},
+        },
+      }),
+    };
+  };
 
   describe("foundation functions", () => {
     it("should expose the health function on the application", () => {
@@ -84,6 +141,13 @@ describe("application", () => {
           details: {
             checks: {
               clock: {
+                success: true,
+                data: {
+                  status: "ok",
+                  details: {},
+                },
+              },
+              fileStorage: {
                 success: true,
                 data: {
                   status: "ok",
@@ -153,6 +217,13 @@ describe("application", () => {
                   details: {
                     dependency: "clock",
                   },
+                },
+              },
+              fileStorage: {
+                success: true,
+                data: {
+                  status: "ok",
+                  details: {},
                 },
               },
               persistence: {
@@ -1032,6 +1103,7 @@ describe("application", () => {
       });
 
       expect(application).toHaveProperty("createImportJob");
+      expect(application).toHaveProperty("ingestImportUpload");
       expect(application).toHaveProperty("listImportJobs");
       expect(application).toHaveProperty("getImportJob");
       expect(application).toHaveProperty("finalizeImportJob");
@@ -1100,6 +1172,51 @@ describe("application", () => {
       });
       expect(application.listImportJobs()).toEqual([firstImportJob, secondImportJob]);
       expect(application.getImportJob({ id: secondImportJob.id })).toEqual(secondImportJob);
+    });
+
+    it("should ingest an uploaded file into the temporary import area", () => {
+      const fileStorage = createTestFileStorage();
+      const application = createApplication({
+        clock: createClockSystem(),
+        config,
+        fileStorage,
+        persistence: createPersistenceInMemory(),
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+
+      const importJob = application.ingestImportUpload({
+        upload: {
+          name: "left-hand.epub",
+          mimeType: "application/epub+zip",
+          contents: new Uint8Array([1, 2, 3]),
+        },
+      });
+
+      expect(importJob).toEqual({
+        id: importJob.id,
+        status: "queued",
+        source: {
+          kind: "upload",
+          path: `/tmp/litlocker/imports/${importJob.id}.epub`,
+          originalFileName: "left-hand.epub",
+        },
+        detectedFileType: "epub",
+        metadataCandidates: [],
+        error: {
+          code: "",
+          message: "",
+          details: "",
+        },
+      });
+      expect(
+        fileStorage.fileExists({
+          file: {
+            path: importJob.source.path,
+          },
+        }),
+      ).toBe(true);
+      expect(application.listImportJobs()).toEqual([importJob]);
     });
 
     it("should finalize an existing import job", () => {

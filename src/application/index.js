@@ -7,6 +7,8 @@
  * @import { CreateShelfInput, Shelf, UpdateShelfInput } from './interfaces/shelf.js'
  */
 
+import { join } from "node:path";
+
 const createHealthSuccessResult = (details) => {
   return {
     success: true,
@@ -25,6 +27,27 @@ const createHealthFailureResult = (details) => {
       message: "One or more application dependencies are unavailable",
       details,
     },
+  };
+};
+
+const createDefaultFileStorage = () => {
+  return {
+    saveFile: () => {
+      throw new Error("File storage is not configured");
+    },
+    readFile: () => new Uint8Array(),
+    deleteFile: () => ({ success: false }),
+    moveFile: () => {
+      throw new Error("File storage is not configured");
+    },
+    fileExists: () => false,
+    checkHealth: () => ({
+      success: true,
+      data: {
+        status: "ok",
+        details: {},
+      },
+    }),
   };
 };
 
@@ -142,6 +165,35 @@ const normalizeImportJob = (job) => {
     metadataCandidates: normalizeImportJobMetadataCandidates(),
     error: normalizeImportJobError(),
   };
+};
+
+/**
+ * @param { string } fileName
+ * @returns { string }
+ */
+const detectFileTypeFromFileName = (fileName) => {
+  const extensionIndex = fileName.lastIndexOf(".");
+
+  if (extensionIndex < 0 || extensionIndex === fileName.length - 1) {
+    return "";
+  }
+
+  return fileName.slice(extensionIndex + 1).toLocaleLowerCase();
+};
+
+/**
+ * @param { object } params
+ * @param { string } params.importsPath
+ * @param { string } params.importJobId
+ * @param { string } params.originalFileName
+ * @returns { string }
+ */
+const createImportUploadPath = ({ importsPath, importJobId, originalFileName }) => {
+  const extensionIndex = originalFileName.lastIndexOf(".");
+  const fileExtension =
+    extensionIndex >= 0 ? originalFileName.slice(extensionIndex).toLocaleLowerCase() : "";
+
+  return join(importsPath, `${importJobId}${fileExtension}`);
 };
 
 /**
@@ -309,11 +361,19 @@ const doesBookMatchFilters = (book, filters, shelf) => {
 };
 
 /** @type { CreateApplication } */
-const createApplication = ({ clock, config: _config, persistence, idGenerator, logger }) => {
+const createApplication = ({
+  clock,
+  config,
+  fileStorage = createDefaultFileStorage(),
+  persistence,
+  idGenerator,
+  logger,
+}) => {
   return {
     health: () => {
       const checks = {
         clock: clock.checkHealth(),
+        fileStorage: fileStorage.checkHealth(),
         persistence: persistence.checkHealth(),
         idGenerator: idGenerator.checkHealth(),
         logger: logger.checkHealth(),
@@ -431,6 +491,36 @@ const createApplication = ({ clock, config: _config, persistence, idGenerator, l
         record: {
           id: idGenerator.generate(),
           ...normalizeImportJob(job),
+        },
+      });
+    },
+    ingestImportUpload: ({ upload }) => {
+      const importJobId = idGenerator.generate();
+      const importPath = createImportUploadPath({
+        importsPath: config.storage.paths.imports,
+        importJobId,
+        originalFileName: upload.name,
+      });
+      const savedFile = fileStorage.saveFile({
+        file: {
+          path: importPath,
+          name: upload.name,
+          mimeType: upload.mimeType ?? "",
+          contents: upload.contents,
+        },
+      });
+
+      return persistence.importJobs.create({
+        record: {
+          id: importJobId,
+          ...normalizeImportJob({
+            source: {
+              kind: "upload",
+              path: savedFile.path,
+              originalFileName: upload.name,
+            },
+            detectedFileType: detectFileTypeFromFileName(upload.name),
+          }),
         },
       });
     },

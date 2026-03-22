@@ -16,7 +16,14 @@ interface CreateImportJobInput {
   detectedFileType?: string;
 }
 
+interface IngestImportUploadInput {
+  name: string;
+  mimeType?: string;
+  contents: Uint8Array;
+}
+
 type CreateImportJob = ({ job }: { job: CreateImportJobInput }) => ImportJob;
+type IngestImportUpload = ({ upload }: { upload: IngestImportUploadInput }) => ImportJob;
 type FinalizeImportJob = ({ id }: { id: string }) => ImportJob | null;
 type UpdateImportJob = ({
   id,
@@ -36,7 +43,9 @@ export type {
   ImportJobMetadataCandidate,
   ImportJobErrorDetails,
   CreateImportJobInput,
+  IngestImportUploadInput,
   CreateImportJob,
+  IngestImportUpload,
   FinalizeImportJob,
   UpdateImportJob,
   ListImportJobs,

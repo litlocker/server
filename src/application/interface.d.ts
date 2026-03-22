@@ -2,8 +2,13 @@ import { Book, CreateBookInput, UpdateBookInput } from "./entities/book.d.ts";
 import { ListBooksInput } from "./interfaces/book.d.ts";
 import { Clock } from "./interfaces/clock.d.ts";
 import { Config } from "./interfaces/config.d.ts";
+import { FileStorage } from "./interfaces/file-storage.d.ts";
 import { IdGenerator } from "./interfaces/id-generator.d.ts";
-import { CreateImportJobInput, ImportJob } from "./interfaces/import-job.d.ts";
+import {
+  CreateImportJobInput,
+  ImportJob,
+  IngestImportUploadInput,
+} from "./interfaces/import-job.d.ts";
 import { Logger } from "./interfaces/logger.d.ts";
 import { Persistence } from "./interfaces/persistence.d.ts";
 import { Result, HealthStatus } from "./interfaces/result.d.ts";
@@ -27,6 +32,7 @@ type DeleteShelf = ({ id }: { id: string }) => { success: boolean };
 type AddBookToShelf = ({ shelfId, bookId }: AddBookToShelfInput) => Shelf | null;
 type RemoveBookFromShelf = ({ shelfId, bookId }: RemoveBookFromShelfInput) => Shelf | null;
 type CreateImportJob = ({ job }: { job: CreateImportJobInput }) => ImportJob;
+type IngestImportUpload = ({ upload }: { upload: IngestImportUploadInput }) => ImportJob;
 type ListImportJobs = () => ImportJob[];
 type GetImportJob = ({ id }: { id: string }) => ImportJob | null;
 type FinalizeImportJob = ({ id }: { id: string }) => ImportJob | null;
@@ -44,6 +50,7 @@ interface Application {
   addBookToShelf: AddBookToShelf;
   removeBookFromShelf: RemoveBookFromShelf;
   createImportJob: CreateImportJob;
+  ingestImportUpload: IngestImportUpload;
   listImportJobs: ListImportJobs;
   getImportJob: GetImportJob;
   finalizeImportJob: FinalizeImportJob;
@@ -52,6 +59,7 @@ interface Application {
 interface Deps {
   clock: Clock;
   config: Config;
+  fileStorage: FileStorage;
   logger: Logger;
   persistence: Persistence;
   idGenerator: IdGenerator;

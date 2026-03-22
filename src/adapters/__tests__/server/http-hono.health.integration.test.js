@@ -70,6 +70,13 @@ describe("http hono health route integration", () => {
               details: {},
             },
           },
+          fileStorage: {
+            success: true,
+            data: {
+              status: "ok",
+              details: {},
+            },
+          },
           persistence: {
             success: true,
             data: {
