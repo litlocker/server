@@ -95,13 +95,17 @@ const serializeJson = (value) => {
 
 /**
  * @template TValue
- * @param {string | null | undefined} value
+ * @param {unknown} value
  * @param {TValue} fallbackValue
  * @returns {TValue}
  */
 const parseJson = (value, fallbackValue) => {
-  if (!value) {
+  if (value === null || value === undefined) {
     return fallbackValue;
+  }
+
+  if (typeof value !== "string") {
+    return /** @type {TValue} */ (value);
   }
 
   try {
@@ -122,17 +126,17 @@ const mapBookRow = (row) => {
     subtitle: String(row.subtitle),
     description: String(row.description),
     language: String(row.language),
-    authors: parseJson(row.authors?.toString(), []),
-    tags: parseJson(row.tags?.toString(), []),
+    authors: parseJson(row.authors, []),
+    tags: parseJson(row.tags, []),
     seriesName: String(row.series_name),
     seriesNumber: String(row.series_number),
-    cover: parseJson(row.cover?.toString(), {
+    cover: parseJson(row.cover, {
       sourcePath: "",
       thumbnailPath: "",
       mimeType: "",
       dominantColor: "",
     }),
-    identifiers: parseJson(row.identifiers?.toString(), {
+    identifiers: parseJson(row.identifiers, {
       isbn10: "",
       isbn13: "",
       asin: "",
@@ -155,7 +159,7 @@ const mapShelfRow = (row) => {
     kind: /** @type {Shelf["kind"]} */ (row.kind),
     name: String(row.name),
     description: String(row.description),
-    bookIds: parseJson(row.book_ids?.toString(), []),
+    bookIds: parseJson(row.book_ids, []),
   };
 };
 
@@ -186,20 +190,20 @@ const mapImportJobRow = (row) => {
   return {
     id: String(row.id),
     status: /** @type {ImportJob["status"]} */ (row.status),
-    source: parseJson(row.source?.toString(), {
+    source: parseJson(row.source, {
       kind: "upload",
       path: "",
       originalFileName: "",
     }),
     detectedFileType: String(row.detected_file_type),
-    metadataCandidates: parseJson(row.metadata_candidates?.toString(), []),
+    metadataCandidates: parseJson(row.metadata_candidates, []),
     selectedMetadataCandidateIndex: Number(row.selected_metadata_candidate_index),
-    duplicateDetection: parseJson(row.duplicate_detection?.toString(), {
+    duplicateDetection: parseJson(row.duplicate_detection, {
       fileHash: "",
       duplicateImportJobIds: [],
       duplicateBookIds: [],
     }),
-    error: parseJson(row.error?.toString(), {
+    error: parseJson(row.error, {
       code: "",
       message: "",
       details: "",
