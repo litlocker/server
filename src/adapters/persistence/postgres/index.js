@@ -21,14 +21,15 @@ const { Pool } = pg;
  */
 
 /**
+ * @param {Record<string, unknown>} [details]
  * @returns {SuccessResult<HealthStatus>}
  */
-const createHealthSuccessResult = () => {
+const createHealthSuccessResult = (details = {}) => {
   return {
     success: true,
     data: {
       status: "ok",
-      details: {},
+      details,
     },
   };
 };
@@ -43,6 +44,21 @@ const createHealthFailureResult = (details) => {
     error: {
       code: "postgres_unavailable",
       message: "Postgres persistence is unavailable",
+      details,
+    },
+  };
+};
+
+/**
+ * @param {Record<string, unknown>} details
+ * @returns {Result<HealthStatus>}
+ */
+const createIntegrityFailureResult = (details) => {
+  return {
+    success: false,
+    error: {
+      code: "postgres_integrity_error",
+      message: "Postgres persistence contains orphaned references",
       details,
     },
   };
@@ -220,12 +236,47 @@ const createPersistenceFromPool = ({ pool, schema }) => {
   const usersTableName = createQualifiedTableName(schema, "users");
   const importJobsTableName = createQualifiedTableName(schema, "import_jobs");
   const readingProgressTableName = createQualifiedTableName(schema, "reading_progress");
+  const orphanedReadingProgressQuery = `
+    SELECT COUNT(*) AS count
+    FROM ${readingProgressTableName} AS reading_progress
+    LEFT JOIN ${booksTableName} AS books
+      ON books.id = reading_progress.book_id
+    LEFT JOIN ${usersTableName} AS users
+      ON users.id = reading_progress.user_id
+    WHERE books.id IS NULL OR users.id IS NULL
+  `;
+  const orphanedShelfBookReferenceQuery = `
+    SELECT COUNT(*) AS count
+    FROM ${shelvesTableName} AS shelves
+    CROSS JOIN LATERAL jsonb_array_elements_text(shelves.book_ids) AS shelf_book(book_id)
+    LEFT JOIN ${booksTableName} AS books
+      ON books.id = shelf_book.book_id
+    WHERE books.id IS NULL
+  `;
 
   const checkHealth = async () => {
     try {
       await pool.query("SELECT 1");
+      const orphanedReadingProgressResult = await pool.query(orphanedReadingProgressQuery);
+      const orphanedShelfBookReferenceResult = await pool.query(orphanedShelfBookReferenceQuery);
+      const orphanedReadingProgressCount = Number(
+        orphanedReadingProgressResult.rows[0]?.count ?? 0,
+      );
+      const orphanedShelfBookReferenceCount = Number(
+        orphanedShelfBookReferenceResult.rows[0]?.count ?? 0,
+      );
 
-      return createHealthSuccessResult();
+      if (orphanedReadingProgressCount > 0 || orphanedShelfBookReferenceCount > 0) {
+        return createIntegrityFailureResult({
+          orphanedReadingProgressCount,
+          orphanedShelfBookReferenceCount,
+        });
+      }
+
+      return createHealthSuccessResult({
+        orphanedReadingProgressCount,
+        orphanedShelfBookReferenceCount,
+      });
     } catch (error) {
       return createHealthFailureResult({
         cause: error instanceof Error ? error.message : "Unknown error",

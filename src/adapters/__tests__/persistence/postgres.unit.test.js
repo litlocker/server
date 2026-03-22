@@ -1,3 +1,4 @@
+import { describe, expect, it } from "vitest";
 import { runPersistenceUnitTests } from "../../../application/interfaces/test-runners/persistence.unit.test-runner.js";
 import { createPersistencePostgres } from "../../persistence/postgres/index.js";
 
@@ -124,6 +125,43 @@ const createPoolDouble = (schema) => {
       if (sql === "SELECT 1") {
         return {
           rows: [{ value: 1 }],
+          rowCount: 1,
+        };
+      }
+
+      if (sql.includes(`FROM ${readingProgressTable}`) && sql.includes("LEFT JOIN")) {
+        let count = 0;
+
+        for (const row of tables.readingProgress.values()) {
+          const hasBook = tables.books.has(String(row.book_id));
+          const hasUser = tables.users.has(String(row.user_id));
+
+          if (!hasBook || !hasUser) {
+            count += 1;
+          }
+        }
+
+        return {
+          rows: [{ count }],
+          rowCount: 1,
+        };
+      }
+
+      if (sql.includes(`FROM ${shelvesTable}`) && sql.includes("jsonb_array_elements_text")) {
+        let count = 0;
+
+        for (const row of tables.shelves.values()) {
+          const bookIds = JSON.parse(String(row.book_ids));
+
+          for (const bookId of bookIds) {
+            if (!tables.books.has(String(bookId))) {
+              count += 1;
+            }
+          }
+        }
+
+        return {
+          rows: [{ count }],
           rowCount: 1,
         };
       }
@@ -375,5 +413,68 @@ runPersistenceUnitTests(() => {
   return createPersistencePostgres({
     config,
     pool: createPoolDouble(schemaName),
+  });
+});
+
+describe("postgres persistence health checks", () => {
+  it("should report orphaned references when reading progress points to missing records", async () => {
+    const persistence = createPersistencePostgres({
+      config,
+      pool: createPoolDouble(schemaName),
+    });
+
+    await persistence.readingProgress.save({
+      record: {
+        id: "progress-1",
+        bookId: "missing-book",
+        userId: "missing-user",
+        format: "epub",
+        locator: "epubcfi(/6/2[cover]!/4/1:0)",
+        percentage: "0.25",
+        createdAt: "2026-03-22T00:00:00.000Z",
+        updatedAt: "2026-03-22T00:00:00.000Z",
+      },
+    });
+
+    await expect(persistence.checkHealth()).resolves.toEqual({
+      success: false,
+      error: {
+        code: "postgres_integrity_error",
+        message: "Postgres persistence contains orphaned references",
+        details: {
+          orphanedReadingProgressCount: 1,
+          orphanedShelfBookReferenceCount: 0,
+        },
+      },
+    });
+  });
+
+  it("should report orphaned references when a shelf contains missing books", async () => {
+    const persistence = createPersistencePostgres({
+      config,
+      pool: createPoolDouble(schemaName),
+    });
+
+    await persistence.shelves.create({
+      record: {
+        id: "shelf-1",
+        kind: "manual",
+        name: "Broken Shelf",
+        description: "",
+        bookIds: ["missing-book"],
+      },
+    });
+
+    await expect(persistence.checkHealth()).resolves.toEqual({
+      success: false,
+      error: {
+        code: "postgres_integrity_error",
+        message: "Postgres persistence contains orphaned references",
+        details: {
+          orphanedReadingProgressCount: 0,
+          orphanedShelfBookReferenceCount: 1,
+        },
+      },
+    });
   });
 });
