@@ -1,0 +1,257 @@
+import { describe, expect, it, vi } from "vitest";
+import { createHonoApp } from "../../server/http-hono/app.js";
+
+describe("http hono import routes", () => {
+  const config = {
+    http: {
+      address: "http://localhost:3000",
+      port: 3000,
+      timeoutMs: 1000,
+    },
+  };
+  const logger = {
+    info: () => {},
+  };
+
+  const createImportJob = () => {
+    return {
+      id: "import-job-1",
+      status: "queued",
+      source: {
+        kind: "upload",
+        path: "/tmp/litlocker/imports/import-job-1.epub",
+        originalFileName: "left-hand.epub",
+      },
+      detectedFileType: "epub",
+      metadataCandidates: [],
+      selectedMetadataCandidateIndex: -1,
+      duplicateDetection: {
+        fileHash: "hash-1",
+        duplicateImportJobIds: [],
+        duplicateBookIds: [],
+      },
+      error: {
+        code: "",
+        message: "",
+        details: "",
+      },
+    };
+  };
+
+  it("should create an import job through POST /imports with JSON", async () => {
+    const importJob = createImportJob();
+    const application = {
+      createImportJob: vi.fn().mockReturnValue(importJob),
+      ingestImportUpload: vi.fn(),
+      listImportJobs: vi.fn(),
+      getImportJob: vi.fn(),
+      finalizeImportJob: vi.fn(),
+    };
+    const app = createHonoApp({ application, config, logger });
+
+    const response = await app.request(
+      new Request("http://localhost/imports", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          source: {
+            kind: "filesystem",
+            path: "/library/inbox/left-hand.epub",
+            originalFileName: "left-hand.epub",
+          },
+          detectedFileType: "epub",
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(201);
+    await expect(response.json()).resolves.toEqual({
+      importJob,
+    });
+    expect(application.createImportJob).toHaveBeenCalledWith({
+      job: {
+        source: {
+          kind: "filesystem",
+          path: "/library/inbox/left-hand.epub",
+          originalFileName: "left-hand.epub",
+        },
+        detectedFileType: "epub",
+      },
+    });
+  });
+
+  it("should ingest an upload through POST /imports multipart", async () => {
+    const importJob = createImportJob();
+    const application = {
+      createImportJob: vi.fn(),
+      ingestImportUpload: vi.fn().mockReturnValue(importJob),
+      listImportJobs: vi.fn(),
+      getImportJob: vi.fn(),
+      finalizeImportJob: vi.fn(),
+    };
+    const app = createHonoApp({ application, config, logger });
+    const formData = new FormData();
+
+    formData.set(
+      "file",
+      new File([new Uint8Array([1, 2, 3])], "left-hand.epub", {
+        type: "application/epub+zip",
+      }),
+    );
+
+    const response = await app.request(
+      new Request("http://localhost/imports", {
+        method: "POST",
+        body: formData,
+      }),
+    );
+
+    expect(response.status).toBe(201);
+    await expect(response.json()).resolves.toEqual({
+      importJob,
+    });
+    expect(application.ingestImportUpload).toHaveBeenCalledWith({
+      upload: {
+        name: "left-hand.epub",
+        mimeType: "application/epub+zip",
+        contents: new Uint8Array([1, 2, 3]),
+      },
+    });
+  });
+
+  it("should return 400 when POST /imports multipart is missing the file", async () => {
+    const application = {
+      createImportJob: vi.fn(),
+      ingestImportUpload: vi.fn(),
+      listImportJobs: vi.fn(),
+      getImportJob: vi.fn(),
+      finalizeImportJob: vi.fn(),
+    };
+    const app = createHonoApp({ application, config, logger });
+
+    const response = await app.request(
+      new Request("http://localhost/imports", {
+        method: "POST",
+        body: new FormData(),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      message: "Import file not found",
+    });
+    expect(application.ingestImportUpload).not.toHaveBeenCalled();
+  });
+
+  it("should list import jobs through GET /imports", async () => {
+    const importJobs = [createImportJob()];
+    const application = {
+      createImportJob: vi.fn(),
+      ingestImportUpload: vi.fn(),
+      listImportJobs: vi.fn().mockReturnValue(importJobs),
+      getImportJob: vi.fn(),
+      finalizeImportJob: vi.fn(),
+    };
+    const app = createHonoApp({ application, config, logger });
+
+    const response = await app.request("http://localhost/imports");
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      importJobs,
+    });
+  });
+
+  it("should fetch an import job through GET /imports/:id", async () => {
+    const importJob = createImportJob();
+    const application = {
+      createImportJob: vi.fn(),
+      ingestImportUpload: vi.fn(),
+      listImportJobs: vi.fn(),
+      getImportJob: vi.fn().mockReturnValue(importJob),
+      finalizeImportJob: vi.fn(),
+    };
+    const app = createHonoApp({ application, config, logger });
+
+    const response = await app.request("http://localhost/imports/import-job-1");
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      importJob,
+    });
+    expect(application.getImportJob).toHaveBeenCalledWith({
+      id: "import-job-1",
+    });
+  });
+
+  it("should return 404 for a missing import job through GET /imports/:id", async () => {
+    const application = {
+      createImportJob: vi.fn(),
+      ingestImportUpload: vi.fn(),
+      listImportJobs: vi.fn(),
+      getImportJob: vi.fn().mockReturnValue(null),
+      finalizeImportJob: vi.fn(),
+    };
+    const app = createHonoApp({ application, config, logger });
+
+    const response = await app.request("http://localhost/imports/missing-import-job-id");
+
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toEqual({
+      message: "Import job not found",
+    });
+  });
+
+  it("should finalize an import job through POST /imports/:id/finalize", async () => {
+    const importJob = {
+      ...createImportJob(),
+      status: "completed",
+    };
+    const application = {
+      createImportJob: vi.fn(),
+      ingestImportUpload: vi.fn(),
+      listImportJobs: vi.fn(),
+      getImportJob: vi.fn(),
+      finalizeImportJob: vi.fn().mockReturnValue(importJob),
+    };
+    const app = createHonoApp({ application, config, logger });
+
+    const response = await app.request(
+      new Request("http://localhost/imports/import-job-1/finalize", {
+        method: "POST",
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      importJob,
+    });
+    expect(application.finalizeImportJob).toHaveBeenCalledWith({
+      id: "import-job-1",
+    });
+  });
+
+  it("should return 404 when an import job cannot be finalized", async () => {
+    const application = {
+      createImportJob: vi.fn(),
+      ingestImportUpload: vi.fn(),
+      listImportJobs: vi.fn(),
+      getImportJob: vi.fn(),
+      finalizeImportJob: vi.fn().mockReturnValue(null),
+    };
+    const app = createHonoApp({ application, config, logger });
+
+    const response = await app.request(
+      new Request("http://localhost/imports/import-job-1/finalize", {
+        method: "POST",
+      }),
+    );
+
+    expect(response.status).toBe(404);
+    await expect(response.json()).resolves.toEqual({
+      message: "Import job not found or cannot be finalized",
+    });
+  });
+});
