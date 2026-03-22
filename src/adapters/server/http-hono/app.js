@@ -22,7 +22,9 @@ import { createRouters } from "./router/index.js";
 const createHonoApp = ({ application, config, logger }) => {
   const app = new Hono();
 
-  const { healthRouter, booksRouter, shelvesRouter } = createRouters({ application });
+  const { healthRouter, booksRouter, importsRouter, shelvesRouter } = createRouters({
+    application,
+  });
 
   app
     .use(cors({ origin: "*" }))
@@ -34,6 +36,7 @@ const createHonoApp = ({ application, config, logger }) => {
 
   app.route("/health", healthRouter);
   app.route("/books", booksRouter);
+  app.route("/imports", importsRouter);
   app.route("/shelves", shelvesRouter);
 
   return app;

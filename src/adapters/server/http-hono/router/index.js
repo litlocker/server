@@ -16,6 +16,7 @@ import {
 const createRouters = ({ application }) => {
   const healthRouter = new Hono();
   const booksRouter = new Hono();
+  const importsRouter = new Hono();
   const shelvesRouter = new Hono();
 
   healthRouter.get("/", (c) => {
@@ -109,6 +110,62 @@ const createRouters = ({ application }) => {
     return c.json({ book: result });
   });
 
+  importsRouter.post("/", async (c) => {
+    const contentType = c.req.header("content-type") ?? "";
+
+    if (contentType.startsWith("multipart/form-data")) {
+      const formData = await c.req.formData();
+      const file = formData.get("file");
+
+      if (!(file instanceof File)) {
+        return c.json({ message: "Import file not found" }, 400);
+      }
+
+      const result = application.ingestImportUpload({
+        upload: {
+          name: file.name,
+          mimeType: file.type,
+          contents: new Uint8Array(await file.arrayBuffer()),
+        },
+      });
+
+      return c.json({ importJob: result }, 201);
+    }
+
+    const job = await c.req.json();
+    const result = application.createImportJob({ job });
+
+    return c.json({ importJob: result }, 201);
+  });
+
+  importsRouter.get("/", (c) => {
+    const result = application.listImportJobs();
+
+    return c.json({ importJobs: result });
+  });
+
+  importsRouter.get("/:id", (c) => {
+    const { id } = c.req.param();
+    const result = application.getImportJob({ id });
+
+    if (!result) {
+      return c.json({ message: "Import job not found" }, 404);
+    }
+
+    return c.json({ importJob: result });
+  });
+
+  importsRouter.post("/:id/finalize", (c) => {
+    const { id } = c.req.param();
+    const result = application.finalizeImportJob({ id });
+
+    if (!result) {
+      return c.json({ message: "Import job not found or cannot be finalized" }, 404);
+    }
+
+    return c.json({ importJob: result });
+  });
+
   shelvesRouter.post("/", async (c) => {
     const shelf = await c.req.json();
     const validationResult = validateCreateShelfPayload(shelf);
@@ -200,6 +257,7 @@ const createRouters = ({ application }) => {
   return {
     healthRouter,
     booksRouter,
+    importsRouter,
     shelvesRouter,
   };
 };
