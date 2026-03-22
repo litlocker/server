@@ -208,6 +208,7 @@ const normalizeImportJob = (job) => {
     source: normalizeImportJobSource(job.source),
     detectedFileType: job.detectedFileType ?? "",
     metadataCandidates: normalizeImportJobMetadataCandidates(job.metadataCandidates),
+    selectedMetadataCandidateIndex: -1,
     duplicateDetection: normalizeImportJobDuplicateDetection(),
     error: normalizeImportJobError(),
   };
@@ -730,6 +731,28 @@ const createApplication = ({
         },
       });
     },
+    reviewImportJob: ({ id, metadataCandidateIndex }) => {
+      const currentImportJob = persistence.importJobs.get({ id });
+
+      if (!currentImportJob) {
+        return null;
+      }
+
+      if (
+        metadataCandidateIndex < 0 ||
+        metadataCandidateIndex >= currentImportJob.metadataCandidates.length
+      ) {
+        return null;
+      }
+
+      return persistence.importJobs.update({
+        id,
+        updates: {
+          status: "review",
+          selectedMetadataCandidateIndex: metadataCandidateIndex,
+        },
+      });
+    },
     listImportJobs: () => {
       return persistence.importJobs.list();
     },
@@ -740,6 +763,13 @@ const createApplication = ({
       const currentImportJob = persistence.importJobs.get({ id });
 
       if (!currentImportJob) {
+        return null;
+      }
+
+      if (
+        currentImportJob.metadataCandidates.length > 0 &&
+        currentImportJob.selectedMetadataCandidateIndex < 0
+      ) {
         return null;
       }
 

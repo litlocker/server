@@ -25,8 +25,14 @@ interface IngestImportUploadInput {
   contents: Uint8Array;
 }
 
+interface ReviewImportJobInput {
+  id: string;
+  metadataCandidateIndex: number;
+}
+
 type CreateImportJob = ({ job }: { job: CreateImportJobInput }) => ImportJob;
 type IngestImportUpload = ({ upload }: { upload: IngestImportUploadInput }) => ImportJob;
+type ReviewImportJob = ({ id, metadataCandidateIndex }: ReviewImportJobInput) => ImportJob | null;
 type FinalizeImportJob = ({ id }: { id: string }) => ImportJob | null;
 type UpdateImportJob = ({
   id,
@@ -48,8 +54,10 @@ export type {
   ImportJobErrorDetails,
   CreateImportJobInput,
   IngestImportUploadInput,
+  ReviewImportJobInput,
   CreateImportJob,
   IngestImportUpload,
+  ReviewImportJob,
   FinalizeImportJob,
   UpdateImportJob,
   ListImportJobs,

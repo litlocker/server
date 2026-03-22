@@ -8,6 +8,7 @@ import {
   CreateImportJobInput,
   ImportJob,
   IngestImportUploadInput,
+  ReviewImportJobInput,
 } from "./interfaces/import-job.d.ts";
 import { Logger } from "./interfaces/logger.d.ts";
 import { MetadataProvider } from "./interfaces/metadata-provider.d.ts";
@@ -34,6 +35,7 @@ type AddBookToShelf = ({ shelfId, bookId }: AddBookToShelfInput) => Shelf | null
 type RemoveBookFromShelf = ({ shelfId, bookId }: RemoveBookFromShelfInput) => Shelf | null;
 type CreateImportJob = ({ job }: { job: CreateImportJobInput }) => ImportJob;
 type IngestImportUpload = ({ upload }: { upload: IngestImportUploadInput }) => ImportJob;
+type ReviewImportJob = ({ id, metadataCandidateIndex }: ReviewImportJobInput) => ImportJob | null;
 type ListImportJobs = () => ImportJob[];
 type GetImportJob = ({ id }: { id: string }) => ImportJob | null;
 type FinalizeImportJob = ({ id }: { id: string }) => ImportJob | null;
@@ -52,6 +54,7 @@ interface Application {
   removeBookFromShelf: RemoveBookFromShelf;
   createImportJob: CreateImportJob;
   ingestImportUpload: IngestImportUpload;
+  reviewImportJob: ReviewImportJob;
   listImportJobs: ListImportJobs;
   getImportJob: GetImportJob;
   finalizeImportJob: FinalizeImportJob;

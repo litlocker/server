@@ -134,6 +134,7 @@ const runPersistenceUnitTests = (createPersistence) => {
                 confidence: "0.90",
               },
             ],
+            selectedMetadataCandidateIndex: -1,
             duplicateDetection: {
               fileHash: "",
               duplicateImportJobIds: [],

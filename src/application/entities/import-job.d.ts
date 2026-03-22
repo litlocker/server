@@ -42,6 +42,7 @@ interface ImportJob {
   source: ImportJobSource;
   detectedFileType: string;
   metadataCandidates: ImportJobMetadataCandidate[];
+  selectedMetadataCandidateIndex: number;
   duplicateDetection: ImportJobDuplicateDetection;
   error: ImportJobErrorDetails;
 }
