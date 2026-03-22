@@ -2,6 +2,7 @@
  * @import { CreateApplication } from './interface.js'
  * @import { BookCover, BookIdentifiers, CreateBookInput, UpdateBookInput } from './entities/book.js'
  * @import { Book } from './entities/book.js'
+ * @import { ImportJobErrorDetails, ImportJobMetadataCandidate, ImportJobSource, CreateImportJobInput } from './interfaces/import-job.js'
  * @import { ListBooksInput } from './interfaces/book.js'
  * @import { CreateShelfInput, Shelf, UpdateShelfInput } from './interfaces/shelf.js'
  */
@@ -67,6 +68,79 @@ const normalizeBookCover = (cover) => {
     thumbnailPath: cover?.thumbnailPath ?? "",
     mimeType: cover?.mimeType ?? "",
     dominantColor: cover?.dominantColor ?? "",
+  };
+};
+
+/**
+ * @param { Partial<ImportJobSource> | undefined } source
+ * @returns { ImportJobSource }
+ */
+const normalizeImportJobSource = (source) => {
+  return {
+    kind: source?.kind ?? "upload",
+    path: source?.path ?? "",
+    originalFileName: source?.originalFileName ?? "",
+  };
+};
+
+/**
+ * @param { Partial<BookIdentifiers> | undefined } identifiers
+ */
+const normalizeImportJobIdentifiers = (identifiers) => {
+  return normalizeBookIdentifiers(identifiers);
+};
+
+/**
+ * @param { Partial<ImportJobMetadataCandidate> | undefined } metadataCandidate
+ * @returns { ImportJobMetadataCandidate }
+ */
+const normalizeImportJobMetadataCandidate = (metadataCandidate) => {
+  return {
+    title: metadataCandidate?.title ?? "",
+    subtitle: metadataCandidate?.subtitle ?? "",
+    description: metadataCandidate?.description ?? "",
+    language: metadataCandidate?.language ?? "",
+    authors: normalizeBookAuthors(metadataCandidate?.authors),
+    tags: normalizeBookTags(metadataCandidate?.tags),
+    seriesName: metadataCandidate?.seriesName ?? "",
+    seriesNumber: metadataCandidate?.seriesNumber ?? "",
+    identifiers: normalizeImportJobIdentifiers(metadataCandidate?.identifiers),
+    coverPath: metadataCandidate?.coverPath ?? "",
+    source: metadataCandidate?.source ?? "",
+    confidence: metadataCandidate?.confidence ?? "",
+  };
+};
+
+/**
+ * @param { ImportJobMetadataCandidate[] | undefined } metadataCandidates
+ * @returns { ImportJobMetadataCandidate[] }
+ */
+const normalizeImportJobMetadataCandidates = (metadataCandidates) => {
+  return metadataCandidates ? metadataCandidates.map(normalizeImportJobMetadataCandidate) : [];
+};
+
+/**
+ * @param { Partial<ImportJobErrorDetails> | undefined } error
+ * @returns { ImportJobErrorDetails }
+ */
+const normalizeImportJobError = (error) => {
+  return {
+    code: error?.code ?? "",
+    message: error?.message ?? "",
+    details: error?.details ?? "",
+  };
+};
+
+/**
+ * @param { CreateImportJobInput } job
+ */
+const normalizeImportJob = (job) => {
+  return {
+    status: "queued",
+    source: normalizeImportJobSource(job.source),
+    detectedFileType: job.detectedFileType ?? "",
+    metadataCandidates: normalizeImportJobMetadataCandidates(),
+    error: normalizeImportJobError(),
   };
 };
 
@@ -349,6 +423,35 @@ const createApplication = ({ clock, config: _config, persistence, idGenerator, l
         id: shelfId,
         updates: {
           bookIds: removeBookIdFromShelf(currentShelf, bookId),
+        },
+      });
+    },
+    createImportJob: ({ job }) => {
+      return persistence.importJobs.create({
+        record: {
+          id: idGenerator.generate(),
+          ...normalizeImportJob(job),
+        },
+      });
+    },
+    listImportJobs: () => {
+      return persistence.importJobs.list();
+    },
+    getImportJob: ({ id }) => {
+      return persistence.importJobs.get({ id });
+    },
+    finalizeImportJob: ({ id }) => {
+      const currentImportJob = persistence.importJobs.get({ id });
+
+      if (!currentImportJob) {
+        return null;
+      }
+
+      return persistence.importJobs.update({
+        id,
+        updates: {
+          status: "completed",
+          error: normalizeImportJobError(),
         },
       });
     },

@@ -3,6 +3,7 @@ import { ListBooksInput } from "./interfaces/book.d.ts";
 import { Clock } from "./interfaces/clock.d.ts";
 import { Config } from "./interfaces/config.d.ts";
 import { IdGenerator } from "./interfaces/id-generator.d.ts";
+import { CreateImportJobInput, ImportJob } from "./interfaces/import-job.d.ts";
 import { Logger } from "./interfaces/logger.d.ts";
 import { Persistence } from "./interfaces/persistence.d.ts";
 import { Result, HealthStatus } from "./interfaces/result.d.ts";
@@ -25,6 +26,10 @@ type ListShelves = () => Shelf[];
 type DeleteShelf = ({ id }: { id: string }) => { success: boolean };
 type AddBookToShelf = ({ shelfId, bookId }: AddBookToShelfInput) => Shelf | null;
 type RemoveBookFromShelf = ({ shelfId, bookId }: RemoveBookFromShelfInput) => Shelf | null;
+type CreateImportJob = ({ job }: { job: CreateImportJobInput }) => ImportJob;
+type ListImportJobs = () => ImportJob[];
+type GetImportJob = ({ id }: { id: string }) => ImportJob | null;
+type FinalizeImportJob = ({ id }: { id: string }) => ImportJob | null;
 
 interface Application {
   health: Health;
@@ -38,6 +43,10 @@ interface Application {
   deleteShelf: DeleteShelf;
   addBookToShelf: AddBookToShelf;
   removeBookFromShelf: RemoveBookFromShelf;
+  createImportJob: CreateImportJob;
+  listImportJobs: ListImportJobs;
+  getImportJob: GetImportJob;
+  finalizeImportJob: FinalizeImportJob;
 }
 
 interface Deps {

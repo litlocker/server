@@ -1020,4 +1020,136 @@ describe("application", () => {
       ).toBeNull();
     });
   });
+
+  describe("import job functions", () => {
+    it("should expose import job functions on the application", () => {
+      const application = createApplication({
+        clock: createClockSystem(),
+        config,
+        persistence: createPersistenceInMemory(),
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+
+      expect(application).toHaveProperty("createImportJob");
+      expect(application).toHaveProperty("listImportJobs");
+      expect(application).toHaveProperty("getImportJob");
+      expect(application).toHaveProperty("finalizeImportJob");
+    });
+
+    it("should create, list, and fetch import jobs", () => {
+      const application = createApplication({
+        clock: createClockSystem(),
+        config,
+        persistence: createPersistenceInMemory(),
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+
+      const firstImportJob = application.createImportJob({
+        job: {
+          source: {
+            kind: "upload",
+            path: "/tmp/uploads/book-1.epub",
+          },
+        },
+      });
+      const secondImportJob = application.createImportJob({
+        job: {
+          source: {
+            kind: "filesystem",
+            path: "/library/inbox/book-2.pdf",
+            originalFileName: "book-2.pdf",
+          },
+          detectedFileType: "pdf",
+        },
+      });
+
+      expect(firstImportJob).toEqual({
+        id: firstImportJob.id,
+        status: "queued",
+        source: {
+          kind: "upload",
+          path: "/tmp/uploads/book-1.epub",
+          originalFileName: "",
+        },
+        detectedFileType: "",
+        metadataCandidates: [],
+        error: {
+          code: "",
+          message: "",
+          details: "",
+        },
+      });
+      expect(firstImportJob.id).toEqual(expect.any(String));
+      expect(secondImportJob).toEqual({
+        id: secondImportJob.id,
+        status: "queued",
+        source: {
+          kind: "filesystem",
+          path: "/library/inbox/book-2.pdf",
+          originalFileName: "book-2.pdf",
+        },
+        detectedFileType: "pdf",
+        metadataCandidates: [],
+        error: {
+          code: "",
+          message: "",
+          details: "",
+        },
+      });
+      expect(application.listImportJobs()).toEqual([firstImportJob, secondImportJob]);
+      expect(application.getImportJob({ id: secondImportJob.id })).toEqual(secondImportJob);
+    });
+
+    it("should finalize an existing import job", () => {
+      const application = createApplication({
+        clock: createClockSystem(),
+        config,
+        persistence: createPersistenceInMemory(),
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+      const importJob = application.createImportJob({
+        job: {
+          source: {
+            kind: "upload",
+            path: "/tmp/uploads/book-1.epub",
+          },
+          detectedFileType: "epub",
+        },
+      });
+
+      const finalizedImportJob = application.finalizeImportJob({
+        id: importJob.id,
+      });
+
+      expect(finalizedImportJob).toEqual({
+        ...importJob,
+        status: "completed",
+        error: {
+          code: "",
+          message: "",
+          details: "",
+        },
+      });
+      expect(application.getImportJob({ id: importJob.id })).toEqual(finalizedImportJob);
+    });
+
+    it("should return null when finalizing a missing import job", () => {
+      const application = createApplication({
+        clock: createClockSystem(),
+        config,
+        persistence: createPersistenceInMemory(),
+        idGenerator: createIdGeneratorSystem(),
+        logger,
+      });
+
+      expect(
+        application.finalizeImportJob({
+          id: "missing-import-job-id",
+        }),
+      ).toBeNull();
+    });
+  });
 });

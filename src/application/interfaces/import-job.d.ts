@@ -17,6 +17,7 @@ interface CreateImportJobInput {
 }
 
 type CreateImportJob = ({ job }: { job: CreateImportJobInput }) => ImportJob;
+type FinalizeImportJob = ({ id }: { id: string }) => ImportJob | null;
 type UpdateImportJob = ({
   id,
   updates,
@@ -36,6 +37,7 @@ export type {
   ImportJobErrorDetails,
   CreateImportJobInput,
   CreateImportJob,
+  FinalizeImportJob,
   UpdateImportJob,
   ListImportJobs,
   GetImportJob,
