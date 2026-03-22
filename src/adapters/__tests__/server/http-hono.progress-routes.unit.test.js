@@ -128,4 +128,88 @@ describe("http hono progress routes", () => {
       message: "Book or user not found",
     });
   });
+
+  it("should reject an invalid EPUB progress payload through POST /progress", async () => {
+    const application = createApplicationMock();
+    const app = createHonoApp({ application, config, logger });
+
+    const response = await app.request(
+      new Request("http://localhost/progress", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          bookId: "book-1",
+          userId: "user-1",
+          format: "epub",
+          locator: "page=12",
+          percentage: "0.25",
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      message: "Invalid progress payload",
+      errors: ["/locator must be a valid EPUB CFI"],
+    });
+    expect(application.saveReadingProgress).not.toHaveBeenCalled();
+  });
+
+  it("should reject an invalid PDF progress payload through POST /progress", async () => {
+    const application = createApplicationMock();
+    const app = createHonoApp({ application, config, logger });
+
+    const response = await app.request(
+      new Request("http://localhost/progress", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          bookId: "book-1",
+          userId: "user-1",
+          format: "pdf",
+          locator: "epubcfi(/6/2[cover]!/4/1:0)",
+          percentage: "0.25",
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      message: "Invalid progress payload",
+      errors: ["/locator must be a valid PDF page locator"],
+    });
+    expect(application.saveReadingProgress).not.toHaveBeenCalled();
+  });
+
+  it("should reject an invalid comic progress payload through POST /progress", async () => {
+    const application = createApplicationMock();
+    const app = createHonoApp({ application, config, logger });
+
+    const response = await app.request(
+      new Request("http://localhost/progress", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          bookId: "book-1",
+          userId: "user-1",
+          format: "comic",
+          locator: "page=12",
+          percentage: "0.25",
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({
+      message: "Invalid progress payload",
+      errors: ["/locator must be a valid comic image locator"],
+    });
+    expect(application.saveReadingProgress).not.toHaveBeenCalled();
+  });
 });

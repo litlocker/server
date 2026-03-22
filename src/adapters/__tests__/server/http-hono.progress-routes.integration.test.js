@@ -122,4 +122,74 @@ describe("http hono progress routes integration", () => {
       progress: savedProgress,
     });
   });
+
+  it("should reject invalid reader locators through the API", async () => {
+    const { app, book, user } = createTestApp();
+
+    const epubResponse = await app.request(
+      new Request("http://localhost/progress", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          bookId: book.id,
+          userId: user.id,
+          format: "epub",
+          locator: "page=12",
+          percentage: "0.25",
+        }),
+      }),
+    );
+
+    expect(epubResponse.status).toBe(400);
+    await expect(epubResponse.json()).resolves.toEqual({
+      message: "Invalid progress payload",
+      errors: ["/locator must be a valid EPUB CFI"],
+    });
+
+    const pdfResponse = await app.request(
+      new Request("http://localhost/progress", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          bookId: book.id,
+          userId: user.id,
+          format: "pdf",
+          locator: "epubcfi(/6/2[cover]!/4/1:0)",
+          percentage: "0.25",
+        }),
+      }),
+    );
+
+    expect(pdfResponse.status).toBe(400);
+    await expect(pdfResponse.json()).resolves.toEqual({
+      message: "Invalid progress payload",
+      errors: ["/locator must be a valid PDF page locator"],
+    });
+
+    const comicResponse = await app.request(
+      new Request("http://localhost/progress", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          bookId: book.id,
+          userId: user.id,
+          format: "comic",
+          locator: "page=12",
+          percentage: "0.25",
+        }),
+      }),
+    );
+
+    expect(comicResponse.status).toBe(400);
+    await expect(comicResponse.json()).resolves.toEqual({
+      message: "Invalid progress payload",
+      errors: ["/locator must be a valid comic image locator"],
+    });
+  });
 });
