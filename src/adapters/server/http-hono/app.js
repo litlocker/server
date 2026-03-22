@@ -17,6 +17,7 @@ import { prettyJSON } from "hono/pretty-json";
 import { requestId } from "hono/request-id";
 import { secureHeaders } from "hono/secure-headers";
 import { timeout } from "hono/timeout";
+import { runWithLogContext } from "../../logger/request-context/index.js";
 import { createRouters } from "./router/index.js";
 
 /**
@@ -42,6 +43,14 @@ const createHonoApp = ({ application, authConfig, config, logger }) => {
     .use(cors({ origin: "*" }))
     .use(secureHeaders())
     .use(requestId())
+    .use(async (c, next) => {
+      return runWithLogContext({
+        context: {
+          requestId: c.get("requestId"),
+        },
+        callback: next,
+      });
+    })
     .use(prettyJSON())
     .use(requestLogger(logger.info))
     .use(timeout(config.http.timeoutMs));

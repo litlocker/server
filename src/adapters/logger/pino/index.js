@@ -3,6 +3,7 @@
  */
 
 import pino from "pino";
+import { getLogContext } from "../request-context/index.js";
 
 /**
  * @param {unknown} value
@@ -77,6 +78,7 @@ const createLoggerPino = ({ config }) => {
       logger[level](
         {
           ...defaultMetadata,
+          ...getLogContext(),
           ...normalizeLogDetails(args),
         },
         message,
