@@ -29,8 +29,6 @@ What exists today:
 
 What is not done yet:
 
-- Persistence-backed integration flows
-- Backup and restore documentation
 - Richer reader file delivery
 - Operational hardening
 
@@ -95,6 +93,10 @@ Defined in [.env.example](/Users/curamet/development/oss/litlocker/server/.env.e
 - `pnpm run lint:check` - run lint checks
 - `pnpm run lint:ts` - run `tsc --noEmit`
 - `pnpm run fmt:check` - check formatting
+
+## Operations
+
+- Backup and restore guide: [BACKUP_RESTORE.md](/Users/curamet/development/oss/litlocker/server/BACKUP_RESTORE.md)
 
 ## Current API
 
