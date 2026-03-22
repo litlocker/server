@@ -111,6 +111,7 @@ Defined in [.env.example](/Users/curamet/development/oss/litlocker/server/.env.e
 ## Operations
 
 - Backup and restore guide: [BACKUP_RESTORE.md](/Users/curamet/development/oss/litlocker/server/BACKUP_RESTORE.md)
+- Manual smoke checks: [SMOKE_TESTS.md](/Users/curamet/development/oss/litlocker/server/SMOKE_TESTS.md)
 - Docker stack: [docker-compose.yaml](/Users/curamet/development/oss/litlocker/server/docker-compose.yaml)
 - Container image: [Dockerfile](/Users/curamet/development/oss/litlocker/server/Dockerfile)
 
