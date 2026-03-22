@@ -112,6 +112,7 @@ const createHonoApp = ({ application, authConfig, importsConfig, config, logger 
       application,
       authEnabled: isAuthEnabled,
       authIssuer: authConfig?.oidc.issuerUrl ?? "",
+      importsConfig,
     },
   );
 

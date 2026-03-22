@@ -1,5 +1,6 @@
 /**
  * @import { Application } from '../../../../application/interface.js'
+ * @import { ImportsConfig } from '../../../../application/interfaces/config.js'
  */
 
 import { getAuth } from "@hono/oidc-auth";
@@ -12,6 +13,7 @@ import {
   respondWithValidationError,
 } from "./http-error-response.js";
 import { validateCreateBookPayload, validateUpdateBookPayload } from "./validate-book-payload.js";
+import { validateImportUpload } from "./validate-import-upload.js";
 import { validateCreateProgressPayload } from "./validate-progress-payload.js";
 import {
   validateCreateShelfPayload,
@@ -23,8 +25,9 @@ import {
  * @param { Application } params.application
  * @param { boolean } [params.authEnabled]
  * @param { string } [params.authIssuer]
+ * @param { ImportsConfig } [params.importsConfig]
  */
-const createRouters = ({ application, authEnabled = false, authIssuer = "" }) => {
+const createRouters = ({ application, authEnabled = false, authIssuer = "", importsConfig }) => {
   const healthRouter = new Hono();
   const booksRouter = new Hono();
   const importsRouter = new Hono();
@@ -141,6 +144,29 @@ const createRouters = ({ application, authEnabled = false, authIssuer = "" }) =>
           status: 400,
           code: "import_file_not_found",
           message: "Import file not found",
+        });
+      }
+
+      const uploadValidationResult = validateImportUpload({
+        file,
+        importsConfig: importsConfig ?? {
+          maxFileSizeInBytes: Number.POSITIVE_INFINITY,
+          allowedFileExtensions: ["epub", "pdf", "cbz", "cbr"],
+          duplicateCheckEnabled: true,
+          uploadRateLimit: {
+            windowMs: 60_000,
+            maxRequests: 10,
+          },
+        },
+      });
+
+      if (!uploadValidationResult.success) {
+        return respondWithError({
+          context: c,
+          status: uploadValidationResult.status,
+          code: uploadValidationResult.code,
+          message: uploadValidationResult.message,
+          details: uploadValidationResult.details,
         });
       }
 

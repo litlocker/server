@@ -164,22 +164,124 @@ describe("http hono import routes", () => {
     expect(application.ingestImportUpload).not.toHaveBeenCalled();
   });
 
-  it("should surface unsupported upload failures from the application", async () => {
-    const importJob = createFailedImportJob({
-      code: "unsupported_file_type",
-      message: "Unsupported file type",
-      details: "txt is not an allowed import file type",
-    });
-    const application = createApplicationMock({
-      ingestImportUpload: vi.fn().mockReturnValue(importJob),
-    });
-    const app = createHonoApp({ application, config, logger });
+  it("should reject multipart uploads that exceed the configured size limit", async () => {
+    const application = createApplicationMock();
+    const app = createHonoApp({ application, config, importsConfig, logger });
+    const formData = new FormData();
+
+    formData.set(
+      "file",
+      new File([new Uint8Array(100_000_001)], "left-hand.epub", {
+        type: "application/epub+zip",
+      }),
+    );
+
+    const response = await app.request(
+      new Request("http://localhost/imports", {
+        method: "POST",
+        body: formData,
+      }),
+    );
+
+    expect(response.status).toBe(413);
+    await expect(response.json()).resolves.toEqual(
+      createExpectedErrorResponse({
+        code: "import_file_too_large",
+        message: "Import file exceeds the configured size limit",
+        details: {
+          fileName: "left-hand.epub",
+          fileSizeInBytes: 100_000_001,
+          maxFileSizeInBytes: 100_000_000,
+        },
+      }),
+    );
+    expect(application.ingestImportUpload).not.toHaveBeenCalled();
+  });
+
+  it("should reject multipart uploads with a disallowed extension", async () => {
+    const application = createApplicationMock();
+    const app = createHonoApp({ application, config, importsConfig, logger });
     const formData = new FormData();
 
     formData.set(
       "file",
       new File([new Uint8Array([1, 2, 3])], "notes.txt", {
         type: "text/plain",
+      }),
+    );
+
+    const response = await app.request(
+      new Request("http://localhost/imports", {
+        method: "POST",
+        body: formData,
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual(
+      createExpectedErrorResponse({
+        code: "unsupported_import_file_extension",
+        message: "Import file extension is not allowed",
+        details: {
+          fileName: "notes.txt",
+          fileExtension: "txt",
+          allowedFileExtensions: ["epub", "pdf", "cbz", "cbr"],
+        },
+      }),
+    );
+    expect(application.ingestImportUpload).not.toHaveBeenCalled();
+  });
+
+  it("should reject multipart uploads with a mismatched mime type", async () => {
+    const application = createApplicationMock();
+    const app = createHonoApp({ application, config, importsConfig, logger });
+    const formData = new FormData();
+
+    formData.set(
+      "file",
+      new File([new Uint8Array([1, 2, 3])], "left-hand.epub", {
+        type: "application/pdf",
+      }),
+    );
+
+    const response = await app.request(
+      new Request("http://localhost/imports", {
+        method: "POST",
+        body: formData,
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual(
+      createExpectedErrorResponse({
+        code: "unsupported_import_mime_type",
+        message: "Import file MIME type is not allowed",
+        details: {
+          fileName: "left-hand.epub",
+          fileExtension: "epub",
+          mimeType: "application/pdf",
+        },
+      }),
+    );
+    expect(application.ingestImportUpload).not.toHaveBeenCalled();
+  });
+
+  it("should surface failed upload import jobs from the application after adapter validation", async () => {
+    const importJob = createFailedImportJob({
+      code: "malformed_metadata",
+      message: "Metadata could not be parsed",
+      details: "Embedded metadata was malformed",
+    });
+    const application = createApplicationMock({
+      ingestImportUpload: vi.fn().mockReturnValue(importJob),
+    });
+    const app = createHonoApp({ application, config, importsConfig, logger });
+    const formData = new FormData();
+
+    formData.set(
+      "file",
+      new File([new Uint8Array([1, 2, 3])], "left-hand.epub", {
+        type: "application/epub+zip",
       }),
     );
 
