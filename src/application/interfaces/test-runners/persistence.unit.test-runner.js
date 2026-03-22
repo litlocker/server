@@ -56,10 +56,10 @@ const runPersistenceUnitTests = (createPersistence) => {
     });
 
     describe("functions", () => {
-      it("should create and fetch records across each persistence group", () => {
+      it("should create and fetch records across each persistence group", async () => {
         const persistence = createPersistence();
 
-        const book = persistence.books.create({
+        const book = await persistence.books.create({
           record: {
             id: "book-1",
             title: "Test Book",
@@ -88,7 +88,7 @@ const runPersistenceUnitTests = (createPersistence) => {
             readingStatus: "unread",
           },
         });
-        const shelf = persistence.shelves.create({
+        const shelf = await persistence.shelves.create({
           record: {
             id: "shelf-1",
             kind: "manual",
@@ -97,7 +97,7 @@ const runPersistenceUnitTests = (createPersistence) => {
             bookIds: [book.id],
           },
         });
-        const user = persistence.users.create({
+        const user = await persistence.users.create({
           record: {
             id: "user-1",
             authIssuer: "https://id.example.com",
@@ -111,7 +111,7 @@ const runPersistenceUnitTests = (createPersistence) => {
             updatedAt: "2026-03-22T00:00:00.000Z",
           },
         });
-        const importJob = persistence.importJobs.create({
+        const importJob = await persistence.importJobs.create({
           record: {
             id: "import-job-1",
             status: "queued",
@@ -156,7 +156,7 @@ const runPersistenceUnitTests = (createPersistence) => {
             },
           },
         });
-        const readingProgress = persistence.readingProgress.save({
+        const readingProgress = await persistence.readingProgress.save({
           record: {
             id: "progress-1",
             bookId: book.id,
@@ -169,28 +169,36 @@ const runPersistenceUnitTests = (createPersistence) => {
           },
         });
 
-        expect(persistence.books.get({ id: book.id })).toEqual(book);
-        expect(persistence.shelves.get({ id: shelf.id })).toEqual(shelf);
-        expect(persistence.users.get({ id: user.id })).toEqual(user);
+        await expect(Promise.resolve(persistence.books.get({ id: book.id }))).resolves.toEqual(
+          book,
+        );
+        await expect(Promise.resolve(persistence.shelves.get({ id: shelf.id }))).resolves.toEqual(
+          shelf,
+        );
+        await expect(Promise.resolve(persistence.users.get({ id: user.id }))).resolves.toEqual(
+          user,
+        );
         expect(
-          persistence.users.getByAuthIdentity({
+          await persistence.users.getByAuthIdentity({
             authIssuer: user.authIssuer,
             authSubject: user.authSubject,
           }),
         ).toEqual(user);
-        expect(persistence.importJobs.get({ id: importJob.id })).toEqual(importJob);
+        await expect(
+          Promise.resolve(persistence.importJobs.get({ id: importJob.id })),
+        ).resolves.toEqual(importJob);
         expect(
-          persistence.readingProgress.get({
+          await persistence.readingProgress.get({
             bookId: book.id,
             userId: user.id,
           }),
         ).toEqual(readingProgress);
       });
 
-      it("should search books by basic metadata fields", () => {
+      it("should search books by basic metadata fields", async () => {
         const persistence = createPersistence();
 
-        const firstBook = persistence.books.create({
+        const firstBook = await persistence.books.create({
           record: {
             id: "book-1",
             title: "The Left Hand of Darkness",
@@ -219,7 +227,7 @@ const runPersistenceUnitTests = (createPersistence) => {
             readingStatus: "unread",
           },
         });
-        const secondBook = persistence.books.create({
+        const secondBook = await persistence.books.create({
           record: {
             id: "book-2",
             title: "Kindred",
@@ -249,20 +257,36 @@ const runPersistenceUnitTests = (createPersistence) => {
           },
         });
 
-        expect(persistence.books.search({ query: "ursula" })).toEqual([firstBook]);
-        expect(persistence.books.search({ query: "time-travel" })).toEqual([secondBook]);
-        expect(persistence.books.search({ query: "9780441478125" })).toEqual([firstBook]);
+        await expect(
+          Promise.resolve(persistence.books.search({ query: "ursula" })),
+        ).resolves.toEqual([firstBook]);
+        await expect(
+          Promise.resolve(persistence.books.search({ query: "time-travel" })),
+        ).resolves.toEqual([secondBook]);
+        await expect(
+          Promise.resolve(persistence.books.search({ query: "9780441478125" })),
+        ).resolves.toEqual([firstBook]);
       });
 
-      it("should expose health status", () => {
+      it("should expose health status", async () => {
         const persistence = createPersistence();
 
-        expect(persistence.checkHealth()).toHaveProperty("success");
-        expect(persistence.books.checkHealth()).toHaveProperty("success");
-        expect(persistence.shelves.checkHealth()).toHaveProperty("success");
-        expect(persistence.users.checkHealth()).toHaveProperty("success");
-        expect(persistence.importJobs.checkHealth()).toHaveProperty("success");
-        expect(persistence.readingProgress.checkHealth()).toHaveProperty("success");
+        await expect(Promise.resolve(persistence.checkHealth())).resolves.toHaveProperty("success");
+        await expect(Promise.resolve(persistence.books.checkHealth())).resolves.toHaveProperty(
+          "success",
+        );
+        await expect(Promise.resolve(persistence.shelves.checkHealth())).resolves.toHaveProperty(
+          "success",
+        );
+        await expect(Promise.resolve(persistence.users.checkHealth())).resolves.toHaveProperty(
+          "success",
+        );
+        await expect(Promise.resolve(persistence.importJobs.checkHealth())).resolves.toHaveProperty(
+          "success",
+        );
+        await expect(
+          Promise.resolve(persistence.readingProgress.checkHealth()),
+        ).resolves.toHaveProperty("success");
       });
     });
   });

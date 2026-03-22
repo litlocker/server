@@ -37,6 +37,18 @@ describe("http hono import routes integration", () => {
       allowedFileExtensions: ["epub", "pdf", "cbz", "cbr"],
       duplicateCheckEnabled: true,
     },
+    database: {
+      host: "localhost",
+      port: 15_432,
+      user: "devdb",
+      password: "devpass",
+      database: "devdb",
+      schema: "litlocker",
+      sslEnabled: false,
+      poolMaxConnections: 10,
+      poolIdleTimeoutMs: 30_000,
+      connectionTimeoutMs: 5_000,
+    },
     auth: {
       enabled: false,
       bootstrapAdminEmail: "",

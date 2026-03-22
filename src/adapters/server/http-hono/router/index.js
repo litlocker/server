@@ -24,8 +24,8 @@ const createRouters = ({ application, authEnabled = false, authIssuer = "" }) =>
   const progressRouter = new Hono();
   const shelvesRouter = new Hono();
 
-  healthRouter.get("/", (c) => {
-    const result = application.health();
+  healthRouter.get("/", async (c) => {
+    const result = await application.health();
 
     if (!result.success) {
       return c.json(
@@ -54,12 +54,12 @@ const createRouters = ({ application, authEnabled = false, authIssuer = "" }) =>
       );
     }
 
-    const result = application.createBook({ book });
+    const result = await application.createBook({ book });
 
     return c.json({ book: result }, 201);
   });
 
-  booksRouter.get("/", (c) => {
+  booksRouter.get("/", async (c) => {
     const search = c.req.query("search");
     const title = c.req.query("title");
     const author = c.req.query("author");
@@ -75,7 +75,7 @@ const createRouters = ({ application, authEnabled = false, authIssuer = "" }) =>
             ...(shelfId ? { shelfId } : {}),
           }
         : undefined;
-    const result = application.listBooks({ filters });
+    const result = await application.listBooks({ filters });
 
     return c.json({ books: result });
   });
@@ -95,7 +95,7 @@ const createRouters = ({ application, authEnabled = false, authIssuer = "" }) =>
       );
     }
 
-    const result = application.updateBook({ id, updates });
+    const result = await application.updateBook({ id, updates });
 
     if (!result) {
       return c.json({ message: "Book not found" }, 404);
@@ -104,9 +104,9 @@ const createRouters = ({ application, authEnabled = false, authIssuer = "" }) =>
     return c.json({ book: result });
   });
 
-  booksRouter.get("/:id", (c) => {
+  booksRouter.get("/:id", async (c) => {
     const { id } = c.req.param();
-    const result = application.getBook({ id });
+    const result = await application.getBook({ id });
 
     if (!result) {
       return c.json({ message: "Book not found" }, 404);
@@ -126,7 +126,7 @@ const createRouters = ({ application, authEnabled = false, authIssuer = "" }) =>
         return c.json({ message: "Import file not found" }, 400);
       }
 
-      const result = application.ingestImportUpload({
+      const result = await application.ingestImportUpload({
         upload: {
           name: file.name,
           mimeType: file.type,
@@ -138,20 +138,20 @@ const createRouters = ({ application, authEnabled = false, authIssuer = "" }) =>
     }
 
     const job = await c.req.json();
-    const result = application.createImportJob({ job });
+    const result = await application.createImportJob({ job });
 
     return c.json({ importJob: result }, 201);
   });
 
-  importsRouter.get("/", (c) => {
-    const result = application.listImportJobs();
+  importsRouter.get("/", async (c) => {
+    const result = await application.listImportJobs();
 
     return c.json({ importJobs: result });
   });
 
-  importsRouter.get("/:id", (c) => {
+  importsRouter.get("/:id", async (c) => {
     const { id } = c.req.param();
-    const result = application.getImportJob({ id });
+    const result = await application.getImportJob({ id });
 
     if (!result) {
       return c.json({ message: "Import job not found" }, 404);
@@ -160,9 +160,9 @@ const createRouters = ({ application, authEnabled = false, authIssuer = "" }) =>
     return c.json({ importJob: result });
   });
 
-  importsRouter.post("/:id/finalize", (c) => {
+  importsRouter.post("/:id/finalize", async (c) => {
     const { id } = c.req.param();
-    const result = application.finalizeImportJob({ id });
+    const result = await application.finalizeImportJob({ id });
 
     if (!result) {
       return c.json({ message: "Import job not found or cannot be finalized" }, 404);
@@ -191,7 +191,7 @@ const createRouters = ({ application, authEnabled = false, authIssuer = "" }) =>
             },
           });
         })
-      : application.getReadingProgress({
+      : await application.getReadingProgress({
           bookId,
           userId: c.req.query("userId") ?? "",
         });
@@ -242,7 +242,7 @@ const createRouters = ({ application, authEnabled = false, authIssuer = "" }) =>
             progress,
           });
         })
-      : application.saveReadingProgress({ progress });
+      : await application.saveReadingProgress({ progress });
 
     if (!result) {
       return c.json({ message: "Book or user not found" }, 404);
@@ -265,13 +265,13 @@ const createRouters = ({ application, authEnabled = false, authIssuer = "" }) =>
       );
     }
 
-    const result = application.createShelf({ shelf });
+    const result = await application.createShelf({ shelf });
 
     return c.json({ shelf: result }, 201);
   });
 
-  shelvesRouter.get("/", (c) => {
-    const result = application.listShelves();
+  shelvesRouter.get("/", async (c) => {
+    const result = await application.listShelves();
 
     return c.json({ shelves: result });
   });
@@ -291,7 +291,7 @@ const createRouters = ({ application, authEnabled = false, authIssuer = "" }) =>
       );
     }
 
-    const result = application.updateShelf({ id, updates });
+    const result = await application.updateShelf({ id, updates });
 
     if (!result) {
       return c.json({ message: "Shelf not found" }, 404);
@@ -300,9 +300,9 @@ const createRouters = ({ application, authEnabled = false, authIssuer = "" }) =>
     return c.json({ shelf: result });
   });
 
-  shelvesRouter.delete("/:id", (c) => {
+  shelvesRouter.delete("/:id", async (c) => {
     const { id } = c.req.param();
-    const result = application.deleteShelf({ id });
+    const result = await application.deleteShelf({ id });
 
     if (!result.success) {
       return c.json({ message: "Shelf not found" }, 404);
@@ -311,9 +311,9 @@ const createRouters = ({ application, authEnabled = false, authIssuer = "" }) =>
     return c.json(result);
   });
 
-  shelvesRouter.post("/:id/books/:bookId", (c) => {
+  shelvesRouter.post("/:id/books/:bookId", async (c) => {
     const { id, bookId } = c.req.param();
-    const result = application.addBookToShelf({
+    const result = await application.addBookToShelf({
       shelfId: id,
       bookId,
     });
@@ -325,9 +325,9 @@ const createRouters = ({ application, authEnabled = false, authIssuer = "" }) =>
     return c.json({ shelf: result });
   });
 
-  shelvesRouter.delete("/:id/books/:bookId", (c) => {
+  shelvesRouter.delete("/:id/books/:bookId", async (c) => {
     const { id, bookId } = c.req.param();
-    const result = application.removeBookFromShelf({
+    const result = await application.removeBookFromShelf({
       shelfId: id,
       bookId,
     });

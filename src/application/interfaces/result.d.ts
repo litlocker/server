@@ -19,7 +19,16 @@ interface FailureResult {
   error: ApplicationError;
 }
 
+type Awaitable<TValue> = TValue | Promise<TValue>;
 type Result<TData> = SuccessResult<TData> | FailureResult;
-type CheckHealth = () => Result<HealthStatus>;
+type CheckHealth = () => Awaitable<Result<HealthStatus>>;
 
-export type { ApplicationError, HealthStatus, SuccessResult, FailureResult, Result, CheckHealth };
+export type {
+  ApplicationError,
+  Awaitable,
+  CheckHealth,
+  FailureResult,
+  HealthStatus,
+  Result,
+  SuccessResult,
+};

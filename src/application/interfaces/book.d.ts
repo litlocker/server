@@ -1,4 +1,5 @@
 import { Book, CreateBookInput, UpdateBookInput } from "../entities/book.d.ts";
+import { Awaitable } from "./result.d.ts";
 
 interface ListBooksInput {
   search?: string;
@@ -8,10 +9,16 @@ interface ListBooksInput {
   shelfId?: string;
 }
 
-type CreateBook = ({ book }: { book: CreateBookInput }) => Book;
-type UpdateBook = ({ id, updates }: { id: string; updates: UpdateBookInput }) => Book | null;
-type ListBooks = ({ filters }: { filters?: ListBooksInput }) => Book[];
-type GetBook = ({ id }: { id: string }) => Book | null;
+type CreateBook = ({ book }: { book: CreateBookInput }) => Awaitable<Book>;
+type UpdateBook = ({
+  id,
+  updates,
+}: {
+  id: string;
+  updates: UpdateBookInput;
+}) => Awaitable<Book | null>;
+type ListBooks = ({ filters }: { filters?: ListBooksInput }) => Awaitable<Book[]>;
+type GetBook = ({ id }: { id: string }) => Awaitable<Book | null>;
 interface BookFileAccess {
   bookId: string;
   fileName: string;
@@ -19,7 +26,7 @@ interface BookFileAccess {
   mimeType: string;
   contents: Uint8Array;
 }
-type GetBookFileAccess = ({ id }: { id: string }) => BookFileAccess | null;
+type GetBookFileAccess = ({ id }: { id: string }) => Awaitable<BookFileAccess | null>;
 
 export type {
   ListBooksInput,

@@ -35,7 +35,7 @@ const validateConfig = (config) => {
 
   const schema = {
     type: "object",
-    required: ["logger", "server", "storage", "imports", "auth", "metadataProviders"],
+    required: ["logger", "server", "storage", "imports", "database", "auth", "metadataProviders"],
     properties: {
       logger: {
         type: "object",
@@ -85,6 +85,33 @@ const validateConfig = (config) => {
             items: { type: "string", minLength: 1 },
           },
           duplicateCheckEnabled: { type: "boolean" },
+        },
+      },
+      database: {
+        type: "object",
+        required: [
+          "host",
+          "port",
+          "user",
+          "password",
+          "database",
+          "schema",
+          "sslEnabled",
+          "poolMaxConnections",
+          "poolIdleTimeoutMs",
+          "connectionTimeoutMs",
+        ],
+        properties: {
+          host: { type: "string", minLength: 1 },
+          port: { type: "number", minimum: 1 },
+          user: { type: "string", minLength: 1 },
+          password: { type: "string", minLength: 1 },
+          database: { type: "string", minLength: 1 },
+          schema: { type: "string", pattern: "^[A-Za-z_][A-Za-z0-9_]*$" },
+          sslEnabled: { type: "boolean" },
+          poolMaxConnections: { type: "number", minimum: 1 },
+          poolIdleTimeoutMs: { type: "number", minimum: 1 },
+          connectionTimeoutMs: { type: "number", minimum: 1 },
         },
       },
       auth: {

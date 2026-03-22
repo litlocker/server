@@ -31,6 +31,16 @@ describe("static env config adapter", () => {
     delete process.env.IMPORTS__MAX_FILE_SIZE_IN_BYTES;
     delete process.env.IMPORTS__ALLOWED_FILE_EXTENSIONS;
     delete process.env.IMPORTS__DUPLICATE_CHECK_ENABLED;
+    delete process.env.DATABASE__HOST;
+    delete process.env.DATABASE__PORT;
+    delete process.env.DATABASE__USER;
+    delete process.env.DATABASE__PASSWORD;
+    delete process.env.DATABASE__DATABASE;
+    delete process.env.DATABASE__SCHEMA;
+    delete process.env.DATABASE__SSL_ENABLED;
+    delete process.env.DATABASE__POOL_MAX_CONNECTIONS;
+    delete process.env.DATABASE__POOL_IDLE_TIMEOUT_MS;
+    delete process.env.DATABASE__CONNECTION_TIMEOUT_MS;
     delete process.env.AUTH__ENABLED;
     delete process.env.AUTH__BOOTSTRAP_ADMIN_EMAIL;
     delete process.env.AUTH__BOOTSTRAP_ADMIN_PASSWORD;
@@ -74,6 +84,18 @@ describe("static env config adapter", () => {
         allowedFileExtensions: ["epub", "pdf", "cbz", "cbr"],
         duplicateCheckEnabled: true,
       },
+      database: {
+        host: "localhost",
+        port: 15_432,
+        user: "devdb",
+        password: "devpass",
+        database: "devdb",
+        schema: "litlocker",
+        sslEnabled: false,
+        poolMaxConnections: 10,
+        poolIdleTimeoutMs: 30_000,
+        connectionTimeoutMs: 5_000,
+      },
       auth: {
         enabled: false,
         bootstrapAdminEmail: "",
@@ -112,6 +134,16 @@ describe("static env config adapter", () => {
     process.env.IMPORTS__MAX_FILE_SIZE_IN_BYTES = "250000000";
     process.env.IMPORTS__ALLOWED_FILE_EXTENSIONS = "epub,pdf";
     process.env.IMPORTS__DUPLICATE_CHECK_ENABLED = "false";
+    process.env.DATABASE__HOST = "postgres.internal";
+    process.env.DATABASE__PORT = "25432";
+    process.env.DATABASE__USER = "litlocker";
+    process.env.DATABASE__PASSWORD = "db-secret";
+    process.env.DATABASE__DATABASE = "litlocker";
+    process.env.DATABASE__SCHEMA = "litlocker_app";
+    process.env.DATABASE__SSL_ENABLED = "true";
+    process.env.DATABASE__POOL_MAX_CONNECTIONS = "20";
+    process.env.DATABASE__POOL_IDLE_TIMEOUT_MS = "45000";
+    process.env.DATABASE__CONNECTION_TIMEOUT_MS = "12000";
     process.env.AUTH__ENABLED = "true";
     process.env.AUTH__BOOTSTRAP_ADMIN_EMAIL = "admin@example.com";
     process.env.AUTH__BOOTSTRAP_ADMIN_PASSWORD = "super-secret";
@@ -154,6 +186,18 @@ describe("static env config adapter", () => {
         maxFileSizeInBytes: 250_000_000,
         allowedFileExtensions: ["epub", "pdf"],
         duplicateCheckEnabled: false,
+      },
+      database: {
+        host: "postgres.internal",
+        port: 25_432,
+        user: "litlocker",
+        password: "db-secret",
+        database: "litlocker",
+        schema: "litlocker_app",
+        sslEnabled: true,
+        poolMaxConnections: 20,
+        poolIdleTimeoutMs: 45_000,
+        connectionTimeoutMs: 12_000,
       },
       auth: {
         enabled: true,

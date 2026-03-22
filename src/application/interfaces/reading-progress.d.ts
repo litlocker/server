@@ -1,4 +1,5 @@
 import { ReadingProgress, ReadingProgressFormat } from "../entities/reading-progress.d.ts";
+import { Awaitable } from "./result.d.ts";
 import { CurrentUserInput } from "./user.d.ts";
 
 interface SaveReadingProgressInput {
@@ -13,28 +14,28 @@ type SaveReadingProgress = ({
   progress,
 }: {
   progress: SaveReadingProgressInput;
-}) => ReadingProgress | null;
+}) => Awaitable<ReadingProgress | null>;
 type GetReadingProgress = ({
   bookId,
   userId,
 }: {
   bookId: string;
   userId: string;
-}) => ReadingProgress | null;
+}) => Awaitable<ReadingProgress | null>;
 type SaveCurrentUserReadingProgress = ({
   currentUser,
   progress,
 }: {
   currentUser: CurrentUserInput;
   progress: Omit<SaveReadingProgressInput, "userId">;
-}) => ReadingProgress | null;
+}) => Awaitable<ReadingProgress | null>;
 type GetCurrentUserReadingProgress = ({
   currentUser,
   bookId,
 }: {
   currentUser: CurrentUserInput;
   bookId: string;
-}) => ReadingProgress | null;
+}) => Awaitable<ReadingProgress | null>;
 
 export type {
   ReadingProgress,

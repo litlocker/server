@@ -2,6 +2,7 @@
  * @import { CreatePersistence, Persistence } from "../../../application/interfaces/persistence.js";
  * @import { Book } from "../../../application/entities/book.js";
  * @import { ReadingProgress } from "../../../application/entities/reading-progress.js";
+ * @import { User } from "../../../application/entities/user.js";
  * @import { HealthStatus, SuccessResult } from "../../../application/interfaces/result.js";
  */
 
@@ -41,7 +42,6 @@ const createRecordStore = ({ searchRecord } = {}) => {
    *   list: () => TRecord[];
    *   get: ({ id }: { id: string }) => TRecord | null;
    *   delete: ({ id }: { id: string }) => { success: boolean };
-   *   checkHealth: typeof createHealthResult;
    *   search?: ({ query }: { query: string }) => TRecord[];
    * }}
    */
@@ -79,7 +79,6 @@ const createRecordStore = ({ searchRecord } = {}) => {
         success: records.delete(id),
       };
     },
-    checkHealth: createHealthResult,
   };
 
   if (searchRecord) {
@@ -136,7 +135,6 @@ const createReadingProgressStore = () => {
     get: ({ bookId, userId }) => {
       return records.get(`${bookId}:${userId}`) ?? null;
     },
-    checkHealth: createHealthResult,
   };
 };
 
@@ -151,13 +149,16 @@ const createPersistenceInMemory = () => {
   /** @type {Persistence["shelves"]} */
   const shelves = createRecordStore();
   const usersRecordStore =
-    /** @type {Pick<Persistence["users"], "create" | "update" | "list" | "get" | "checkHealth">} */ (
-      createRecordStore()
-    );
+    /** @type {{
+     *   create: ({ record }: { record: User }) => User;
+     *   update: ({ id, updates }: { id: string; updates: Partial<User> }) => User | null;
+     *   list: () => User[];
+     *   get: ({ id }: { id: string }) => User | null;
+     * }} */ (createRecordStore());
   /** @type {Persistence["users"]} */
   const users = {
     ...usersRecordStore,
-    getByAuthIdentity: ({ authIssuer, authSubject }) => {
+    getByAuthIdentity: async ({ authIssuer, authSubject }) => {
       return (
         usersRecordStore
           .list()

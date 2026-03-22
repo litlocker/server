@@ -20,6 +20,7 @@ import {
   SaveCurrentUserReadingProgress as SaveCurrentUserReadingProgressFn,
 } from "./interfaces/reading-progress.d.ts";
 import { Result, HealthStatus } from "./interfaces/result.d.ts";
+import { Awaitable } from "./interfaces/result.d.ts";
 import {
   AddBookToShelfInput,
   CreateShelfInput,
@@ -28,24 +29,42 @@ import {
   UpdateShelfInput,
 } from "./interfaces/shelf.d.ts";
 
-type Health = () => Result<HealthStatus>;
-type CreateBook = ({ book }: { book: CreateBookInput }) => Book;
-type UpdateBook = ({ id, updates }: { id: string; updates: UpdateBookInput }) => Book | null;
-type ListBooks = (input?: { filters?: ListBooksInput }) => Book[];
-type GetBook = ({ id }: { id: string }) => Book | null;
+type Health = () => Awaitable<Result<HealthStatus>>;
+type CreateBook = ({ book }: { book: CreateBookInput }) => Awaitable<Book>;
+type UpdateBook = ({
+  id,
+  updates,
+}: {
+  id: string;
+  updates: UpdateBookInput;
+}) => Awaitable<Book | null>;
+type ListBooks = (input?: { filters?: ListBooksInput }) => Awaitable<Book[]>;
+type GetBook = ({ id }: { id: string }) => Awaitable<Book | null>;
 type GetBookFileAccess = GetBookFileAccessFn;
-type CreateShelf = ({ shelf }: { shelf: CreateShelfInput }) => Shelf;
-type UpdateShelf = ({ id, updates }: { id: string; updates: UpdateShelfInput }) => Shelf | null;
-type ListShelves = () => Shelf[];
-type DeleteShelf = ({ id }: { id: string }) => { success: boolean };
-type AddBookToShelf = ({ shelfId, bookId }: AddBookToShelfInput) => Shelf | null;
-type RemoveBookFromShelf = ({ shelfId, bookId }: RemoveBookFromShelfInput) => Shelf | null;
-type CreateImportJob = ({ job }: { job: CreateImportJobInput }) => ImportJob;
-type IngestImportUpload = ({ upload }: { upload: IngestImportUploadInput }) => ImportJob;
-type ReviewImportJob = ({ id, metadataCandidateIndex }: ReviewImportJobInput) => ImportJob | null;
-type ListImportJobs = () => ImportJob[];
-type GetImportJob = ({ id }: { id: string }) => ImportJob | null;
-type FinalizeImportJob = ({ id }: { id: string }) => ImportJob | null;
+type CreateShelf = ({ shelf }: { shelf: CreateShelfInput }) => Awaitable<Shelf>;
+type UpdateShelf = ({
+  id,
+  updates,
+}: {
+  id: string;
+  updates: UpdateShelfInput;
+}) => Awaitable<Shelf | null>;
+type ListShelves = () => Awaitable<Shelf[]>;
+type DeleteShelf = ({ id }: { id: string }) => Awaitable<{ success: boolean }>;
+type AddBookToShelf = ({ shelfId, bookId }: AddBookToShelfInput) => Awaitable<Shelf | null>;
+type RemoveBookFromShelf = ({
+  shelfId,
+  bookId,
+}: RemoveBookFromShelfInput) => Awaitable<Shelf | null>;
+type CreateImportJob = ({ job }: { job: CreateImportJobInput }) => Awaitable<ImportJob>;
+type IngestImportUpload = ({ upload }: { upload: IngestImportUploadInput }) => Awaitable<ImportJob>;
+type ReviewImportJob = ({
+  id,
+  metadataCandidateIndex,
+}: ReviewImportJobInput) => Awaitable<ImportJob | null>;
+type ListImportJobs = () => Awaitable<ImportJob[]>;
+type GetImportJob = ({ id }: { id: string }) => Awaitable<ImportJob | null>;
+type FinalizeImportJob = ({ id }: { id: string }) => Awaitable<ImportJob | null>;
 type SaveReadingProgress = SaveReadingProgressFn;
 type GetReadingProgress = GetReadingProgressFn;
 type SaveCurrentUserReadingProgress = SaveCurrentUserReadingProgressFn;

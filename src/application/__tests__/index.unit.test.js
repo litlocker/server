@@ -1,9 +1,10 @@
 /**
+ * @import { Application } from "../interface.js"
  * @import { Config } from "../interfaces/config.js"
  * @import { FileStorage } from "../interfaces/file-storage.js"
  * @import { Logger } from "../interfaces/logger.js"
  * @import { MetadataProvider } from "../interfaces/metadata-provider.js"
- * @import { HealthStatus, SuccessResult } from "../interfaces/result.js"
+ * @import { Awaitable, HealthStatus, SuccessResult } from "../interfaces/result.js"
  */
 
 import { describe, expect, it } from "vitest";
@@ -51,6 +52,18 @@ describe("application", () => {
       allowedFileExtensions: ["epub", "pdf", "cbz", "cbr"],
       duplicateCheckEnabled: true,
     },
+    database: {
+      host: "localhost",
+      port: 15_432,
+      user: "devdb",
+      password: "devpass",
+      database: "devdb",
+      schema: "litlocker",
+      sslEnabled: false,
+      poolMaxConnections: 10,
+      poolIdleTimeoutMs: 30_000,
+      connectionTimeoutMs: 5_000,
+    },
     auth: {
       enabled: false,
       bootstrapAdminEmail: "",
@@ -84,6 +97,48 @@ describe("application", () => {
     error: () => {},
     checkHealth: () => createHealthSuccessResult(),
   };
+
+  /**
+   * The in-memory test setup is intentionally synchronous, even though the
+   * application contracts now allow promise-backed adapters such as Postgres.
+   *
+   * @template TValue
+   * @param {Awaitable<TValue>} value
+   * @returns {TValue}
+   */
+  const expectSync = (value) => {
+    if (value && typeof value === "object" && "then" in value) {
+      throw new Error("Expected a synchronous value in this test setup");
+    }
+
+    return value;
+  };
+
+  /**
+   * @param {Application} application
+   * @param {Parameters<Application["createBook"]>[0]} input
+   */
+  const createBookSync = (application, input) => expectSync(application.createBook(input));
+
+  /**
+   * @param {Application} application
+   * @param {Parameters<Application["createShelf"]>[0]} input
+   */
+  const createShelfSync = (application, input) => expectSync(application.createShelf(input));
+
+  /**
+   * @param {Application} application
+   * @param {Parameters<Application["createImportJob"]>[0]} input
+   */
+  const createImportJobSync = (application, input) =>
+    expectSync(application.createImportJob(input));
+
+  /**
+   * @param {Application} application
+   * @param {Parameters<Application["ingestImportUpload"]>[0]} input
+   */
+  const ingestImportUploadSync = (application, input) =>
+    expectSync(application.ingestImportUpload(input));
 
   /**
    * @returns {FileStorage}
@@ -336,12 +391,12 @@ describe("application", () => {
         logger,
       });
 
-      const firstBook = application.createBook({
+      const firstBook = createBookSync(application, {
         book: {
           title: "The Left Hand of Darkness",
         },
       });
-      const secondBook = application.createBook({
+      const secondBook = createBookSync(application, {
         book: {
           title: "A Wizard of Earthsea",
         },
@@ -414,28 +469,28 @@ describe("application", () => {
         logger,
       });
 
-      const firstBook = application.createBook({
+      const firstBook = createBookSync(application, {
         book: {
           title: "The Left Hand of Darkness",
           authors: ["Ursula K. Le Guin"],
           tags: ["science-fiction", "classic"],
         },
       });
-      const secondBook = application.createBook({
+      const secondBook = createBookSync(application, {
         book: {
           title: "A Wizard of Earthsea",
           authors: ["Ursula K. Le Guin"],
           tags: ["fantasy"],
         },
       });
-      const thirdBook = application.createBook({
+      const thirdBook = createBookSync(application, {
         book: {
           title: "Kindred",
           authors: ["Octavia E. Butler"],
           tags: ["science-fiction"],
         },
       });
-      const shelf = application.createShelf({
+      const shelf = createShelfSync(application, {
         shelf: {
           name: "Favorites",
         },
@@ -498,7 +553,7 @@ describe("application", () => {
         logger,
       });
 
-      const firstBook = application.createBook({
+      const firstBook = createBookSync(application, {
         book: {
           title: "The Left Hand of Darkness",
           subtitle: "Hainish Cycle",
@@ -511,7 +566,7 @@ describe("application", () => {
           },
         },
       });
-      const secondBook = application.createBook({
+      const secondBook = createBookSync(application, {
         book: {
           title: "Kindred",
           description: "A time-travel novel",
@@ -519,7 +574,7 @@ describe("application", () => {
           tags: ["historical-fiction"],
         },
       });
-      const shelf = application.createShelf({
+      const shelf = createShelfSync(application, {
         shelf: {
           name: "Favorites",
         },
@@ -570,7 +625,7 @@ describe("application", () => {
         idGenerator: createIdGeneratorSystem(),
         logger,
       });
-      const book = application.createBook({
+      const book = createBookSync(application, {
         book: {
           title: "The Dispossessed",
         },
@@ -599,7 +654,7 @@ describe("application", () => {
         idGenerator: createIdGeneratorSystem(),
         logger,
       });
-      const book = application.createBook({
+      const book = createBookSync(application, {
         book: {
           title: "The Tombs of Atuan",
           subtitle: "Earthsea Cycle",
@@ -675,7 +730,7 @@ describe("application", () => {
         logger,
       });
 
-      const book = application.createBook({
+      const book = createBookSync(application, {
         book: {
           title: "Tehanu",
         },
@@ -719,7 +774,7 @@ describe("application", () => {
         logger,
       });
 
-      const book = application.createBook({
+      const book = createBookSync(application, {
         book: {
           title: "The Farthest Shore",
           authors: ["Ursula K. Le Guin"],
@@ -766,7 +821,7 @@ describe("application", () => {
         logger,
       });
 
-      const book = application.createBook({
+      const book = createBookSync(application, {
         book: {
           title: "The Wind-Up Bird Chronicle",
           tags: ["fiction", "japanese-literature"],
@@ -855,12 +910,12 @@ describe("application", () => {
         logger,
       });
 
-      const firstShelf = application.createShelf({
+      const firstShelf = createShelfSync(application, {
         shelf: {
           name: "Favorites",
         },
       });
-      const secondShelf = application.createShelf({
+      const secondShelf = createShelfSync(application, {
         shelf: {
           name: "To Read",
           description: "Priority reading list",
@@ -893,7 +948,7 @@ describe("application", () => {
         idGenerator: createIdGeneratorSystem(),
         logger,
       });
-      const shelf = application.createShelf({
+      const shelf = createShelfSync(application, {
         shelf: {
           name: "Weekend Reads",
           description: "Short books",
@@ -944,7 +999,7 @@ describe("application", () => {
         idGenerator: createIdGeneratorSystem(),
         logger,
       });
-      const shelf = application.createShelf({
+      const shelf = createShelfSync(application, {
         shelf: {
           name: "Archive",
         },
@@ -978,12 +1033,12 @@ describe("application", () => {
         idGenerator: createIdGeneratorSystem(),
         logger,
       });
-      const book = application.createBook({
+      const book = createBookSync(application, {
         book: {
           title: "The Left Hand of Darkness",
         },
       });
-      const shelf = application.createShelf({
+      const shelf = createShelfSync(application, {
         shelf: {
           name: "Favorites",
         },
@@ -1009,12 +1064,12 @@ describe("application", () => {
         idGenerator: createIdGeneratorSystem(),
         logger,
       });
-      const book = application.createBook({
+      const book = createBookSync(application, {
         book: {
           title: "A Wizard of Earthsea",
         },
       });
-      const shelf = application.createShelf({
+      const shelf = createShelfSync(application, {
         shelf: {
           name: "Favorites",
         },
@@ -1043,7 +1098,7 @@ describe("application", () => {
         idGenerator: createIdGeneratorSystem(),
         logger,
       });
-      const shelf = application.createShelf({
+      const shelf = createShelfSync(application, {
         shelf: {
           name: "Favorites",
         },
@@ -1065,7 +1120,7 @@ describe("application", () => {
         idGenerator: createIdGeneratorSystem(),
         logger,
       });
-      const book = application.createBook({
+      const book = createBookSync(application, {
         book: {
           title: "Tehanu",
         },
@@ -1087,17 +1142,17 @@ describe("application", () => {
         idGenerator: createIdGeneratorSystem(),
         logger,
       });
-      const firstBook = application.createBook({
+      const firstBook = createBookSync(application, {
         book: {
           title: "The Tombs of Atuan",
         },
       });
-      const secondBook = application.createBook({
+      const secondBook = createBookSync(application, {
         book: {
           title: "The Farthest Shore",
         },
       });
-      const shelf = application.createShelf({
+      const shelf = createShelfSync(application, {
         shelf: {
           name: "Earthsea",
         },
@@ -1131,7 +1186,7 @@ describe("application", () => {
         idGenerator: createIdGeneratorSystem(),
         logger,
       });
-      const shelf = application.createShelf({
+      const shelf = createShelfSync(application, {
         shelf: {
           name: "Favorites",
         },
@@ -1190,7 +1245,7 @@ describe("application", () => {
         logger,
       });
 
-      const firstImportJob = application.createImportJob({
+      const firstImportJob = createImportJobSync(application, {
         job: {
           source: {
             kind: "upload",
@@ -1198,7 +1253,7 @@ describe("application", () => {
           },
         },
       });
-      const secondImportJob = application.createImportJob({
+      const secondImportJob = createImportJobSync(application, {
         job: {
           source: {
             kind: "filesystem",
@@ -1289,7 +1344,7 @@ describe("application", () => {
         logger,
       });
 
-      const importJob = application.createImportJob({
+      const importJob = createImportJobSync(application, {
         job: {
           source: {
             kind: "filesystem",
@@ -1357,7 +1412,7 @@ describe("application", () => {
         logger,
       });
 
-      const importJob = application.ingestImportUpload({
+      const importJob = ingestImportUploadSync(application, {
         upload: {
           name: "left-hand.epub",
           mimeType: "application/epub+zip",
@@ -1470,7 +1525,7 @@ describe("application", () => {
         logger,
       });
 
-      const importJob = application.createImportJob({
+      const importJob = createImportJobSync(application, {
         job: {
           source: {
             kind: "filesystem",
@@ -1579,7 +1634,7 @@ describe("application", () => {
         logger,
       });
 
-      const importJob = application.ingestImportUpload({
+      const importJob = ingestImportUploadSync(application, {
         upload: {
           name: "left-hand.epub",
           contents: new Uint8Array([1, 2, 3]),
@@ -1641,13 +1696,13 @@ describe("application", () => {
         logger,
       });
 
-      const firstImportJob = application.ingestImportUpload({
+      const firstImportJob = ingestImportUploadSync(application, {
         upload: {
           name: "left-hand.epub",
           contents: new Uint8Array([1, 2, 3]),
         },
       });
-      const secondImportJob = application.ingestImportUpload({
+      const secondImportJob = ingestImportUploadSync(application, {
         upload: {
           name: "left-hand-copy.epub",
           contents: new Uint8Array([1, 2, 3]),
@@ -1669,7 +1724,7 @@ describe("application", () => {
         idGenerator: createIdGeneratorSystem(),
         logger,
       });
-      const importJob = application.createImportJob({
+      const importJob = createImportJobSync(application, {
         job: {
           source: {
             kind: "filesystem",
@@ -1742,7 +1797,7 @@ describe("application", () => {
         idGenerator: createIdGeneratorSystem(),
         logger,
       });
-      const importJob = application.createImportJob({
+      const importJob = createImportJobSync(application, {
         job: {
           source: {
             kind: "filesystem",
@@ -1792,7 +1847,7 @@ describe("application", () => {
         logger,
       });
 
-      const book = application.createBook({
+      const book = createBookSync(application, {
         book: {
           title: "The Left Hand of Darkness",
           identifiers: {
@@ -1801,7 +1856,7 @@ describe("application", () => {
         },
       });
 
-      const importJob = application.createImportJob({
+      const importJob = createImportJobSync(application, {
         job: {
           source: {
             kind: "filesystem",
@@ -1849,7 +1904,7 @@ describe("application", () => {
         idGenerator: createIdGeneratorSystem(),
         logger,
       });
-      const importJob = application.createImportJob({
+      const importJob = createImportJobSync(application, {
         job: {
           source: {
             kind: "upload",
@@ -1883,7 +1938,7 @@ describe("application", () => {
         idGenerator: createIdGeneratorSystem(),
         logger,
       });
-      const importJob = application.createImportJob({
+      const importJob = createImportJobSync(application, {
         job: {
           source: {
             kind: "filesystem",
@@ -1959,7 +2014,7 @@ describe("application", () => {
         idGenerator: createIdGeneratorSystem(),
         logger,
       });
-      const importJob = application.createImportJob({
+      const importJob = createImportJobSync(application, {
         job: {
           source: {
             kind: "filesystem",
@@ -2052,7 +2107,7 @@ describe("application", () => {
         idGenerator: createIdGeneratorSystem(),
         logger,
       });
-      const importJob = application.createImportJob({
+      const importJob = createImportJobSync(application, {
         job: {
           source: {
             kind: "filesystem",
@@ -2119,13 +2174,13 @@ describe("application", () => {
   });
 
   describe("reading progress functions", () => {
-    it("should save reading progress for an existing book and user", () => {
+    it("should save reading progress for an existing book and user", async () => {
       const clock = {
         now: () => new Date("2026-03-22T12:00:00.000Z"),
         checkHealth: () => createHealthSuccessResult(),
       };
       const persistence = createPersistenceInMemory();
-      const book = persistence.books.create({
+      const book = await persistence.books.create({
         record: {
           id: "book-1",
           title: "The Left Hand of Darkness",
@@ -2154,7 +2209,7 @@ describe("application", () => {
           readingStatus: "unread",
         },
       });
-      const user = persistence.users.create({
+      const user = await persistence.users.create({
         record: {
           id: "user-1",
           authIssuer: "https://id.example.com",
@@ -2176,7 +2231,7 @@ describe("application", () => {
         logger,
       });
 
-      const readingProgress = application.saveReadingProgress({
+      const readingProgress = await application.saveReadingProgress({
         progress: {
           bookId: book.id,
           userId: user.id,
@@ -2197,18 +2252,18 @@ describe("application", () => {
         updatedAt: "2026-03-22T12:00:00.000Z",
       });
       expect(
-        application.getReadingProgress({
+        await application.getReadingProgress({
           bookId: book.id,
           userId: user.id,
         }),
       ).toEqual(readingProgress);
-      expect(application.getBook({ id: book.id })).toEqual({
+      expect(await application.getBook({ id: book.id })).toEqual({
         ...book,
         readingStatus: "started",
       });
     });
 
-    it("should update existing reading progress while preserving createdAt", () => {
+    it("should update existing reading progress while preserving createdAt", async () => {
       const timestamps = ["2026-03-22T12:00:00.000Z", "2026-03-22T12:15:00.000Z"];
       let timestampIndex = 0;
       const clock = {
@@ -2217,7 +2272,7 @@ describe("application", () => {
       };
       const persistence = createPersistenceInMemory();
 
-      persistence.books.create({
+      await persistence.books.create({
         record: {
           id: "book-1",
           title: "The Left Hand of Darkness",
@@ -2246,7 +2301,7 @@ describe("application", () => {
           readingStatus: "unread",
         },
       });
-      persistence.users.create({
+      await persistence.users.create({
         record: {
           id: "user-1",
           authIssuer: "https://id.example.com",
@@ -2268,7 +2323,7 @@ describe("application", () => {
         logger,
       });
 
-      const initialProgress = application.saveReadingProgress({
+      const initialProgress = await application.saveReadingProgress({
         progress: {
           bookId: "book-1",
           userId: "user-1",
@@ -2277,7 +2332,7 @@ describe("application", () => {
           percentage: "0.25",
         },
       });
-      const updatedProgress = application.saveReadingProgress({
+      const updatedProgress = await application.saveReadingProgress({
         progress: {
           bookId: "book-1",
           userId: "user-1",
@@ -2293,7 +2348,7 @@ describe("application", () => {
         percentage: "0.75",
         updatedAt: "2026-03-22T12:15:00.000Z",
       });
-      expect(application.getBook({ id: "book-1" })).toEqual({
+      expect(await application.getBook({ id: "book-1" })).toEqual({
         id: "book-1",
         title: "The Left Hand of Darkness",
         subtitle: "",
@@ -2322,10 +2377,10 @@ describe("application", () => {
       });
     });
 
-    it("should mark a book as finished when progress reaches 100 percent", () => {
+    it("should mark a book as finished when progress reaches 100 percent", async () => {
       const persistence = createPersistenceInMemory();
 
-      persistence.books.create({
+      await persistence.books.create({
         record: {
           id: "book-1",
           title: "The Left Hand of Darkness",
@@ -2354,7 +2409,7 @@ describe("application", () => {
           readingStatus: "unread",
         },
       });
-      persistence.users.create({
+      await persistence.users.create({
         record: {
           id: "user-1",
           authIssuer: "https://id.example.com",
@@ -2376,7 +2431,7 @@ describe("application", () => {
         logger,
       });
 
-      application.saveReadingProgress({
+      await application.saveReadingProgress({
         progress: {
           bookId: "book-1",
           userId: "user-1",
@@ -2386,13 +2441,13 @@ describe("application", () => {
         },
       });
 
-      expect(application.getBook({ id: "book-1" })?.readingStatus).toBe("finished");
+      expect((await application.getBook({ id: "book-1" }))?.readingStatus).toBe("finished");
     });
 
-    it("should leave archived books archived when progress is saved", () => {
+    it("should leave archived books archived when progress is saved", async () => {
       const persistence = createPersistenceInMemory();
 
-      persistence.books.create({
+      await persistence.books.create({
         record: {
           id: "book-1",
           title: "The Left Hand of Darkness",
@@ -2421,7 +2476,7 @@ describe("application", () => {
           readingStatus: "unread",
         },
       });
-      persistence.users.create({
+      await persistence.users.create({
         record: {
           id: "user-1",
           authIssuer: "https://id.example.com",
@@ -2443,7 +2498,7 @@ describe("application", () => {
         logger,
       });
 
-      application.saveReadingProgress({
+      await application.saveReadingProgress({
         progress: {
           bookId: "book-1",
           userId: "user-1",
@@ -2453,14 +2508,14 @@ describe("application", () => {
         },
       });
 
-      expect(application.getBook({ id: "book-1" })?.libraryStatus).toBe("archived");
-      expect(application.getBook({ id: "book-1" })?.readingStatus).toBe("unread");
+      expect((await application.getBook({ id: "book-1" }))?.libraryStatus).toBe("archived");
+      expect((await application.getBook({ id: "book-1" }))?.readingStatus).toBe("unread");
     });
 
-    it("should return null when saving progress for a missing book", () => {
+    it("should return null when saving progress for a missing book", async () => {
       const persistence = createPersistenceInMemory();
 
-      persistence.users.create({
+      await persistence.users.create({
         record: {
           id: "user-1",
           authIssuer: "https://id.example.com",
@@ -2483,7 +2538,7 @@ describe("application", () => {
       });
 
       expect(
-        application.saveReadingProgress({
+        await application.saveReadingProgress({
           progress: {
             bookId: "missing-book-id",
             userId: "user-1",
@@ -2495,10 +2550,10 @@ describe("application", () => {
       ).toBeNull();
     });
 
-    it("should return null when saving progress for a missing user", () => {
+    it("should return null when saving progress for a missing user", async () => {
       const persistence = createPersistenceInMemory();
 
-      persistence.books.create({
+      await persistence.books.create({
         record: {
           id: "book-1",
           title: "The Left Hand of Darkness",
@@ -2536,7 +2591,7 @@ describe("application", () => {
       });
 
       expect(
-        application.saveReadingProgress({
+        await application.saveReadingProgress({
           progress: {
             bookId: "book-1",
             userId: "missing-user-id",
@@ -2548,14 +2603,14 @@ describe("application", () => {
       ).toBeNull();
     });
 
-    it("should save reading progress for the current authenticated user", () => {
+    it("should save reading progress for the current authenticated user", async () => {
       const clock = {
         now: () => new Date("2026-03-22T12:00:00.000Z"),
         checkHealth: () => createHealthSuccessResult(),
       };
       const persistence = createPersistenceInMemory();
 
-      persistence.books.create({
+      await persistence.books.create({
         record: {
           id: "book-1",
           title: "The Left Hand of Darkness",
@@ -2592,7 +2647,7 @@ describe("application", () => {
         logger,
       });
 
-      const readingProgress = application.saveCurrentUserReadingProgress({
+      const readingProgress = await application.saveCurrentUserReadingProgress({
         currentUser: {
           authIssuer: "https://id.example.com",
           authSubject: "reader-123",
@@ -2609,7 +2664,7 @@ describe("application", () => {
         },
       });
 
-      const savedUser = persistence.users.getByAuthIdentity({
+      const savedUser = await persistence.users.getByAuthIdentity({
         authIssuer: "https://id.example.com",
         authSubject: "reader-123",
       });
@@ -2637,7 +2692,7 @@ describe("application", () => {
         updatedAt: "2026-03-22T12:00:00.000Z",
       });
       expect(
-        application.getCurrentUserReadingProgress({
+        await application.getCurrentUserReadingProgress({
           currentUser: {
             authIssuer: "https://id.example.com",
             authSubject: "reader-123",
@@ -2651,14 +2706,14 @@ describe("application", () => {
       ).toEqual(readingProgress);
     });
 
-    it("should refresh stored current-user details when saving reading progress", () => {
+    it("should refresh stored current-user details when saving reading progress", async () => {
       const clock = {
         now: () => new Date("2026-03-22T12:30:00.000Z"),
         checkHealth: () => createHealthSuccessResult(),
       };
       const persistence = createPersistenceInMemory();
 
-      persistence.books.create({
+      await persistence.books.create({
         record: {
           id: "book-1",
           title: "The Left Hand of Darkness",
@@ -2687,7 +2742,7 @@ describe("application", () => {
           readingStatus: "unread",
         },
       });
-      persistence.users.create({
+      await persistence.users.create({
         record: {
           id: "user-1",
           authIssuer: "https://id.example.com",
@@ -2709,7 +2764,7 @@ describe("application", () => {
         logger,
       });
 
-      application.saveCurrentUserReadingProgress({
+      await application.saveCurrentUserReadingProgress({
         currentUser: {
           authIssuer: "https://id.example.com",
           authSubject: "reader-123",
@@ -2727,7 +2782,7 @@ describe("application", () => {
       });
 
       expect(
-        persistence.users.getByAuthIdentity({
+        await persistence.users.getByAuthIdentity({
           authIssuer: "https://id.example.com",
           authSubject: "reader-123",
         }),
@@ -2767,7 +2822,7 @@ describe("application", () => {
         idGenerator: createIdGeneratorSystem(),
         logger,
       });
-      const book = application.createBook({
+      const book = createBookSync(application, {
         book: {
           title: "The Left Hand of Darkness",
           filePath: "/tmp/litlocker/library/left-hand.epub",
@@ -2813,7 +2868,7 @@ describe("application", () => {
         idGenerator: createIdGeneratorSystem(),
         logger,
       });
-      const book = application.createBook({
+      const book = createBookSync(application, {
         book: {
           title: "The Left Hand of Darkness",
           filePath: "/tmp/litlocker/library/missing-book.epub",

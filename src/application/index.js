@@ -89,6 +89,69 @@ const createDefaultMetadataProvider = () => {
 };
 
 /**
+ * @param {unknown} value
+ * @returns {value is Promise<unknown>}
+ */
+const isPromiseLike = (value) => {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    "then" in value &&
+    typeof value.then === "function"
+  );
+};
+
+/**
+ * @template TValue
+ * @template TNextValue
+ * @param {TValue | Promise<TValue>} value
+ * @param {(value: TValue) => TNextValue} mapValue
+ * @returns {TNextValue | Promise<TNextValue>}
+ */
+const mapAwaitable = (value, mapValue) => {
+  if (isPromiseLike(value)) {
+    return value.then(mapValue);
+  }
+
+  return mapValue(value);
+};
+
+/**
+ * @template TValue
+ * @template TNextValue
+ * @param {TValue | Promise<TValue>} value
+ * @param {(value: TValue) => TNextValue | Promise<TNextValue>} mapValue
+ * @returns {TNextValue | Promise<TNextValue>}
+ */
+const flatMapAwaitable = (value, mapValue) => {
+  if (isPromiseLike(value)) {
+    return value.then(mapValue);
+  }
+
+  return mapValue(value);
+};
+
+/**
+ * @param {Record<string, unknown>} values
+ * @returns {Record<string, unknown> | Promise<Record<string, unknown>>}
+ */
+const resolveRecordAwaitables = (values) => {
+  const entries = Object.entries(values);
+
+  if (!entries.some(([, value]) => isPromiseLike(value))) {
+    return values;
+  }
+
+  return Promise.all(
+    entries.map(async ([key, value]) => {
+      return [key, await value];
+    }),
+  ).then((resolvedEntries) => {
+    return Object.fromEntries(resolvedEntries);
+  });
+};
+
+/**
  * @param { Partial<BookIdentifiers> | undefined } identifiers
  * @returns { BookIdentifiers }
  */
@@ -323,7 +386,7 @@ const findDuplicateBookIds = ({ books, metadataCandidates }) => {
  * @param {string} params.fileHash
  * @param {ImportJobMetadataCandidate[]} params.metadataCandidates
  * @param {import('./interfaces/persistence.js').Persistence} params.persistence
- * @returns {ImportJobDuplicateDetection}
+ * @returns {ImportJobDuplicateDetection | Promise<ImportJobDuplicateDetection>}
  */
 const createDuplicateDetection = ({
   duplicateCheckEnabled,
@@ -335,17 +398,25 @@ const createDuplicateDetection = ({
     return normalizeImportJobDuplicateDetection();
   }
 
-  return normalizeImportJobDuplicateDetection({
-    fileHash,
-    duplicateImportJobIds: findDuplicateImportJobIds({
-      fileHash,
+  return mapAwaitable(
+    resolveRecordAwaitables({
       importJobs: persistence.importJobs.list(),
-    }),
-    duplicateBookIds: findDuplicateBookIds({
       books: persistence.books.list(),
-      metadataCandidates,
     }),
-  });
+    ({ importJobs, books }) => {
+      return normalizeImportJobDuplicateDetection({
+        fileHash,
+        duplicateImportJobIds: findDuplicateImportJobIds({
+          fileHash,
+          importJobs: /** @type {ImportJob[]} */ (importJobs),
+        }),
+        duplicateBookIds: findDuplicateBookIds({
+          books: /** @type {Book[]} */ (books),
+          metadataCandidates,
+        }),
+      });
+    },
+  );
 };
 
 /**
@@ -566,7 +637,7 @@ const normalizeBook = (book) => {
 
 /**
  * @param { object } params
- * @param { ReturnType<import('./interfaces/persistence.js').Persistence['books']['get']> extends infer T ? Exclude<T, null> : never } params.currentBook
+ * @param { Book } params.currentBook
  * @param { UpdateBookInput } params.updates
  */
 const normalizeBookUpdates = ({ currentBook, updates }) => {
@@ -606,7 +677,7 @@ const normalizeShelf = (shelf) => {
 
 /**
  * @param { object } params
- * @param { ReturnType<import('./interfaces/persistence.js').Persistence['shelves']['get']> extends infer T ? Exclude<T, null> : never } params.currentShelf
+ * @param { Shelf } params.currentShelf
  * @param { UpdateShelfInput } params.updates
  */
 const normalizeShelfUpdates = ({ currentShelf, updates }) => {
@@ -733,7 +804,7 @@ const createUserFromCurrentUser = (currentUser, timestamp) => {
  * @param {import("./interfaces/persistence.js").Persistence} params.persistence
  * @param {import("./interfaces/id-generator.js").IdGenerator} params.idGenerator
  * @param {import("./interfaces/clock.js").Clock} params.clock
- * @returns {import("./entities/user.js").User}
+ * @returns {import("./entities/user.js").User | Promise<import("./entities/user.js").User>}
  */
 const resolveCurrentUser = ({ currentUser, persistence, idGenerator, clock }) => {
   const timestamp = clock.now().toISOString();
@@ -742,26 +813,29 @@ const resolveCurrentUser = ({ currentUser, persistence, idGenerator, clock }) =>
     authSubject: currentUser.authSubject,
   });
 
-  if (existingUser) {
-    return (
-      persistence.users.update({
-        id: existingUser.id,
-        updates: {
-          email: currentUser.email,
-          emailVerified: currentUser.emailVerified,
-          displayName: currentUser.displayName,
-          avatarUrl: currentUser.avatarUrl,
-          updatedAt: timestamp,
-        },
-      }) ?? existingUser
-    );
-  }
+  return flatMapAwaitable(existingUser, (existingUser) => {
+    if (existingUser) {
+      return mapAwaitable(
+        persistence.users.update({
+          id: existingUser.id,
+          updates: {
+            email: currentUser.email,
+            emailVerified: currentUser.emailVerified,
+            displayName: currentUser.displayName,
+            avatarUrl: currentUser.avatarUrl,
+            updatedAt: timestamp,
+          },
+        }),
+        (updatedUser) => updatedUser ?? existingUser,
+      );
+    }
 
-  return persistence.users.create({
-    record: {
-      ...createUserFromCurrentUser(currentUser, timestamp),
-      id: idGenerator.generate(),
-    },
+    return persistence.users.create({
+      record: {
+        ...createUserFromCurrentUser(currentUser, timestamp),
+        id: idGenerator.generate(),
+      },
+    });
   });
 };
 
@@ -771,59 +845,73 @@ const resolveCurrentUser = ({ currentUser, persistence, idGenerator, clock }) =>
  * @param {import("./interfaces/clock.js").Clock} params.clock
  * @param {import("./interfaces/id-generator.js").IdGenerator} params.idGenerator
  * @param {SaveReadingProgressInput} params.progress
- * @returns {ReadingProgress | null}
+ * @returns {ReadingProgress | null | Promise<ReadingProgress | null>}
  */
 const saveReadingProgressRecord = ({ persistence, clock, idGenerator, progress }) => {
   const currentBook = persistence.books.get({ id: progress.bookId });
 
-  if (!currentBook) {
-    return null;
-  }
+  return flatMapAwaitable(currentBook, (currentBook) => {
+    if (!currentBook) {
+      return null;
+    }
 
-  const currentUser = persistence.users.get({ id: progress.userId });
+    return flatMapAwaitable(persistence.users.get({ id: progress.userId }), (currentUser) => {
+      if (!currentUser) {
+        return null;
+      }
 
-  if (!currentUser) {
-    return null;
-  }
+      return flatMapAwaitable(
+        persistence.readingProgress.get({
+          bookId: progress.bookId,
+          userId: progress.userId,
+        }),
+        (currentReadingProgress) => {
+          const timestamp = clock.now().toISOString();
+          const nextPercentage = progress.percentage ?? currentReadingProgress?.percentage ?? "";
 
-  const currentReadingProgress = persistence.readingProgress.get({
-    bookId: progress.bookId,
-    userId: progress.userId,
-  });
-  const timestamp = clock.now().toISOString();
-  const nextPercentage = progress.percentage ?? currentReadingProgress?.percentage ?? "";
-  const savedReadingProgress = persistence.readingProgress.save({
-    record: currentReadingProgress
-      ? {
-          ...currentReadingProgress,
-          format: progress.format,
-          locator: progress.locator ?? currentReadingProgress.locator,
-          percentage: nextPercentage,
-          updatedAt: timestamp,
-        }
-      : {
-          id: idGenerator.generate(),
-          ...normalizeReadingProgress(
-            {
-              ...progress,
-              percentage: nextPercentage,
+          return flatMapAwaitable(
+            persistence.readingProgress.save({
+              record: currentReadingProgress
+                ? {
+                    ...currentReadingProgress,
+                    format: progress.format,
+                    locator: progress.locator ?? currentReadingProgress.locator,
+                    percentage: nextPercentage,
+                    updatedAt: timestamp,
+                  }
+                : {
+                    id: idGenerator.generate(),
+                    ...normalizeReadingProgress(
+                      {
+                        ...progress,
+                        percentage: nextPercentage,
+                      },
+                      timestamp,
+                    ),
+                  },
+            }),
+            (savedReadingProgress) => {
+              return mapAwaitable(
+                persistence.books.update({
+                  id: currentBook.id,
+                  updates: {
+                    readingStatus:
+                      currentBook.libraryStatus === "archived"
+                        ? currentBook.readingStatus
+                        : createBookReadingStatusFromProgress(
+                            currentBook,
+                            savedReadingProgress.percentage,
+                          ),
+                  },
+                }),
+                () => savedReadingProgress,
+              );
             },
-            timestamp,
-          ),
+          );
         },
+      );
+    });
   });
-
-  persistence.books.update({
-    id: currentBook.id,
-    updates: {
-      readingStatus:
-        currentBook.libraryStatus === "archived"
-          ? currentBook.readingStatus
-          : createBookReadingStatusFromProgress(currentBook, savedReadingProgress.percentage),
-    },
-  });
-
-  return savedReadingProgress;
 };
 
 /**
@@ -944,16 +1032,22 @@ const createApplication = ({
         idGenerator: idGenerator.checkHealth(),
         logger: logger.checkHealth(),
       };
-      const hasFailures = Object.values(checks).some((result) => !result.success);
+      return mapAwaitable(resolveRecordAwaitables(checks), (checks) => {
+        const resolvedChecks =
+          /** @type {Record<string, import("./interfaces/result.js").Result<HealthStatus>>} */ (
+            checks
+          );
+        const hasFailures = Object.values(resolvedChecks).some((result) => !result.success);
 
-      if (hasFailures) {
-        return createHealthFailureResult({
-          checks,
+        if (hasFailures) {
+          return createHealthFailureResult({
+            checks: resolvedChecks,
+          });
+        }
+
+        return createHealthSuccessResult({
+          checks: resolvedChecks,
         });
-      }
-
-      return createHealthSuccessResult({
-        checks,
       });
     },
     createBook: ({ book }) => {
@@ -965,15 +1059,15 @@ const createApplication = ({
       });
     },
     updateBook: ({ id, updates }) => {
-      const currentBook = persistence.books.get({ id });
+      return flatMapAwaitable(persistence.books.get({ id }), (currentBook) => {
+        if (!currentBook) {
+          return null;
+        }
 
-      if (!currentBook) {
-        return null;
-      }
-
-      return persistence.books.update({
-        id,
-        updates: normalizeBookUpdates({ currentBook, updates }),
+        return persistence.books.update({
+          id,
+          updates: normalizeBookUpdates({ currentBook, updates }),
+        });
       });
     },
     listBooks: ({ filters } = {}) => {
@@ -985,35 +1079,48 @@ const createApplication = ({
         return books;
       }
 
-      const shelf = filters.shelfId ? persistence.shelves.get({ id: filters.shelfId }) : null;
-
-      return books.filter((book) => doesBookMatchFilters(book, filters, shelf));
+      return mapAwaitable(
+        filters.shelfId
+          ? resolveRecordAwaitables({
+              books,
+              shelf: persistence.shelves.get({ id: filters.shelfId }),
+            })
+          : resolveRecordAwaitables({
+              books,
+              shelf: null,
+            }),
+        ({ books, shelf }) => {
+          return /** @type {Book[]} */ (books).filter((book) =>
+            doesBookMatchFilters(book, filters, /** @type {Shelf | null} */ (shelf)),
+          );
+        },
+      );
     },
     getBook: ({ id }) => {
       return persistence.books.get({ id });
     },
     getBookFileAccess: ({ id }) => {
-      const book = persistence.books.get({ id });
+      return mapAwaitable(persistence.books.get({ id }), (book) => {
+        if (!book?.filePath) {
+          return null;
+        }
 
-      if (!book?.filePath) {
-        return null;
-      }
+        if (!fileStorage.fileExists({ file: { path: book.filePath } })) {
+          return null;
+        }
 
-      if (!fileStorage.fileExists({ file: { path: book.filePath } })) {
-        return null;
-      }
-
-      return {
-        bookId: book.id,
-        fileName: createFileNameFromPath(book.filePath),
-        format: createBookFileFormatFromPath(book.filePath),
-        mimeType: createBookFileMimeTypeFromPath(book.filePath),
-        contents: fileStorage.readFile({
-          file: {
-            path: book.filePath,
-          },
-        }),
-      };
+        return {
+          bookId: book.id,
+          fileName: createFileNameFromPath(book.filePath),
+          format: createBookFileFormatFromPath(book.filePath),
+          mimeType: createBookFileMimeTypeFromPath(book.filePath),
+          contents: fileStorage.readFile({
+            file: {
+              path: book.filePath,
+            },
+          }),
+        };
+      });
     },
     createShelf: ({ shelf }) => {
       return persistence.shelves.create({
@@ -1024,15 +1131,15 @@ const createApplication = ({
       });
     },
     updateShelf: ({ id, updates }) => {
-      const currentShelf = persistence.shelves.get({ id });
+      return flatMapAwaitable(persistence.shelves.get({ id }), (currentShelf) => {
+        if (!currentShelf) {
+          return null;
+        }
 
-      if (!currentShelf) {
-        return null;
-      }
-
-      return persistence.shelves.update({
-        id,
-        updates: normalizeShelfUpdates({ currentShelf, updates }),
+        return persistence.shelves.update({
+          id,
+          updates: normalizeShelfUpdates({ currentShelf, updates }),
+        });
       });
     },
     listShelves: () => {
@@ -1042,37 +1149,40 @@ const createApplication = ({
       return persistence.shelves.delete({ id });
     },
     addBookToShelf: ({ shelfId, bookId }) => {
-      const currentShelf = persistence.shelves.get({ id: shelfId });
+      return flatMapAwaitable(
+        resolveRecordAwaitables({
+          currentShelf: persistence.shelves.get({ id: shelfId }),
+          currentBook: persistence.books.get({ id: bookId }),
+        }),
+        ({ currentShelf, currentBook }) => {
+          if (!currentShelf || !currentBook) {
+            return null;
+          }
 
-      if (!currentShelf) {
-        return null;
-      }
-
-      const currentBook = persistence.books.get({ id: bookId });
-
-      if (!currentBook) {
-        return null;
-      }
-
-      return persistence.shelves.update({
-        id: shelfId,
-        updates: {
-          bookIds: addBookIdToShelf(currentShelf, currentBook.id),
+          return persistence.shelves.update({
+            id: shelfId,
+            updates: {
+              bookIds: addBookIdToShelf(
+                /** @type {Shelf} */ (currentShelf),
+                /** @type {Book} */ (currentBook).id,
+              ),
+            },
+          });
         },
-      });
+      );
     },
     removeBookFromShelf: ({ shelfId, bookId }) => {
-      const currentShelf = persistence.shelves.get({ id: shelfId });
+      return flatMapAwaitable(persistence.shelves.get({ id: shelfId }), (currentShelf) => {
+        if (!currentShelf) {
+          return null;
+        }
 
-      if (!currentShelf) {
-        return null;
-      }
-
-      return persistence.shelves.update({
-        id: shelfId,
-        updates: {
-          bookIds: removeBookIdFromShelf(currentShelf, bookId),
-        },
+        return persistence.shelves.update({
+          id: shelfId,
+          updates: {
+            bookIds: removeBookIdFromShelf(currentShelf, bookId),
+          },
+        });
       });
     },
     createImportJob: ({ job }) => {
@@ -1091,21 +1201,24 @@ const createApplication = ({
           metadataCandidates: embeddedMetadataCandidates,
         }),
       ];
+      const duplicateDetection = createDuplicateDetection({
+        duplicateCheckEnabled: config.imports.duplicateCheckEnabled,
+        fileHash: job.fileHash ?? "",
+        metadataCandidates,
+        persistence,
+      });
 
-      return persistence.importJobs.create({
-        record: {
-          id: idGenerator.generate(),
-          ...normalizeImportJob({
-            ...job,
-            metadataCandidates,
-          }),
-          duplicateDetection: createDuplicateDetection({
-            duplicateCheckEnabled: config.imports.duplicateCheckEnabled,
-            fileHash: job.fileHash ?? "",
-            metadataCandidates,
-            persistence,
-          }),
-        },
+      return flatMapAwaitable(duplicateDetection, (duplicateDetection) => {
+        return persistence.importJobs.create({
+          record: {
+            id: idGenerator.generate(),
+            ...normalizeImportJob({
+              ...job,
+              metadataCandidates,
+            }),
+            duplicateDetection,
+          },
+        });
       });
     },
     ingestImportUpload: ({ upload }) => {
@@ -1137,48 +1250,51 @@ const createApplication = ({
           metadataCandidates: embeddedMetadataCandidates,
         }),
       ];
+      const duplicateDetection = createDuplicateDetection({
+        duplicateCheckEnabled: config.imports.duplicateCheckEnabled,
+        fileHash,
+        metadataCandidates,
+        persistence,
+      });
 
-      return persistence.importJobs.create({
-        record: {
-          id: importJobId,
-          ...normalizeImportJob({
-            source: {
-              kind: "upload",
-              path: savedFile.path,
-              originalFileName: upload.name,
-            },
-            detectedFileType,
-            metadataCandidates,
-          }),
-          duplicateDetection: createDuplicateDetection({
-            duplicateCheckEnabled: config.imports.duplicateCheckEnabled,
-            fileHash,
-            metadataCandidates,
-            persistence,
-          }),
-        },
+      return flatMapAwaitable(duplicateDetection, (duplicateDetection) => {
+        return persistence.importJobs.create({
+          record: {
+            id: importJobId,
+            ...normalizeImportJob({
+              source: {
+                kind: "upload",
+                path: savedFile.path,
+                originalFileName: upload.name,
+              },
+              detectedFileType,
+              metadataCandidates,
+            }),
+            duplicateDetection,
+          },
+        });
       });
     },
     reviewImportJob: ({ id, metadataCandidateIndex }) => {
-      const currentImportJob = persistence.importJobs.get({ id });
+      return flatMapAwaitable(persistence.importJobs.get({ id }), (currentImportJob) => {
+        if (!currentImportJob) {
+          return null;
+        }
 
-      if (!currentImportJob) {
-        return null;
-      }
+        if (
+          metadataCandidateIndex < 0 ||
+          metadataCandidateIndex >= currentImportJob.metadataCandidates.length
+        ) {
+          return null;
+        }
 
-      if (
-        metadataCandidateIndex < 0 ||
-        metadataCandidateIndex >= currentImportJob.metadataCandidates.length
-      ) {
-        return null;
-      }
-
-      return persistence.importJobs.update({
-        id,
-        updates: {
-          status: "review",
-          selectedMetadataCandidateIndex: metadataCandidateIndex,
-        },
+        return persistence.importJobs.update({
+          id,
+          updates: {
+            status: "review",
+            selectedMetadataCandidateIndex: metadataCandidateIndex,
+          },
+        });
       });
     },
     listImportJobs: () => {
@@ -1199,63 +1315,69 @@ const createApplication = ({
       return persistence.readingProgress.get({ bookId, userId });
     },
     saveCurrentUserReadingProgress: ({ currentUser, progress }) => {
-      const resolvedUser = resolveCurrentUser({
-        currentUser,
-        persistence,
-        idGenerator,
-        clock,
-      });
-
-      return saveReadingProgressRecord({
-        persistence,
-        clock,
-        idGenerator,
-        progress: {
-          ...progress,
-          userId: resolvedUser.id,
+      return flatMapAwaitable(
+        resolveCurrentUser({
+          currentUser,
+          persistence,
+          idGenerator,
+          clock,
+        }),
+        (resolvedUser) => {
+          return saveReadingProgressRecord({
+            persistence,
+            clock,
+            idGenerator,
+            progress: {
+              ...progress,
+              userId: resolvedUser.id,
+            },
+          });
         },
-      });
+      );
     },
     getCurrentUserReadingProgress: ({ currentUser, bookId }) => {
-      const resolvedUser = resolveCurrentUser({
-        currentUser,
-        persistence,
-        idGenerator,
-        clock,
-      });
-
-      return persistence.readingProgress.get({
-        bookId,
-        userId: resolvedUser.id,
-      });
+      return flatMapAwaitable(
+        resolveCurrentUser({
+          currentUser,
+          persistence,
+          idGenerator,
+          clock,
+        }),
+        (resolvedUser) => {
+          return persistence.readingProgress.get({
+            bookId,
+            userId: resolvedUser.id,
+          });
+        },
+      );
     },
     finalizeImportJob: ({ id }) => {
-      const currentImportJob = persistence.importJobs.get({ id });
+      return flatMapAwaitable(persistence.importJobs.get({ id }), (currentImportJob) => {
+        if (!currentImportJob) {
+          return null;
+        }
 
-      if (!currentImportJob) {
-        return null;
-      }
+        if (
+          currentImportJob.metadataCandidates.length > 0 &&
+          currentImportJob.selectedMetadataCandidateIndex < 0
+        ) {
+          return null;
+        }
 
-      if (
-        currentImportJob.metadataCandidates.length > 0 &&
-        currentImportJob.selectedMetadataCandidateIndex < 0
-      ) {
-        return null;
-      }
+        const importJobWithStoredCover = storeSelectedMetadataCandidateCover({
+          config,
+          fileStorage,
+          importJob: currentImportJob,
+        });
 
-      const importJobWithStoredCover = storeSelectedMetadataCandidateCover({
-        config,
-        fileStorage,
-        importJob: currentImportJob,
-      });
-
-      return persistence.importJobs.update({
-        id,
-        updates: {
-          metadataCandidates: importJobWithStoredCover.metadataCandidates,
-          status: "completed",
-          error: normalizeImportJobError(),
-        },
+        return persistence.importJobs.update({
+          id,
+          updates: {
+            metadataCandidates: importJobWithStoredCover.metadataCandidates,
+            status: "completed",
+            error: normalizeImportJobError(),
+          },
+        });
       });
     },
   };

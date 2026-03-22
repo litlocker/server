@@ -31,6 +31,18 @@ describe("http hono progress routes integration", () => {
       allowedFileExtensions: ["epub", "pdf", "cbz", "cbr"],
       duplicateCheckEnabled: true,
     },
+    database: {
+      host: "localhost",
+      port: 15_432,
+      user: "devdb",
+      password: "devpass",
+      database: "devdb",
+      schema: "litlocker",
+      sslEnabled: false,
+      poolMaxConnections: 10,
+      poolIdleTimeoutMs: 30_000,
+      connectionTimeoutMs: 5_000,
+    },
     auth: {
       enabled: false,
       bootstrapAdminEmail: "",
@@ -57,7 +69,7 @@ describe("http hono progress routes integration", () => {
     },
   };
 
-  const createTestApp = () => {
+  const createTestApp = async () => {
     const clock = createClockSystem();
     const logger = createLoggerPino({ config: config.logger });
     const persistence = createPersistenceInMemory();
@@ -70,12 +82,12 @@ describe("http hono progress routes integration", () => {
       logger,
     });
 
-    const book = application.createBook({
+    const book = await application.createBook({
       book: {
         title: "The Left Hand of Darkness",
       },
     });
-    const user = persistence.users.create({
+    const user = await persistence.users.create({
       record: {
         id: "user-1",
         authIssuer: "https://id.example.com",
@@ -102,7 +114,7 @@ describe("http hono progress routes integration", () => {
   };
 
   it("should save and retrieve reading progress through the API", async () => {
-    const { app, book, user } = createTestApp();
+    const { app, book, user } = await createTestApp();
 
     const saveResponse = await app.request(
       new Request("http://localhost/progress", {
@@ -143,7 +155,7 @@ describe("http hono progress routes integration", () => {
   });
 
   it("should reject invalid reader locators through the API", async () => {
-    const { app, book, user } = createTestApp();
+    const { app, book, user } = await createTestApp();
 
     const epubResponse = await app.request(
       new Request("http://localhost/progress", {

@@ -25,6 +25,19 @@ interface ImportsConfig {
   duplicateCheckEnabled: boolean;
 }
 
+interface DatabaseConfig {
+  host: string;
+  port: number;
+  user: string;
+  password: string;
+  database: string;
+  schema: string;
+  sslEnabled: boolean;
+  poolMaxConnections: number;
+  poolIdleTimeoutMs: number;
+  connectionTimeoutMs: number;
+}
+
 interface AuthConfig {
   enabled: boolean;
   bootstrapAdminEmail: string;
@@ -56,10 +69,11 @@ interface Config {
   server: ServerConfig;
   storage: StorageConfig;
   imports: ImportsConfig;
+  database: DatabaseConfig;
   auth: AuthConfig;
   metadataProviders: MetadataProvidersConfig;
 }
 
 type CreateConfig = () => Config;
 
-export type { AuthConfig, Config, CreateConfig };
+export type { AuthConfig, Config, CreateConfig, DatabaseConfig };

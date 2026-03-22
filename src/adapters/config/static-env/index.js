@@ -108,6 +108,33 @@ const createConfigStaticEnv = () => {
         defaultValue: true,
       }),
     },
+    database: {
+      host: process.env.DATABASE__HOST || "localhost",
+      port: getEnvNumber({
+        name: "DATABASE__PORT",
+        defaultValue: 15432,
+      }),
+      user: process.env.DATABASE__USER || "devdb",
+      password: process.env.DATABASE__PASSWORD || "devpass",
+      database: process.env.DATABASE__DATABASE || "devdb",
+      schema: process.env.DATABASE__SCHEMA || "litlocker",
+      sslEnabled: getEnvBoolean({
+        name: "DATABASE__SSL_ENABLED",
+        defaultValue: false,
+      }),
+      poolMaxConnections: getEnvNumber({
+        name: "DATABASE__POOL_MAX_CONNECTIONS",
+        defaultValue: 10,
+      }),
+      poolIdleTimeoutMs: getEnvNumber({
+        name: "DATABASE__POOL_IDLE_TIMEOUT_MS",
+        defaultValue: 30_000,
+      }),
+      connectionTimeoutMs: getEnvNumber({
+        name: "DATABASE__CONNECTION_TIMEOUT_MS",
+        defaultValue: 5_000,
+      }),
+    },
     auth: {
       enabled: getEnvBoolean({
         name: "AUTH__ENABLED",

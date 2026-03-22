@@ -7,6 +7,7 @@ import {
   ImportJobSourceKind,
   ImportJobStatus,
 } from "../entities/import-job.d.ts";
+import { Awaitable } from "./result.d.ts";
 
 interface CreateImportJobInput {
   source: {
@@ -30,19 +31,22 @@ interface ReviewImportJobInput {
   metadataCandidateIndex: number;
 }
 
-type CreateImportJob = ({ job }: { job: CreateImportJobInput }) => ImportJob;
-type IngestImportUpload = ({ upload }: { upload: IngestImportUploadInput }) => ImportJob;
-type ReviewImportJob = ({ id, metadataCandidateIndex }: ReviewImportJobInput) => ImportJob | null;
-type FinalizeImportJob = ({ id }: { id: string }) => ImportJob | null;
+type CreateImportJob = ({ job }: { job: CreateImportJobInput }) => Awaitable<ImportJob>;
+type IngestImportUpload = ({ upload }: { upload: IngestImportUploadInput }) => Awaitable<ImportJob>;
+type ReviewImportJob = ({
+  id,
+  metadataCandidateIndex,
+}: ReviewImportJobInput) => Awaitable<ImportJob | null>;
+type FinalizeImportJob = ({ id }: { id: string }) => Awaitable<ImportJob | null>;
 type UpdateImportJob = ({
   id,
   updates,
 }: {
   id: string;
   updates: Partial<ImportJob>;
-}) => ImportJob | null;
-type ListImportJobs = () => ImportJob[];
-type GetImportJob = ({ id }: { id: string }) => ImportJob | null;
+}) => Awaitable<ImportJob | null>;
+type ListImportJobs = () => Awaitable<ImportJob[]>;
+type GetImportJob = ({ id }: { id: string }) => Awaitable<ImportJob | null>;
 
 export type {
   ImportJob,
