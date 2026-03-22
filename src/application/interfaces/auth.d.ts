@@ -65,4 +65,15 @@ interface AuthProvider {
 
 type CreateAuthProvider = () => AuthProvider;
 
-export type { AuthProvider, CreateAuthProvider };
+export type {
+  AuthProvider,
+  AuthSession,
+  LoginInput,
+  LoginResult,
+  OidcCallbackInput,
+  AuthenticatedSession,
+  VerifySessionInput,
+  LogoutInput,
+  LogoutResult,
+  CreateAuthProvider,
+};
