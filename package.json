@@ -30,6 +30,7 @@
   "dependencies": {
     "@hono/node-server": "^1.19.11",
     "@hono/oidc-auth": "^1.8.1",
+    "@scalar/hono-api-reference": "^0.10.4",
     "ajv": "^8.18.0",
     "hono": "^4.12.8",
     "hono-rate-limiter": "^0.5.3",

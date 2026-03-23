@@ -107,9 +107,14 @@ describe("hono auth middleware", () => {
     });
 
     const healthResponse = await app.request("http://localhost/health");
+    const openApiResponse = await app.request("http://localhost/openapi.yaml");
+    const docsResponse = await app.request("http://localhost/docs");
     const booksResponse = await app.request("http://localhost/books");
 
     expect(healthResponse.status).toBe(200);
+    expect(openApiResponse.status).toBe(200);
+    expect(openApiResponse.headers.get("content-type")).toBe("application/yaml; charset=utf-8");
+    expect(docsResponse.status).toBe(200);
     expect(booksResponse.status).toBe(302);
     expect(booksResponse.headers.get("location")).toBe("https://id.example.com/authorize");
     expect(logger.info).toHaveBeenCalledWith("OIDC middleware handled request", {

@@ -10,6 +10,7 @@ import {
   processOAuthCallback,
   revokeSession,
 } from "@hono/oidc-auth";
+import { Scalar } from "@scalar/hono-api-reference";
 import { Hono } from "hono";
 import { rateLimiter } from "hono-rate-limiter";
 import { cors } from "hono/cors";
@@ -19,6 +20,7 @@ import { requestId } from "hono/request-id";
 import { secureHeaders } from "hono/secure-headers";
 import { timeout } from "hono/timeout";
 import { runWithLogContext } from "../../logger/request-context/index.js";
+import { OPENAPI_DOCUMENT } from "./openapi.js";
 import { createErrorBody, respondWithInternalError } from "./router/http-error-response.js";
 import { createRouters } from "./router/index.js";
 
@@ -98,6 +100,7 @@ const createRateLimitMiddleware = ({
 const createHonoApp = ({ application, authConfig, importsConfig, config, logger }) => {
   const app = new Hono();
   const isAuthEnabled = authConfig?.enabled ?? false;
+  const publicPaths = new Set(["/health", "/openapi.yaml", "/docs", "/auth/callback"]);
   const authRateLimit = authConfig?.rateLimit ?? {
     windowMs: 60_000,
     maxRequests: 10,
@@ -187,6 +190,25 @@ const createHonoApp = ({ application, authConfig, importsConfig, config, logger 
     );
   }
 
+  app.get("/openapi.yaml", () => {
+    return new Response(OPENAPI_DOCUMENT, {
+      status: 200,
+      headers: {
+        "content-type": "application/yaml; charset=utf-8",
+      },
+    });
+  });
+
+  app.get(
+    "/docs",
+    Scalar({
+      url: "/openapi.yaml",
+      pageTitle: "LitLocker API Reference",
+      documentDownloadType: "yaml",
+      telemetry: false,
+    }),
+  );
+
   app.route("/health", healthRouter);
 
   if (isAuthEnabled) {
@@ -225,7 +247,7 @@ const createHonoApp = ({ application, authConfig, importsConfig, config, logger 
     });
 
     app.use("*", async (c, next) => {
-      if (c.req.path === "/health" || c.req.path === "/auth/callback") {
+      if (publicPaths.has(c.req.path)) {
         return next();
       }
 

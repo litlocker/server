@@ -1,0 +1,1512 @@
+openapi: 3.1.1
+info:
+  title: LitLocker HTTP API
+  version: 1.0.0
+  summary: Static OpenAPI description for the Hono HTTP adapter.
+  description: |
+    This document describes the LitLocker HTTP API as implemented by the Hono adapter.
+
+    It models the auth-enabled deployment as the primary runtime mode:
+    - `/health`, `/openapi.yaml`, `/docs`, and `/auth/callback` are public.
+    - Other application routes are typically protected by an OIDC-backed session cookie.
+    - Protected routes may return an HTTP 302 redirect before handler logic runs.
+
+servers:
+  - url: /
+    description: Relative to the deployed LitLocker server base URL.
+
+tags:
+  - name: Health
+    description: Runtime and dependency health reporting.
+  - name: Auth
+    description: OIDC session callback and logout routes.
+  - name: Books
+    description: Book creation, listing, and updates.
+  - name: Imports
+    description: Import job creation, upload ingestion, and finalization.
+  - name: Progress
+    description: Reading progress routes for the current authenticated user.
+  - name: Shelves
+    description: Manual shelf management and shelf membership.
+
+security:
+  - sessionCookie: []
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      operationId: getHealth
+      summary: Get application health
+      security: []
+      responses:
+        "200":
+          description: Aggregated dependency health details.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+        "503":
+          $ref: "#/components/responses/DependencyUnavailable"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /auth/callback:
+    get:
+      tags:
+        - Auth
+      operationId: handleAuthCallback
+      summary: Complete the OIDC callback flow
+      security: []
+      parameters:
+        - name: code
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "302":
+          $ref: "#/components/responses/OidcRedirect"
+        "429":
+          $ref: "#/components/responses/AuthRateLimitExceeded"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /auth/logout:
+    post:
+      tags:
+        - Auth
+      operationId: logout
+      summary: Revoke the current authenticated session
+      responses:
+        "200":
+          description: Session revoked successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BooleanSuccess"
+        "302":
+          $ref: "#/components/responses/OidcRedirect"
+        "429":
+          $ref: "#/components/responses/AuthRateLimitExceeded"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /books:
+    get:
+      tags:
+        - Books
+      operationId: listBooks
+      summary: List books
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: title
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: author
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: tag
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: shelfId
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Matching books.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BooksEnvelope"
+        "302":
+          $ref: "#/components/responses/OidcRedirect"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      tags:
+        - Books
+      operationId: createBook
+      summary: Create a book
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBookInput"
+      responses:
+        "201":
+          description: Book created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookEnvelope"
+        "400":
+          $ref: "#/components/responses/InvalidBookPayload"
+        "302":
+          $ref: "#/components/responses/OidcRedirect"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /books/{id}:
+    get:
+      tags:
+        - Books
+      operationId: getBook
+      summary: Get a book by id
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      responses:
+        "200":
+          description: Book found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookEnvelope"
+        "404":
+          $ref: "#/components/responses/BookNotFound"
+        "302":
+          $ref: "#/components/responses/OidcRedirect"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    patch:
+      tags:
+        - Books
+      operationId: updateBook
+      summary: Update a book by id
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateBookInput"
+      responses:
+        "200":
+          description: Book updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BookEnvelope"
+        "400":
+          $ref: "#/components/responses/InvalidBookPayload"
+        "404":
+          $ref: "#/components/responses/BookNotFound"
+        "302":
+          $ref: "#/components/responses/OidcRedirect"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /imports:
+    get:
+      tags:
+        - Imports
+      operationId: listImportJobs
+      summary: List import jobs
+      responses:
+        "200":
+          description: Import jobs.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportJobsEnvelope"
+        "302":
+          $ref: "#/components/responses/OidcRedirect"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      tags:
+        - Imports
+      operationId: createOrUploadImport
+      summary: Create an import job or ingest an uploaded file
+      description: |
+        Use `application/json` to create an import job from structured metadata, or
+        `multipart/form-data` with a `file` field to upload an EPUB, PDF, CBZ, or CBR file.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateImportJobInput"
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "201":
+          description: Import job created or upload ingested.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportJobEnvelope"
+        "400":
+          $ref: "#/components/responses/ImportRequestInvalid"
+        "413":
+          $ref: "#/components/responses/ImportFileTooLarge"
+        "429":
+          $ref: "#/components/responses/UploadRateLimitExceeded"
+        "302":
+          $ref: "#/components/responses/OidcRedirect"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /imports/{id}:
+    get:
+      tags:
+        - Imports
+      operationId: getImportJob
+      summary: Get an import job by id
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      responses:
+        "200":
+          description: Import job found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportJobEnvelope"
+        "404":
+          $ref: "#/components/responses/ImportJobNotFound"
+        "302":
+          $ref: "#/components/responses/OidcRedirect"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /imports/{id}/finalize:
+    post:
+      tags:
+        - Imports
+      operationId: finalizeImportJob
+      summary: Finalize an import job
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      responses:
+        "200":
+          description: Import job finalized.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportJobEnvelope"
+        "404":
+          $ref: "#/components/responses/ImportJobNotFoundOrNotFinalizable"
+        "302":
+          $ref: "#/components/responses/OidcRedirect"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /progress/{bookId}:
+    get:
+      tags:
+        - Progress
+      operationId: getCurrentUserReadingProgress
+      summary: Get the current authenticated user's reading progress for a book
+      parameters:
+        - name: bookId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Reading progress found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadingProgressEnvelope"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/ReadingProgressNotFound"
+        "302":
+          $ref: "#/components/responses/OidcRedirect"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /progress:
+    post:
+      tags:
+        - Progress
+      operationId: saveCurrentUserReadingProgress
+      summary: Save reading progress for the current authenticated user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAuthenticatedReadingProgressInput"
+      responses:
+        "201":
+          description: Reading progress saved.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadingProgressEnvelope"
+        "400":
+          $ref: "#/components/responses/InvalidProgressPayload"
+        "401":
+          $ref: "#/components/responses/Unauthenticated"
+        "404":
+          $ref: "#/components/responses/BookOrUserNotFound"
+        "302":
+          $ref: "#/components/responses/OidcRedirect"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /shelves:
+    get:
+      tags:
+        - Shelves
+      operationId: listShelves
+      summary: List shelves
+      responses:
+        "200":
+          description: Shelves.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShelvesEnvelope"
+        "302":
+          $ref: "#/components/responses/OidcRedirect"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      tags:
+        - Shelves
+      operationId: createShelf
+      summary: Create a shelf
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateShelfInput"
+      responses:
+        "201":
+          description: Shelf created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShelfEnvelope"
+        "400":
+          $ref: "#/components/responses/InvalidShelfPayload"
+        "302":
+          $ref: "#/components/responses/OidcRedirect"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /shelves/{id}:
+    patch:
+      tags:
+        - Shelves
+      operationId: updateShelf
+      summary: Update a shelf by id
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateShelfInput"
+      responses:
+        "200":
+          description: Shelf updated.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShelfEnvelope"
+        "400":
+          $ref: "#/components/responses/InvalidShelfPayload"
+        "404":
+          $ref: "#/components/responses/ShelfNotFound"
+        "302":
+          $ref: "#/components/responses/OidcRedirect"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      tags:
+        - Shelves
+      operationId: deleteShelf
+      summary: Delete a shelf by id
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+      responses:
+        "200":
+          description: Shelf deleted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BooleanSuccess"
+        "404":
+          $ref: "#/components/responses/ShelfNotFound"
+        "302":
+          $ref: "#/components/responses/OidcRedirect"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /shelves/{id}/books/{bookId}:
+    post:
+      tags:
+        - Shelves
+      operationId: addBookToShelf
+      summary: Add a book to a shelf
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+        - name: bookId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Shelf updated with the book.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShelfEnvelope"
+        "404":
+          $ref: "#/components/responses/ShelfOrBookNotFound"
+        "302":
+          $ref: "#/components/responses/OidcRedirect"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    delete:
+      tags:
+        - Shelves
+      operationId: removeBookFromShelf
+      summary: Remove a book from a shelf
+      parameters:
+        - $ref: "#/components/parameters/IdPath"
+        - name: bookId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Shelf updated without the book.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ShelfEnvelope"
+        "404":
+          $ref: "#/components/responses/ShelfNotFound"
+        "302":
+          $ref: "#/components/responses/OidcRedirect"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+components:
+  parameters:
+    IdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: litlocker-session
+      description: |
+        Session cookie used by the auth-enabled deployment. The cookie name defaults to
+        `litlocker-session` and can be changed at runtime with `AUTH__SESSION_COOKIE_NAME`.
+
+  schemas:
+    BooleanSuccess:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+      properties:
+        success:
+          type: boolean
+
+    HealthStatus:
+      type: object
+      required:
+        - status
+        - details
+      properties:
+        status:
+          type: string
+          enum:
+            - ok
+            - error
+        details:
+          type: object
+          additionalProperties: true
+
+    ErrorBody:
+      type: object
+      required:
+        - code
+        - message
+        - details
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+
+    ErrorEnvelope:
+      type: object
+      required:
+        - message
+        - error
+      properties:
+        message:
+          type: string
+        error:
+          $ref: "#/components/schemas/ErrorBody"
+
+    ValidationErrorDetails:
+      type: object
+      required:
+        - resource
+        - errors
+      properties:
+        resource:
+          type: string
+        errors:
+          type: array
+          items:
+            type: string
+      additionalProperties: true
+
+    ValidationErrorBody:
+      type: object
+      required:
+        - code
+        - message
+        - details
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          $ref: "#/components/schemas/ValidationErrorDetails"
+
+    ValidationErrorEnvelope:
+      type: object
+      required:
+        - message
+        - error
+        - errors
+      properties:
+        message:
+          type: string
+        error:
+          $ref: "#/components/schemas/ValidationErrorBody"
+        errors:
+          type: array
+          items:
+            type: string
+
+    BookIdentifiers:
+      type: object
+      additionalProperties: false
+      required:
+        - isbn10
+        - isbn13
+        - asin
+        - goodreadsId
+        - googleBooksId
+      properties:
+        isbn10:
+          type: string
+        isbn13:
+          type: string
+        asin:
+          type: string
+        goodreadsId:
+          type: string
+        googleBooksId:
+          type: string
+
+    PartialBookIdentifiers:
+      type: object
+      additionalProperties: false
+      properties:
+        isbn10:
+          type: string
+        isbn13:
+          type: string
+        asin:
+          type: string
+        goodreadsId:
+          type: string
+        googleBooksId:
+          type: string
+
+    BookCover:
+      type: object
+      additionalProperties: false
+      required:
+        - sourcePath
+        - thumbnailPath
+        - mimeType
+        - dominantColor
+      properties:
+        sourcePath:
+          type: string
+        thumbnailPath:
+          type: string
+        mimeType:
+          type: string
+        dominantColor:
+          type: string
+
+    PartialBookCover:
+      type: object
+      additionalProperties: false
+      properties:
+        sourcePath:
+          type: string
+        thumbnailPath:
+          type: string
+        mimeType:
+          type: string
+        dominantColor:
+          type: string
+
+    Book:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - title
+        - subtitle
+        - description
+        - language
+        - authors
+        - tags
+        - seriesName
+        - seriesNumber
+        - cover
+        - identifiers
+        - filePath
+        - libraryStatus
+        - readingStatus
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        subtitle:
+          type: string
+        description:
+          type: string
+        language:
+          type: string
+        authors:
+          type: array
+          items:
+            type: string
+        tags:
+          type: array
+          items:
+            type: string
+        seriesName:
+          type: string
+        seriesNumber:
+          type: string
+        cover:
+          $ref: "#/components/schemas/BookCover"
+        identifiers:
+          $ref: "#/components/schemas/BookIdentifiers"
+        filePath:
+          type: string
+        libraryStatus:
+          type: string
+          enum:
+            - draft
+            - ready
+            - archived
+        readingStatus:
+          type: string
+          enum:
+            - unread
+            - started
+            - finished
+
+    CreateBookInput:
+      type: object
+      additionalProperties: false
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          minLength: 1
+        subtitle:
+          type: string
+        description:
+          type: string
+        language:
+          type: string
+        authors:
+          type: array
+          items:
+            type: string
+        tags:
+          type: array
+          items:
+            type: string
+        seriesName:
+          type: string
+        seriesNumber:
+          type: string
+        cover:
+          $ref: "#/components/schemas/PartialBookCover"
+        identifiers:
+          $ref: "#/components/schemas/PartialBookIdentifiers"
+        filePath:
+          type: string
+        libraryStatus:
+          type: string
+          enum:
+            - draft
+            - ready
+            - archived
+        readingStatus:
+          type: string
+          enum:
+            - unread
+            - started
+            - finished
+
+    UpdateBookInput:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        title:
+          type: string
+          minLength: 1
+        subtitle:
+          type: string
+        description:
+          type: string
+        language:
+          type: string
+        authors:
+          type: array
+          items:
+            type: string
+        tags:
+          type: array
+          items:
+            type: string
+        seriesName:
+          type: string
+        seriesNumber:
+          type: string
+        cover:
+          $ref: "#/components/schemas/PartialBookCover"
+        identifiers:
+          $ref: "#/components/schemas/PartialBookIdentifiers"
+        filePath:
+          type: string
+        libraryStatus:
+          type: string
+          enum:
+            - draft
+            - ready
+            - archived
+        readingStatus:
+          type: string
+          enum:
+            - unread
+            - started
+            - finished
+
+    BookEnvelope:
+      type: object
+      additionalProperties: false
+      required:
+        - book
+      properties:
+        book:
+          $ref: "#/components/schemas/Book"
+
+    BooksEnvelope:
+      type: object
+      additionalProperties: false
+      required:
+        - books
+      properties:
+        books:
+          type: array
+          items:
+            $ref: "#/components/schemas/Book"
+
+    Shelf:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - kind
+        - name
+        - description
+        - bookIds
+      properties:
+        id:
+          type: string
+        kind:
+          type: string
+          enum:
+            - manual
+        name:
+          type: string
+        description:
+          type: string
+        bookIds:
+          type: array
+          items:
+            type: string
+
+    CreateShelfInput:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: string
+
+    UpdateShelfInput:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: string
+
+    ShelfEnvelope:
+      type: object
+      additionalProperties: false
+      required:
+        - shelf
+      properties:
+        shelf:
+          $ref: "#/components/schemas/Shelf"
+
+    ShelvesEnvelope:
+      type: object
+      additionalProperties: false
+      required:
+        - shelves
+      properties:
+        shelves:
+          type: array
+          items:
+            $ref: "#/components/schemas/Shelf"
+
+    ImportJobSource:
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+        - path
+        - originalFileName
+      properties:
+        kind:
+          type: string
+          enum:
+            - upload
+            - filesystem
+        path:
+          type: string
+        originalFileName:
+          type: string
+
+    ImportJobMetadataCandidate:
+      type: object
+      additionalProperties: false
+      required:
+        - title
+        - subtitle
+        - description
+        - language
+        - authors
+        - tags
+        - seriesName
+        - seriesNumber
+        - identifiers
+        - coverPath
+        - source
+        - confidence
+      properties:
+        title:
+          type: string
+        subtitle:
+          type: string
+        description:
+          type: string
+        language:
+          type: string
+        authors:
+          type: array
+          items:
+            type: string
+        tags:
+          type: array
+          items:
+            type: string
+        seriesName:
+          type: string
+        seriesNumber:
+          type: string
+        identifiers:
+          $ref: "#/components/schemas/BookIdentifiers"
+        coverPath:
+          type: string
+        source:
+          type: string
+        confidence:
+          type: string
+
+    ImportJobErrorDetails:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - message
+        - details
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: string
+
+    ImportJobDuplicateDetection:
+      type: object
+      additionalProperties: false
+      required:
+        - fileHash
+        - duplicateImportJobIds
+        - duplicateBookIds
+      properties:
+        fileHash:
+          type: string
+        duplicateImportJobIds:
+          type: array
+          items:
+            type: string
+        duplicateBookIds:
+          type: array
+          items:
+            type: string
+
+    ImportJob:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - status
+        - source
+        - detectedFileType
+        - metadataCandidates
+        - selectedMetadataCandidateIndex
+        - duplicateDetection
+        - error
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum:
+            - queued
+            - processing
+            - review
+            - completed
+            - failed
+        source:
+          $ref: "#/components/schemas/ImportJobSource"
+        detectedFileType:
+          type: string
+        metadataCandidates:
+          type: array
+          items:
+            $ref: "#/components/schemas/ImportJobMetadataCandidate"
+        selectedMetadataCandidateIndex:
+          type: integer
+        duplicateDetection:
+          $ref: "#/components/schemas/ImportJobDuplicateDetection"
+        error:
+          $ref: "#/components/schemas/ImportJobErrorDetails"
+
+    CreateImportJobInput:
+      type: object
+      additionalProperties: false
+      required:
+        - source
+      properties:
+        source:
+          type: object
+          additionalProperties: false
+          required:
+            - kind
+            - path
+          properties:
+            kind:
+              type: string
+              enum:
+                - upload
+                - filesystem
+            path:
+              type: string
+            originalFileName:
+              type: string
+        detectedFileType:
+          type: string
+        metadataCandidates:
+          type: array
+          items:
+            $ref: "#/components/schemas/ImportJobMetadataCandidate"
+        fileHash:
+          type: string
+
+    ImportJobEnvelope:
+      type: object
+      additionalProperties: false
+      required:
+        - importJob
+      properties:
+        importJob:
+          $ref: "#/components/schemas/ImportJob"
+
+    ImportJobsEnvelope:
+      type: object
+      additionalProperties: false
+      required:
+        - importJobs
+      properties:
+        importJobs:
+          type: array
+          items:
+            $ref: "#/components/schemas/ImportJob"
+
+    ReadingProgress:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - bookId
+        - userId
+        - format
+        - locator
+        - percentage
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        bookId:
+          type: string
+        userId:
+          type: string
+        format:
+          type: string
+          enum:
+            - epub
+            - pdf
+            - comic
+        locator:
+          type: string
+        percentage:
+          type: string
+          pattern: ^(0(\.\d+)?|1(\.0+)?)$
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    CreateAuthenticatedReadingProgressInput:
+      type: object
+      additionalProperties: false
+      required:
+        - bookId
+        - format
+        - locator
+        - percentage
+      properties:
+        bookId:
+          type: string
+          minLength: 1
+        format:
+          type: string
+          enum:
+            - epub
+            - pdf
+            - comic
+        locator:
+          type: string
+          minLength: 1
+          description: |
+            Format-specific locator:
+            - EPUB: `epubcfi(...)`
+            - PDF: `page=<number>`
+            - Comic: `image=<number>`
+        percentage:
+          type: string
+          pattern: ^(0(\.\d+)?|1(\.0+)?)$
+
+    ReadingProgressEnvelope:
+      type: object
+      additionalProperties: false
+      required:
+        - progress
+      properties:
+        progress:
+          $ref: "#/components/schemas/ReadingProgress"
+
+  responses:
+    OidcRedirect:
+      description: |
+        The OIDC middleware intercepted the request and redirected the client to continue or
+        refresh authentication.
+
+    InternalServerError:
+      description: Unexpected adapter or application failure.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+          examples:
+            default:
+              value:
+                message: An unexpected error occurred
+                error:
+                  code: internal_server_error
+                  message: An unexpected error occurred
+                  details:
+                    path: /books
+                    method: GET
+
+    DependencyUnavailable:
+      description: One or more health dependencies are unavailable.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+          examples:
+            default:
+              value:
+                message: One or more application dependencies are unavailable
+                error:
+                  code: dependency_unavailable
+                  message: One or more application dependencies are unavailable
+                  details:
+                    checks: {}
+
+    AuthRateLimitExceeded:
+      description: Authentication rate limit exceeded.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+          examples:
+            default:
+              value:
+                message: Authentication rate limit exceeded
+                error:
+                  code: auth_rate_limit_exceeded
+                  message: Authentication rate limit exceeded
+                  details:
+                    area: auth
+                    maxRequests: 10
+                    windowMs: 60000
+
+    UploadRateLimitExceeded:
+      description: Multipart upload rate limit exceeded.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+          examples:
+            default:
+              value:
+                message: Upload rate limit exceeded
+                error:
+                  code: upload_rate_limit_exceeded
+                  message: Upload rate limit exceeded
+                  details:
+                    area: imports
+                    maxRequests: 10
+                    windowMs: 60000
+
+    InvalidBookPayload:
+      description: Book payload failed validation.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ValidationErrorEnvelope"
+          examples:
+            default:
+              value:
+                message: Invalid book payload
+                error:
+                  code: invalid_book_payload
+                  message: Invalid book payload
+                  details:
+                    resource: book
+                    errors:
+                      - / must have required property 'title'
+                errors:
+                  - / must have required property 'title'
+
+    InvalidShelfPayload:
+      description: Shelf payload failed validation.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ValidationErrorEnvelope"
+          examples:
+            default:
+              value:
+                message: Invalid shelf payload
+                error:
+                  code: invalid_shelf_payload
+                  message: Invalid shelf payload
+                  details:
+                    resource: shelf
+                    errors:
+                      - / must have required property 'name'
+                errors:
+                  - / must have required property 'name'
+
+    InvalidProgressPayload:
+      description: Reading progress payload failed validation.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ValidationErrorEnvelope"
+          examples:
+            default:
+              value:
+                message: Invalid progress payload
+                error:
+                  code: invalid_progress_payload
+                  message: Invalid progress payload
+                  details:
+                    resource: progress
+                    errors:
+                      - /locator must be a valid EPUB CFI
+                errors:
+                  - /locator must be a valid EPUB CFI
+
+    BookNotFound:
+      description: Book not found.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+          examples:
+            default:
+              value:
+                message: Book not found
+                error:
+                  code: book_not_found
+                  message: Book not found
+                  details:
+                    id: missing-book-id
+
+    ShelfNotFound:
+      description: Shelf not found.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+          examples:
+            default:
+              value:
+                message: Shelf not found
+                error:
+                  code: shelf_not_found
+                  message: Shelf not found
+                  details:
+                    id: missing-shelf-id
+
+    ShelfOrBookNotFound:
+      description: Shelf or book not found.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+          examples:
+            default:
+              value:
+                message: Shelf or book not found
+                error:
+                  code: shelf_or_book_not_found
+                  message: Shelf or book not found
+                  details:
+                    shelfId: missing-shelf-id
+                    bookId: book-1
+
+    ImportRequestInvalid:
+      description: Upload or import-job request could not be accepted.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+          examples:
+            fileMissing:
+              value:
+                message: Import file not found
+                error:
+                  code: import_file_not_found
+                  message: Import file not found
+                  details: {}
+            unsupportedExtension:
+              value:
+                message: Import file extension is not allowed
+                error:
+                  code: unsupported_import_file_extension
+                  message: Import file extension is not allowed
+                  details:
+                    fileName: notes.txt
+                    fileExtension: txt
+                    allowedFileExtensions:
+                      - epub
+                      - pdf
+                      - cbz
+                      - cbr
+
+    ImportFileTooLarge:
+      description: Uploaded import file exceeds the configured size limit.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+          examples:
+            default:
+              value:
+                message: Import file exceeds the configured size limit
+                error:
+                  code: import_file_too_large
+                  message: Import file exceeds the configured size limit
+                  details:
+                    fileName: left-hand.epub
+                    fileSizeInBytes: 100000001
+                    maxFileSizeInBytes: 100000000
+
+    ImportJobNotFound:
+      description: Import job not found.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+          examples:
+            default:
+              value:
+                message: Import job not found
+                error:
+                  code: import_job_not_found
+                  message: Import job not found
+                  details:
+                    id: missing-import-job-id
+
+    ImportJobNotFoundOrNotFinalizable:
+      description: Import job not found or cannot be finalized.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+          examples:
+            default:
+              value:
+                message: Import job not found or cannot be finalized
+                error:
+                  code: import_job_not_found_or_not_finalizable
+                  message: Import job not found or cannot be finalized
+                  details:
+                    id: import-job-1
+
+    ReadingProgressNotFound:
+      description: Reading progress not found.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+          examples:
+            default:
+              value:
+                message: Reading progress not found
+                error:
+                  code: reading_progress_not_found
+                  message: Reading progress not found
+                  details:
+                    bookId: book-1
+
+    BookOrUserNotFound:
+      description: Book or user not found.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+          examples:
+            default:
+              value:
+                message: Book or user not found
+                error:
+                  code: book_or_user_not_found
+                  message: Book or user not found
+                  details:
+                    bookId: book-1
+
+    Unauthenticated:
+      description: Authentication is required but no current user could be resolved.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+          examples:
+            default:
+              value:
+                message: Authentication is required
+                error:
+                  code: unauthenticated
+                  message: Authentication is required
+                  details: {}
