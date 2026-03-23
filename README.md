@@ -73,6 +73,7 @@ The repository includes:
 
 - [Dockerfile](./Dockerfile)
 - [docker-compose.yaml](./docker-compose.yaml)
+- [docker-compose.coolify.yaml](./docker-compose.coolify.yaml)
 
 Quick start:
 
@@ -87,6 +88,17 @@ Expected result:
 - `litlocker-postgres` is available on `localhost:15432`
 - both containers have health checks
 - the app runs pending migrations automatically on startup
+
+### Coolify
+
+For a Docker Compose deployment in Coolify, use [docker-compose.coolify.yaml](./docker-compose.coolify.yaml).
+
+Notes:
+
+- it is production-oriented, so it does not publish host ports directly
+- Coolify should route traffic to the `litlocker-server` service on container port `3000`
+- required values such as `SERVER__HTTP__ADDRESS`, `DATABASE__PASSWORD`, and `AUTH__SESSION_SECRET` are surfaced through Compose variable placeholders in Coolify's UI
+- if `AUTH__ENABLED=true`, you must also provide the OIDC settings required by the app config validator
 
 Persistent volumes in the compose stack:
 

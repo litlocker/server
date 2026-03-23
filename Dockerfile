@@ -22,6 +22,7 @@ ENV NODE_ENV=production
 
 COPY --from=prod-deps /app/node_modules ./node_modules
 COPY package.json pnpm-lock.yaml ./
+COPY openapi.yaml ./openapi.yaml
 COPY src ./src
 
 EXPOSE 3000

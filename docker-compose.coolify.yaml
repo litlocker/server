@@ -1,0 +1,97 @@
+services:
+  litlocker-postgres:
+    image: postgres:17-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DATABASE__USER:-litlocker}
+      POSTGRES_PASSWORD: ${DATABASE__PASSWORD:?}
+      POSTGRES_DB: ${DATABASE__DATABASE:-litlocker}
+    volumes:
+      - litlocker-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DATABASE__USER:-litlocker} -d ${DATABASE__DATABASE:-litlocker}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+
+  litlocker-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      litlocker-postgres:
+        condition: service_healthy
+    expose:
+      - "3000"
+    environment:
+      NODE_ENV: production
+      LOGGER__DEBUG_LOGS_ENABLED: ${LOGGER__DEBUG_LOGS_ENABLED:-false}
+      SERVER__HTTP__ADDRESS: ${SERVER__HTTP__ADDRESS:?https://litlocker.example.com}
+      SERVER__HTTP__PORT: ${SERVER__HTTP__PORT:-3000}
+      SERVER__HTTP__TIMEOUT_MS: ${SERVER__HTTP__TIMEOUT_MS:-9000}
+      STORAGE__PATHS__LIBRARY: /app/data/library
+      STORAGE__PATHS__IMPORTS: /app/data/imports
+      STORAGE__PATHS__COVERS: /app/data/covers
+      IMPORTS__MAX_FILE_SIZE_IN_BYTES: ${IMPORTS__MAX_FILE_SIZE_IN_BYTES:-100000000}
+      IMPORTS__ALLOWED_FILE_EXTENSIONS: ${IMPORTS__ALLOWED_FILE_EXTENSIONS:-epub,pdf,cbz,cbr}
+      IMPORTS__DUPLICATE_CHECK_ENABLED: ${IMPORTS__DUPLICATE_CHECK_ENABLED:-true}
+      IMPORTS__UPLOAD_RATE_LIMIT__WINDOW_MS: ${IMPORTS__UPLOAD_RATE_LIMIT__WINDOW_MS:-60000}
+      IMPORTS__UPLOAD_RATE_LIMIT__MAX_REQUESTS: ${IMPORTS__UPLOAD_RATE_LIMIT__MAX_REQUESTS:-10}
+      DATABASE__HOST: litlocker-postgres
+      DATABASE__PORT: 5432
+      DATABASE__USER: ${DATABASE__USER:-litlocker}
+      DATABASE__PASSWORD: ${DATABASE__PASSWORD:?}
+      DATABASE__DATABASE: ${DATABASE__DATABASE:-litlocker}
+      DATABASE__SCHEMA: ${DATABASE__SCHEMA:-litlocker}
+      DATABASE__SSL_ENABLED: ${DATABASE__SSL_ENABLED:-false}
+      DATABASE__POOL_MAX_CONNECTIONS: ${DATABASE__POOL_MAX_CONNECTIONS:-10}
+      DATABASE__POOL_IDLE_TIMEOUT_MS: ${DATABASE__POOL_IDLE_TIMEOUT_MS:-30000}
+      DATABASE__CONNECTION_TIMEOUT_MS: ${DATABASE__CONNECTION_TIMEOUT_MS:-5000}
+      AUTH__ENABLED: ${AUTH__ENABLED:-false}
+      AUTH__BOOTSTRAP_ADMIN_EMAIL: ${AUTH__BOOTSTRAP_ADMIN_EMAIL:-}
+      AUTH__BOOTSTRAP_ADMIN_PASSWORD: ${AUTH__BOOTSTRAP_ADMIN_PASSWORD:-}
+      AUTH__SESSION_SECRET: ${AUTH__SESSION_SECRET:?0123456789abcdef0123456789abcdef}
+      AUTH__SESSION_TTL_MS: ${AUTH__SESSION_TTL_MS:-86400000}
+      AUTH__SESSION_COOKIE_NAME: ${AUTH__SESSION_COOKIE_NAME:-litlocker-session}
+      AUTH__SESSION_COOKIE_SECURE: ${AUTH__SESSION_COOKIE_SECURE:-true}
+      AUTH__RATE_LIMIT__WINDOW_MS: ${AUTH__RATE_LIMIT__WINDOW_MS:-60000}
+      AUTH__RATE_LIMIT__MAX_REQUESTS: ${AUTH__RATE_LIMIT__MAX_REQUESTS:-10}
+      AUTH__OIDC__ISSUER_URL: ${AUTH__OIDC__ISSUER_URL:-}
+      AUTH__OIDC__CLIENT_ID: ${AUTH__OIDC__CLIENT_ID:-}
+      AUTH__OIDC__CLIENT_SECRET: ${AUTH__OIDC__CLIENT_SECRET:-}
+      AUTH__OIDC__REDIRECT_URL: ${AUTH__OIDC__REDIRECT_URL:-}
+      AUTH__OIDC__POST_LOGOUT_REDIRECT_URL: ${AUTH__OIDC__POST_LOGOUT_REDIRECT_URL:-}
+      AUTH__OIDC__SCOPES: ${AUTH__OIDC__SCOPES:-openid,profile,email}
+      AUTH__OIDC__REQUIRE_PKCE: ${AUTH__OIDC__REQUIRE_PKCE:-true}
+      AUTH__OIDC__DISCOVERY_TIMEOUT_MS: ${AUTH__OIDC__DISCOVERY_TIMEOUT_MS:-5000}
+      METADATA_PROVIDERS__ENABLED_PROVIDERS: ${METADATA_PROVIDERS__ENABLED_PROVIDERS:-open-library}
+      METADATA_PROVIDERS__LOOKUP_TIMEOUT_MS: ${METADATA_PROVIDERS__LOOKUP_TIMEOUT_MS:-5000}
+      METADATA_PROVIDERS__DEFAULT_LANGUAGE: ${METADATA_PROVIDERS__DEFAULT_LANGUAGE:-en}
+    volumes:
+      - litlocker-library-data:/app/data/library
+      - litlocker-imports-data:/app/data/imports
+      - litlocker-covers-data:/app/data/covers
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/health').then((response) => { if (!response.ok) process.exit(1); }).catch(() => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  litlocker-postgres-data:
+  litlocker-library-data:
+  litlocker-imports-data:
+  litlocker-covers-data:
