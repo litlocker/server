@@ -25,7 +25,7 @@
     "test:integration": "pnpm run test:base --config vitest.config.integration.js",
     "test": "pnpm run test:unit && pnpm run test:integration",
     "test:watch": "vitest",
-    "prepare": "husky"
+    "//prepare": "husky"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.11",
