@@ -13,12 +13,7 @@ import {
 import { Logger } from "./interfaces/logger.d.ts";
 import { MetadataProvider } from "./interfaces/metadata-provider.d.ts";
 import { Persistence } from "./interfaces/persistence.d.ts";
-import {
-  GetReadingProgress as GetReadingProgressFn,
-  GetCurrentUserReadingProgress as GetCurrentUserReadingProgressFn,
-  SaveReadingProgress as SaveReadingProgressFn,
-  SaveCurrentUserReadingProgress as SaveCurrentUserReadingProgressFn,
-} from "./interfaces/reading-progress.d.ts";
+import { ReadingProgress, SaveReadingProgressInput } from "./interfaces/reading-progress.d.ts";
 import { Result, HealthStatus } from "./interfaces/result.d.ts";
 import { Awaitable } from "./interfaces/result.d.ts";
 import {
@@ -28,6 +23,7 @@ import {
   Shelf,
   UpdateShelfInput,
 } from "./interfaces/shelf.d.ts";
+import { CurrentUserInput } from "./interfaces/user.d.ts";
 
 type Health = () => Awaitable<Result<HealthStatus>>;
 type CreateBook = ({ book }: { book: CreateBookInput }) => Awaitable<Book>;
@@ -65,10 +61,32 @@ type ReviewImportJob = ({
 type ListImportJobs = () => Awaitable<ImportJob[]>;
 type GetImportJob = ({ id }: { id: string }) => Awaitable<ImportJob | null>;
 type FinalizeImportJob = ({ id }: { id: string }) => Awaitable<ImportJob | null>;
-type SaveReadingProgress = SaveReadingProgressFn;
-type GetReadingProgress = GetReadingProgressFn;
-type SaveCurrentUserReadingProgress = SaveCurrentUserReadingProgressFn;
-type GetCurrentUserReadingProgress = GetCurrentUserReadingProgressFn;
+type SaveReadingProgress = ({
+  progress,
+}: {
+  progress: SaveReadingProgressInput;
+}) => Awaitable<ReadingProgress | null>;
+type GetReadingProgress = ({
+  bookId,
+  userId,
+}: {
+  bookId: string;
+  userId: string;
+}) => Awaitable<ReadingProgress | null>;
+type SaveCurrentUserReadingProgress = ({
+  currentUser,
+  progress,
+}: {
+  currentUser: CurrentUserInput;
+  progress: Omit<SaveReadingProgressInput, "userId">;
+}) => Awaitable<ReadingProgress | null>;
+type GetCurrentUserReadingProgress = ({
+  currentUser,
+  bookId,
+}: {
+  currentUser: CurrentUserInput;
+  bookId: string;
+}) => Awaitable<ReadingProgress | null>;
 
 interface Application {
   health: Health;

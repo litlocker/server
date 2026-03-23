@@ -5,11 +5,10 @@
  * @import { ImportJob, ImportJobDuplicateDetection, ImportJobErrorDetails, ImportJobMetadataCandidate, ImportJobSource, CreateImportJobInput } from './interfaces/import-job.js'
  * @import { ListBooksInput } from './interfaces/book.js'
  * @import {
- *   GetCurrentUserReadingProgress,
  *   ReadingProgress,
- *   SaveCurrentUserReadingProgress,
  *   SaveReadingProgressInput,
  * } from './interfaces/reading-progress.js'
+ * @import { Awaitable } from './interfaces/result.js'
  * @import { CreateShelfInput, Shelf, UpdateShelfInput } from './interfaces/shelf.js'
  * @import { FailureResult, HealthStatus, SuccessResult } from './interfaces/result.js'
  * @import { CurrentUserInput } from './interfaces/user.js'
@@ -840,7 +839,7 @@ const createUserFromCurrentUser = (currentUser, timestamp) => {
  * @param {import("./interfaces/persistence.js").Persistence} params.persistence
  * @param {import("./interfaces/id-generator.js").IdGenerator} params.idGenerator
  * @param {import("./interfaces/clock.js").Clock} params.clock
- * @returns {import("./entities/user.js").User | Promise<import("./entities/user.js").User>}
+ * @returns {Awaitable<import("./entities/user.js").User>}
  */
 const resolveCurrentUser = ({ currentUser, persistence, idGenerator, clock }) => {
   const timestamp = clock.now().toISOString();
@@ -881,7 +880,7 @@ const resolveCurrentUser = ({ currentUser, persistence, idGenerator, clock }) =>
  * @param {import("./interfaces/clock.js").Clock} params.clock
  * @param {import("./interfaces/id-generator.js").IdGenerator} params.idGenerator
  * @param {SaveReadingProgressInput} params.progress
- * @returns {ReadingProgress | null | Promise<ReadingProgress | null>}
+ * @returns {Awaitable<ReadingProgress | null>}
  */
 const saveReadingProgressRecord = ({ persistence, clock, idGenerator, progress }) => {
   const currentBook = persistence.books.get({ id: progress.bookId });
@@ -1058,6 +1057,74 @@ const createApplication = ({
   idGenerator,
   logger,
 }) => {
+  /**
+   * @param {{ progress: SaveReadingProgressInput }} params
+   * @returns {Awaitable<ReadingProgress | null>}
+   */
+  const saveReadingProgress = ({ progress }) => {
+    return saveReadingProgressRecord({
+      persistence,
+      clock,
+      idGenerator,
+      progress,
+    });
+  };
+
+  /**
+   * @param {{ bookId: string; userId: string }} params
+   * @returns {Awaitable<ReadingProgress | null>}
+   */
+  const getReadingProgress = ({ bookId, userId }) => {
+    return persistence.readingProgress.get({ bookId, userId });
+  };
+
+  /**
+   * @param {{ currentUser: CurrentUserInput; progress: Omit<SaveReadingProgressInput, "userId"> }} params
+   * @returns {Awaitable<ReadingProgress | null>}
+   */
+  const saveCurrentUserReadingProgress = ({ currentUser, progress }) => {
+    return flatMapAwaitable(
+      resolveCurrentUser({
+        currentUser,
+        persistence,
+        idGenerator,
+        clock,
+      }),
+      (resolvedUser) => {
+        return saveReadingProgressRecord({
+          persistence,
+          clock,
+          idGenerator,
+          progress: {
+            ...progress,
+            userId: resolvedUser.id,
+          },
+        });
+      },
+    );
+  };
+
+  /**
+   * @param {{ currentUser: CurrentUserInput; bookId: string }} params
+   * @returns {Awaitable<ReadingProgress | null>}
+   */
+  const getCurrentUserReadingProgress = ({ currentUser, bookId }) => {
+    return flatMapAwaitable(
+      resolveCurrentUser({
+        currentUser,
+        persistence,
+        idGenerator,
+        clock,
+      }),
+      (resolvedUser) => {
+        return persistence.readingProgress.get({
+          bookId,
+          userId: resolvedUser.id,
+        });
+      },
+    );
+  };
+
   return {
     health: () => {
       const checks = {
@@ -1430,54 +1497,10 @@ const createApplication = ({
     getImportJob: ({ id }) => {
       return persistence.importJobs.get({ id });
     },
-    saveReadingProgress: ({ progress }) => {
-      return saveReadingProgressRecord({
-        persistence,
-        clock,
-        idGenerator,
-        progress,
-      });
-    },
-    getReadingProgress: ({ bookId, userId }) => {
-      return persistence.readingProgress.get({ bookId, userId });
-    },
-    saveCurrentUserReadingProgress: ({ currentUser, progress }) => {
-      return flatMapAwaitable(
-        resolveCurrentUser({
-          currentUser,
-          persistence,
-          idGenerator,
-          clock,
-        }),
-        (resolvedUser) => {
-          return saveReadingProgressRecord({
-            persistence,
-            clock,
-            idGenerator,
-            progress: {
-              ...progress,
-              userId: resolvedUser.id,
-            },
-          });
-        },
-      );
-    },
-    getCurrentUserReadingProgress: ({ currentUser, bookId }) => {
-      return flatMapAwaitable(
-        resolveCurrentUser({
-          currentUser,
-          persistence,
-          idGenerator,
-          clock,
-        }),
-        (resolvedUser) => {
-          return persistence.readingProgress.get({
-            bookId,
-            userId: resolvedUser.id,
-          });
-        },
-      );
-    },
+    saveReadingProgress,
+    getReadingProgress,
+    saveCurrentUserReadingProgress,
+    getCurrentUserReadingProgress,
     finalizeImportJob: ({ id }) => {
       return flatMapAwaitable(persistence.importJobs.get({ id }), (currentImportJob) => {
         if (!currentImportJob) {
